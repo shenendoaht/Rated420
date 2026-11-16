@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111711">
+  <meta name="description" content="Rated420 NY — community-powered cannabis reviews, rated out of 420. For adults 21 and older.">
+  <title>Rated420 NY | Your experience. Out of 420.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/rated420-logo.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#siteMain">Skip to content</a>
+
+  <!-- Self-attestation only, not proof of age. An actual public launch needs legal review. -->
+  <div class="age-gate" id="ageGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-bg" aria-hidden="true"></div>
+    <div class="gate-wrap">
+      <img class="gate-art" src="images/age-gate.webp" alt="Rated420 NY artwork">
+      <div class="gate-copy">
+        <p class="eyebrow purple">WELCOME TO RATED420: NY</p>
+        <h1 id="gateTitle">Are you <span>21 or older?</span></h1>
+        <p class="gate-description">Rated420 is intended for adults of legal cannabis age. Please confirm your age before entering.</p>
+        <div class="gate-buttons">
+          <button class="btn btn-primary" id="ageYes" type="button">Yes, I’m 21+</button>
+          <button class="btn btn-ghost-light" id="ageNo" type="button">No, I’m under 21</button>
+        </div>
+        <p class="smallprint">By entering, you confirm you are at least 21. This is a self-attestation gate, not an identity check.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="siteShell" inert>
+    <div class="top-line"><span class="tiny-dot" aria-hidden="true"></span> RATED420 NY <span class="top-divider">/</span> AN INDEPENDENT CANNABIS COMMUNITY <span class="top-right">21+ ONLY</span></div>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="#home" id="brandLink" aria-label="Rated420 NY home">
+          <img src="images/rated420-logo.png" alt="" width="48" height="48">
+          <span>RATED<span class="accent">420</span><span class="brand-ny">NY</span></span>
+        </a>
+        <nav aria-label="Main navigation" class="main-nav">
+          <a href="#home" data-home>Home</a>
+          <details class="nav-catalogue" id="navCatalogue">
+            <summary>Catalogue</summary>
+            <div class="nav-catalogue-links">
+              <a href="#strains" data-open-strains="catalogue">Strains</a>
+              <button type="button" data-open-dispensary>Dispensaries</button>
+            </div>
+          </details>
+          <a href="#how-it-works" data-section>How It Works</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" class="nav-strains" id="navStrains" data-open-strains="review">Rate a Strain</button>
+          <button type="button" class="nav-login" id="navLogin">Log in</button>
+          <button type="button" class="btn btn-primary nav-join" id="navJoin">Create account <span aria-hidden="true">↗</span></button>
+          <button type="button" class="btn btn-outline" id="navAccount" hidden>My Account</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="siteMain">
+      <div id="homePage">
+        <section class="hero page-width" id="home">
+          <div class="hero-copy">
+            <div class="eyebrow"><span class="status-pip"></span> THE COMMUNITY HAS A SCORE</div>
+            <h1>Your experience.<br><em>Out of 420.</em></h1>
+            <p class="hero-subtitle">Name it. Rate it. <strong>Make it 420.</strong></p>
+            <p class="hero-text">A home for honest, independent cannabis experiences. Every voice counts. Every point matters. And the scale goes all the way to 420.</p>
+            <div class="hero-buttons">
+              <button type="button" class="btn btn-outline btn-large" data-open-strains="catalogue">Explore strains ↗</button>
+          <button class="btn btn-primary btn-large" id="heroJoin" type="button">Join Rated420 <span aria-hidden="true">↗</span></button>
+              <a class="btn btn-outline btn-large" href="#how-it-works">How it works <span aria-hidden="true">↓</span></a>
+            </div>
+            <p class="hero-note"><span class="tiny-dot"></span> BUILDING IN NEW YORK · GROWING TOGETHER</p>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-picture home-carousel" role="region" aria-roledescription="carousel" aria-label="Rated420 NY photo carousel">
+              <div class="carousel-stage" aria-live="off">
+                <img class="carousel-slide is-active" src="images/carousel-1.webp" alt="Rated420 NY logo against the New York skyline" width="500" height="500" fetchpriority="high" data-carousel-slide aria-hidden="false">
+                <img class="carousel-slide" src="images/carousel-2.webp" alt="Rated420 NY illustrated promotional artwork" loading="lazy" data-carousel-slide aria-hidden="true">
+                <img class="carousel-slide" src="images/carousel-3.webp" alt="Shen and Al visiting a cannabis greenhouse" loading="lazy" data-carousel-slide aria-hidden="true">
+                <img class="carousel-slide" src="images/carousel-4.webp" alt="The group outside Treehouse" loading="lazy" data-carousel-slide aria-hidden="true">
+              </div>
+            </div>
+            
+            <div class="score-ticket" aria-label="420 maximum points across five categories"><span>THE RATED420 SCALE</span><strong>420<small>/420</small></strong><span>5 CATEGORIES × 84 POINTS</span></div>
+          </div>
+        </section>
+
+        <div class="feature-strip page-width" aria-label="Rated420 principles"><span>FIVE CATEGORIES</span><i aria-hidden="true"></i><span>EIGHTY-FOUR POINTS EACH</span><i aria-hidden="true"></i><span>ONE COMMUNITY</span><i aria-hidden="true"></i><span>ALL OUT OF 420</span></div>
+
+        <section class="section page-width" id="how-it-works">
+          <div class="section-heading"><p class="eyebrow">THE WAY WE RATE</p><h2>Real experiences.<br><em>A better scale.</em></h2><p>One simple rating system designed to make community opinions easier to share and compare.</p></div>
+          <div class="steps">
+            <article class="step"><div class="step-icon" aria-hidden="true">01</div><h3>Name it.</h3><p>Find the product or dispensary you want to talk about.</p><span class="step-status is-live">STRAIN REVIEWS LIVE</span></article>
+            <article class="step"><div class="step-icon" aria-hidden="true">02</div><h3>Rate it.</h3><p>Use five categories, each worth up to 84 points, to build your personal score.</p><span class="step-status is-live">STRAIN REVIEWS LIVE</span></article>
+            <article class="step"><div class="step-icon" aria-hidden="true">03</div><h3>Is it 420?</h3><p>Share your perspective and see what other members think.</p><span class="step-status is-live">STRAIN REVIEWS LIVE</span></article>
+          </div>
+        </section>
+
+        <section class="standard-band" id="coming-soon">
+          <div class="page-width standard-inner">
+            <div class="standard-copy"><p class="eyebrow">THE RATED420 STANDARD</p><h2>Not five stars.<br><em>Four hundred twenty.</em></h2><p>Accounts and strain ratings are now connected to the real database. Dispensary scorecards, weekly polls, and Rated420 HQ will follow as separate modules.</p><div class="progress-pills"><span class="is-live"><span class="status-pip"></span> Accounts: live</span><span>Strain reviews: live</span><span>Polls: later</span></div></div>
+            <div class="scale-visual" aria-label="Five equal segments of 84 points making a total of 420"><div class="scale-top"><span>HOW THE MATH WORKS</span><strong>5 × 84 = 420</strong></div><div class="scale-bars" aria-hidden="true"><span style="--bar:64%"></span><span style="--bar:82%"></span><span style="--bar:72%"></span><span style="--bar:95%"></span><span style="--bar:100%"></span></div><div class="scale-bottom"><span>FIVE CATEGORIES</span><span>ONE TOTAL</span></div><p>Illustrative scorecard graphic · Real strain ratings now live</p></div>
+          </div>
+        </section>
+
+        <section class="join-section page-width" id="join">
+          <div><p class="eyebrow">YOU’RE EARLY. THAT’S A GOOD THING.</p><h2>Come grow<br><em>with us.</em></h2><p>Create your Rated420 account and claim your community username as we build the platform.</p></div>
+          <button class="btn btn-dark btn-large" id="bottomJoin" type="button">Create your account <span aria-hidden="true">↗</span></button>
+        </section>
+      </div>
+
+      
+<section id="strainPage" class="strain-page page-width" hidden aria-labelledby="strainPageTitle">
+  <span class="eyebrow">THE STRAIN RATING</span>
+  <h1 id="strainPageTitle">Rate a strain.</h1>
+  <div id="strainPageMessage" class="auth-message" role="status" aria-live="polite" hidden></div>
+  <section class="directory-panel" aria-labelledby="rated420-strain-directory-title">
+    <div class="directory-panel__heading">
+      <div>
+        <span class="eyebrow">EXPLORE THE STRAIN DIRECTORY</span>
+        <h2 id="rated420-strain-directory-title">Find your flower.</h2>
+        <p>Search the strain library and explore ratings. Selecting a strain prepares the review form below.</p>
+      </div>
+      <span class="strain-local-label">RATED420 · NY</span>
+    </div>
+    <div class="directory-search-layout">
+      <label class="directory-search-field" for="rated420-strain-search">SEARCH STRAINS
+        <span class="directory-search-control"><span class="directory-search-icon" aria-hidden="true">⌕</span>
+          <input id="rated420-strain-search" type="search" autocomplete="off" maxlength="100" placeholder="Try Lemon Creamsicle, Blue Dream…">
+        </span>
+      </label>
+      <button class="directory-use-button" id="rated420-strain-use-search" type="button" disabled>Use this name <span aria-hidden="true">↘</span></button>
+    </div>
+    <div class="directory-browse">
+      <div class="strain-browse-label"><span>EXPLORE STRAINS</span><span id="rated420-strain-count"></span></div>
+      <div class="strain-options" id="rated420-strain-options" aria-label="Suggested strains"></div>
+      <p class="fine" id="rated420-strain-help">Don't see a strain? Search for it, then choose <strong>Use this name</strong>. New names join the community catalogue when a signed-in member saves a review.</p>
+      <div class="strain-format-filter" id="strainFormatFilter"><span class="strain-format-filter__label">PRODUCT FORMAT</span><div class="strain-format-filter__controls" id="strainFormatButtons"></div></div>
+      <section class="strain-summary" id="rated420-strain-summary" aria-live="polite" hidden></section>
+    </div>
+    <div class="directory-selection" id="rated420-strain-selection" aria-live="polite" hidden>
+      <div class="directory-selection__copy"><small>SELECTED FOR REVIEW</small><strong id="rated420-strain-selected-text"></strong></div>
+      <button class="directory-continue" id="rated420-strain-continue" type="button">Continue to scorecard <span aria-hidden="true">↓</span></button>
+    </div>
+  </section>
+  <div class="review-layout">
+    <form id="rated420-strain-rating-form" data-kind="strain">
+      <div class="rating-workspace-title">
+        <span class="eyebrow">YOUR REVIEW</span>
+        <h2>Your rating.</h2>
+        <p>Your scores belong here. The strain directory above is for exploring; the sliders are for your own experience.</p>
+      </div>
+      <div class="fields">
+        <label for="rated420-strain-name">Strain to review
+          <input name="name" id="rated420-strain-name" type="text" maxlength="100" required placeholder="Select above or type a new strain…">
+        </label>
+        <label for="rated420-strain-brand">Brand / producer
+          <input name="brand" id="rated420-strain-brand" type="text" maxlength="100" required placeholder="Who grew it?">
+        </label>
+      </div>
+      <div class="product-type-field">
+        <label for="rated420-strain-product-type">Product type
+          <select id="rated420-strain-product-type" name="productType" required>
+            <option selected>Flower</option><option>Pre-Roll</option><option>Infused Pre-Roll</option>
+            <option>Vape Cartridge</option><option>Disposable Vape</option><option>Concentrate</option>
+            <option>Edible</option><option>Tincture</option><option>Topical</option><option>Other</option>
+          </select>
+        </label>
+        <p class="fine">Flower is the default. Ratings for different product formats are averaged separately.</p>
+      </div>
+      <div class="rating-instructions" aria-label="How the 420-point rating works">
+        <div class="rating-instructions__copy">
+          <span class="eyebrow">FIVE SLIDERS. YOUR CALL.</span>
+          <strong>84 × 5 = 420.</strong>
+          <p>Move each slider to rate your experience. Your total updates as you go.</p>
+        </div>
+        <button type="button" class="btn btn-outline" data-open-dispensary>Rate a dispensary</button>
+      </div>
+      <div class="sliders"></div>
+      <div class="rating-top"><h2>Total rating</h2><strong><output class="total" aria-live="polite">0</output><small> / 420</small></strong></div>
+      <div class="meter" role="progressbar" aria-label="strain total rating" aria-valuemin="0" aria-valuemax="420" aria-valuenow="0"><span></span></div>
+      <label for="rated420-strain-notes">Notes
+        <textarea name="notes" id="rated420-strain-notes" maxlength="3000" placeholder="What stood out? What would you remember?" rows="4"></textarea>
+      </label>
+      <label for="rated420-strain-photo">Photo (optional)
+        <input type="file" id="rated420-strain-photo" name="photo" accept="image/jpeg,image/png,image/webp">
+      </label>
+      <p class="fine">JPG, PNG or WebP up to 5 MB. Uploaded review photos are publicly visible.</p>
+      <img class="preview" id="rated420-strain-preview" alt="Your selected review photo" hidden>
+      <p class="field-tip" id="reviewEditNote" hidden></p>
+      <div class="review-actions">
+        <button class="btn btn-primary" id="reviewSaveButton" type="submit">Save rating →</button>
+        <button class="btn btn-outline" type="button" id="strainMyReviewsButton">My strain reviews</button>
+      </div>
+      <div class="auth-message" id="strainReviewMessage" role="status" aria-live="polite" hidden></div>
+      <p class="fine">Your rating is saved to your Rated420 account. Sign in to submit a review, and revisit My account to edit or delete it.</p>
+    </form>
+  </div>
+</section>
+
+<section class="auth-page page-width" id="authPage" hidden aria-labelledby="authTitle">
+        <div class="auth-side"><img src="images/age-gate.webp" alt="Rated420 NY artwork"><span>YOUR COMMUNITY.<br>YOUR SCORE.<br>YOUR VOICE.</span></div>
+        <div class="auth-content">
+          <button class="text-back" type="button" data-go-home><span aria-hidden="true">←</span> Back to home</button>
+          <div class="auth-panel">
+            <p class="eyebrow" id="authKicker">WELCOME BACK</p><h1 id="authTitle">Log in.</h1><p class="auth-intro" id="authIntro">Welcome back to Rated420. Your experience matters here.</p>
+            <div class="auth-tabs" id="authTabs" role="group" aria-label="Choose account action"><button id="tabLogin" type="button" class="selected">Log in</button><button id="tabSignup" type="button">Create account</button></div>
+            <div class="auth-message" id="authMessage" role="status" aria-live="polite" hidden></div>
+            <form id="loginForm" novalidate>
+              <label for="loginEmail">Email address</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+              <div class="label-line"><label for="loginPassword">Password</label><button class="subtle-link" id="forgotLink" type="button">Forgot password?</button></div><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Your password">
+              <button class="btn btn-primary btn-block form-submit" type="submit">Log in <span aria-hidden="true">→</span></button>
+            </form>
+            <form id="signupForm" novalidate hidden>
+              <label for="signupUsername">Choose a username</label><input id="signupUsername" type="text" autocomplete="username" placeholder="your_username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" required><p class="field-tip">3–24 letters, numbers or underscores. Public-facing username, once reviews launch.</p>
+              <label for="signupEmail">Email address</label><input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+              <label for="signupPassword">Password</label><input id="signupPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters">
+              <label for="signupConfirm">Confirm password</label><input id="signupConfirm" type="password" autocomplete="new-password" required placeholder="Enter password again">
+              <label class="check-row" for="signupAge"><input id="signupAge" type="checkbox" required> I confirm that I am at least 21 years old.</label>
+              <button class="btn btn-primary btn-block form-submit" type="submit">Create my account <span aria-hidden="true">→</span></button>
+              <p class="field-tip">Supabase securely handles passwords. Depending on email settings, you may need to confirm your address before logging in.</p>
+            </form>
+            <form id="forgotForm" novalidate hidden><label for="forgotEmail">Your account email</label><input id="forgotEmail" type="email" autocomplete="email" placeholder="you@example.com" required><button class="btn btn-primary btn-block form-submit" type="submit">Send reset link <span aria-hidden="true">→</span></button><button class="subtle-link beneath" type="button" data-mode="login">Back to login</button></form>
+            <form id="resetForm" novalidate hidden><label for="resetPassword">New password</label><input id="resetPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"><label for="resetConfirm">Confirm new password</label><input id="resetConfirm" type="password" autocomplete="new-password" required placeholder="Enter password again"><button class="btn btn-primary btn-block form-submit" type="submit">Update password <span aria-hidden="true">→</span></button></form>
+            <p class="auth-footnote">Rated420 NY · Independent community platform · Adults 21+ only</p>
+          </div>
+        </div>
+      </section>
+
+
+<section id="dispensaryPage" class="strain-page page-width" hidden aria-labelledby="dispensaryTitle">
+  <button class="btn btn-outline" type="button" data-go-home>← Home</button>
+  <h1 id="dispensaryTitle">Rate a dispensary.</h1>
+  <div class="review-layout">
+    <form id="dispensaryForm" data-kind="dispensary">
+      <div class="fields">
+        <label>Dispensary name<input name="name" required minlength="2" maxlength="120" placeholder="Dispensary name"></label>
+        <label>Location<input name="location" required minlength="2" maxlength="120" placeholder="City, state or branch address"></label>
+      </div>
+      <div class="sliders"></div>
+      <div class="rating-top"><h2>Total rating</h2><strong><output class="total" aria-live="polite">0</output><small> / 420</small></strong></div>
+      <div class="meter" role="progressbar" aria-label="Dispensary total rating" aria-valuemin="0" aria-valuemax="420" aria-valuenow="0"><span></span></div>
+      <label>Notes<textarea name="notes" maxlength="3000" rows="4" placeholder="What stood out about your visit?"></textarea></label>
+      <label>Photo (optional)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
+      <p class="fine">JPG, PNG or WebP up to 5 MB. Review photos are public.</p>
+      <img id="dispensaryPhotoPreview" class="preview" alt="Review photo" hidden>
+      <label id="removeDispensaryPhoto" hidden><input type="checkbox" name="removePhoto"> Remove saved photo</label>
+      <div class="auth-message" id="dispensaryMessage" role="status" hidden></div>
+      <div class="review-actions">
+        <button class="btn btn-primary" id="saveDispensary" type="submit">Save rating →</button>
+        <button class="btn btn-outline" id="cancelDispensaryEdit" type="button" hidden>Cancel edit</button>
+      </div>
+    </form>
+  </div>
+  <section class="directory-panel" aria-labelledby="recentDispensaryTitle">
+    <h2 id="recentDispensaryTitle">Recent dispensary reviews</h2>
+    <div id="recentDispensaryReviews" aria-live="polite"></div>
+  </section>
+</section>
+      <section class="account-page page-width" id="accountPage" hidden aria-labelledby="accountTitle">
+        <div class="account-heading"><div><p class="eyebrow">MEMBER SPACE / 001</p><h1 id="accountTitle">You’re in. <em>Welcome.</em></h1><p>Real account. Real database. We’re building the rest one piece at a time.</p></div><button type="button" class="btn btn-outline" id="accountSignOut">Sign out</button></div>
+        <div class="account-grid"><div class="member-card"><img id="memberAvatar" class="member-avatar is-logo" src="rated420-logo.png" alt="Your profile picture"><p class="eyebrow">YOUR RATED420 IDENTITY</p><h2 id="memberHandle">Member</h2><p id="memberEmail" class="member-email"></p><p class="member-since" id="memberSince"></p><span class="member-active"><span class="status-pip"></span> MEMBER ACCOUNT ACTIVE</span></div>
+          <div class="profile-card"><h2>My profile</h2><p>Choose how your account appears while your ratings grow.</p><div class="auth-message" id="profileMessage" role="status" aria-live="polite" hidden></div><form id="profileForm" novalidate>
+          <fieldset class="avatar-picker"><legend>Profile picture</legend>
+            <div class="avatar-options"><label><input type="radio" name="avatar" value="" checked> <img class="avatar-logo" src="rated420-logo.png" alt=""> Rated420 logo</label></div>
+            <div class="avatar-options" id="avatarOptions"></div>
+            <label><input type="radio" name="avatar" value="upload"> My photo</label>
+            <label for="avatarFile">Upload a photo (JPG, PNG or WebP up to 5 MB)</label>
+            <input type="file" id="avatarFile" accept="image/jpeg,image/png,image/webp">
+          </fieldset><label for="profileUsername">Username</label><input id="profileUsername" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="your_username"><p class="field-tip">Letters, numbers, underscores. Leave blank to set later.</p><label for="profileDisplayName">Display name (optional)</label><input id="profileDisplayName" type="text" minlength="2" maxlength="60" placeholder="What should we call you?"><button class="btn btn-primary form-submit" type="submit">Save profile</button></form></div>
+        </div>
+        <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR LOCAL COLLECTION · NOW IN THE CLOUD</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
+<section class="member-reviews" id="myDispensaryReviews"><h2>My dispensary reviews.</h2><div id="myDispensaryReviewList" aria-live="polite"></div><button class="btn btn-primary" type="button" data-open-dispensary>Rate a dispensary ↗</button></section>
+<div class="next-card"><span class="eyebrow">WHAT COMES NEXT</span><div><h3>Your voice goes further soon.</h3><p>Strain reviews now save to your account. Polls and HQ are next.</p></div><span class="next-arrow" aria-hidden="true">↗</span></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner page-width">
+        <div class="footer-identity">
+          <a class="footer-brand" href="#home" data-home aria-label="Rated420 NY home">RATED<span>420</span><small>NY</small></a>
+          <p>Your experience. Out of 420.</p>
+        </div>
+        <div class="footer-description">
+          <p>Independent community platform. For adults 21 and older.<br>Not a dispensary. No cannabis products sold here.</p>
+        </div>
+        <nav class="footer-social" aria-label="Rated420 social media">
+          <a href="https://www.youtube.com/@rated420ny" target="_blank" rel="noopener noreferrer" aria-label="Rated420 NY on YouTube (opens in new tab)">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="5" width="20" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m10 9 6 3-6 3Z" fill="currentColor"/></svg><span>YouTube</span>
+          </a>
+          <a href="https://www.instagram.com/rated420.ny" target="_blank" rel="noopener noreferrer" aria-label="Rated420 NY on Instagram (opens in new tab)">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg><span>Instagram</span>
+          </a>
+        </nav>
+        <div class="footer-tail"><span>© <span id="year"></span> RATED420</span><button type="button" id="footerAgeNote" title="Age self-attestation, not identity verification">21+ ONLY</button></div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
+  <script src="app.js"></script>
+</body>
+</html>
