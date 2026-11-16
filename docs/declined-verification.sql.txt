@@ -1,0 +1,76 @@
+-- Run through an administrative SQL connection. Every test write is rolled back.
+-- Requires at least one existing member profile and seeded strain.
+begin;
+select set_config('rated420.test_owner', (select id::text from public.member_profiles limit 1), true);
+select set_config('request.jwt.claims', json_build_object('sub',current_setting('rated420.test_owner'),'role','authenticated')::text, true);
+set local role authenticated;
+do $test$
+declare r uuid; d uuid; s bigint; n integer;
+begin
+  if auth.uid() is null then raise exception 'A member profile is required'; end if;
+  if (select count(*) from public.member_profiles) <> 1 then raise exception 'Owner cannot read own profile'; end if;
+  select id into s from public.strains order by id limit 1;
+  insert into public.strain_reviews(strain_id,user_id,brand,product_type,aesthetic,aroma,flavor,effects,overall,notes,photo_path)
+  values(s,auth.uid(),'Reconciliation test '||gen_random_uuid(),'Flower',84,84,84,84,84,'Rollback-only test',auth.uid()::text||'/'||gen_random_uuid()||'.jpg') returning id into r;
+  if (select total from public.strain_reviews where id=r) <> 420 then raise exception 'Incorrect strain total'; end if;
+  update public.strain_reviews set notes='Owner update' where id=r;
+  if not found then raise exception 'Owner update denied'; end if;
+  begin
+    update public.strain_reviews set aesthetic=85 where id=r;
+    raise exception 'Invalid strain score accepted';
+  exception when check_violation then null; end;
+  insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,photo_path)
+  values('Reconciliation test '||gen_random_uuid(),'Rollback test location',84,84,84,84,84,auth.uid()::text||'/'||gen_random_uuid()||'.webp') returning id into d;
+  if (select total from public.dispensary_reviews where id=d) <> 420 then raise exception 'Incorrect dispensary total'; end if;
+  update public.dispensary_reviews set notes='Owner update' where id=d;
+  if not found then raise exception 'Owner dispensary update denied'; end if;
+  -- Test profile picture constraints using a savepoint provided by this exception block.
+  begin
+    update public.member_profiles set avatar_choice=null, avatar_path=auth.uid()::text||'/'||gen_random_uuid()||'.png' where id=auth.uid();
+    if not found then raise exception 'Owner profile update denied'; end if;
+    raise exception using errcode='P0002', message='Rollback profile test';
+  exception when no_data_found then null; end;
+  perform set_config('request.jwt.claims',json_build_object('sub',gen_random_uuid(),'role','authenticated')::text,true);
+  if (select count(*) from public.member_profiles) <> 0 then raise exception 'Other member profile exposed'; end if;
+  update public.strain_reviews set notes='Unauthorized' where id=r;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'Other member strain update allowed'; end if;
+  delete from public.strain_reviews where id=r;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'Other member strain delete allowed'; end if;
+  update public.dispensary_reviews set notes='Unauthorized' where id=d;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'Other member dispensary update allowed'; end if;
+  delete from public.dispensary_reviews where id=d;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'Other member dispensary delete allowed'; end if;
+  begin
+    insert into public.strain_reviews(strain_id,user_id,brand,product_type,aesthetic,aroma,flavor,effects,overall)
+    values(s,current_setting('rated420.test_owner')::uuid,'Unauthorized','Flower',0,0,0,0,0);
+    raise exception 'Forged strain owner accepted';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claims',json_build_object('sub',current_setting('rated420.test_owner'),'role','authenticated')::text,true);
+  delete from public.strain_reviews where id=r;
+  if not found then raise exception 'Owner strain delete denied'; end if;
+  delete from public.dispensary_reviews where id=d;
+  if not found then raise exception 'Owner dispensary delete denied'; end if;
+end $test$;
+set local role anon;
+do $test$
+begin
+  perform id,name from public.strains limit 1;
+  perform strain_id,avg_total from public.strain_rating_stats limit 1;
+  perform id,brand,total,notes,photo_path from public.strain_reviews limit 1;
+  perform id,name,total,notes,photo_path from public.dispensary_reviews limit 1;
+  begin
+    perform id from public.member_profiles limit 1;
+    raise exception 'Anonymous profile access allowed';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.strains(name) values('Unauthorized');
+    raise exception 'Anonymous strain write allowed';
+  exception when insufficient_privilege then null; end;
+end $test$;
+reset role;
+select 'PASS: public reads, profile privacy, owner CRUD, cross-member isolation, score and image-path constraints' as verification;
+rollback;
