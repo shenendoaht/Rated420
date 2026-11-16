@@ -121,6 +121,7 @@
     $('navLogin').hidden = signedIn;
     $('navJoin').hidden = signedIn;
     $('navAccount').hidden = !signedIn;
+    $('heroJoin').firstChild.textContent = signedIn ? 'Rate a Strain ' : 'Join Rated420 ';
   }
 
   function redirectUrl() {
@@ -1049,7 +1050,8 @@
   $('ageYes').addEventListener('click', acceptAge);
   $('ageNo').addEventListener('click', denyAge);
   $('navLogin').addEventListener('click', () => showAuth('login'));
-  [$('navJoin'), $('heroJoin'), $('bottomJoin')].forEach(btn => btn.addEventListener('click', () => showAuth('signup')));
+  [$('navJoin'), $('bottomJoin')].forEach(btn => btn.addEventListener('click', () => showAuth('signup')));
+  $('heroJoin').addEventListener('click', () => user ? openStrains('review') : showAuth('signup'));
   $('navAccount').addEventListener('click', () => page('account'));
   $('accountSignOut').addEventListener('click', signOut);
   $('tabLogin').addEventListener('click', () => setMode('login'));
