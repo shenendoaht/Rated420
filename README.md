@@ -12,7 +12,7 @@ This build extends the verified Supabase account foundation and uses the origina
 - 'My strain reviews' list in your account, with edit and delete.
 
 ## Backend
-The accompanying SQL file `20261116_strain_foundation.sql` records what was applied to the connected Supabase project. **Do not run it again** on the same database, as its tables and policies already exist.
+The complete applied database history, including the original member-profile foundation, is recorded in `supabase/migrations/`. All three migrations are already applied to the connected project. **Do not run them again** there. The root-level SQL files are legacy reference copies. See [backend setup](supabase/README.md) and the [live backend audit](docs/backend-audit.md).
 
 Public browse and review reads are permitted; only authenticated users can submit or update their own ratings. A user's private member profile data is still protected by the existing `member_profiles` table rules.
 
@@ -37,16 +37,13 @@ The 21+ gate is self-attestation, **not** legal identity or age verification. Co
 
 ## Known boundaries
 - User-generated strain names and photos are not moderated yet. Staging use only.
-- Supabase Auth should have leaked-password protection enabled before public launch (a security advisor warning was returned).
+- Supabase reports leaked-password protection disabled. This feature requires Pro or above; the audited organization is on Free. See the backend audit for this pending configuration decision.
 - Search currently fetches the first 1000 strain names; pagination and moderation can follow as the catalogue grows.
 - The account page and catalogue are tested with static syntax/structural checks. Real multi-user review submissions should still be tested through the staging URL.
 
 ## Build 06 — Dispensary reviews and profile pictures
 
-This ZIP is the next local build. For the existing Rated420 Supabase database,
-apply only `20261116_dispensary_and_avatars.sql` before deploying Build 06.
-Build 06 expects the new profile fields when it loads account data.
-The prior strain migration is included for reference.
+Build 06 expects the dispensary and avatar migration. The live backend audit confirmed that it is already applied to the connected Rated420 project; do not reapply it. New empty environments need the complete ordered history in `supabase/migrations/`, including the member-profile foundation.
 
 - Open **Dispensaries** to rate a location on Aesthetic, Accessibility, Staff,
   Menu, and Overall. Each slider runs from 0 to 84. Include a branch address
