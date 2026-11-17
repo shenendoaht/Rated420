@@ -1,6 +1,6 @@
 # Community averages verification report
 
-The development environment was restored and the exact recovered commit `1c3788b99ee0d6a375adbebe2a623d8d159e73c5` was tested from a clean worktree. Subsequent milestones add verification tests and documentation only; runtime files and the proposed migration are unchanged. All milestones are pushed to the existing `codex/community-averages` remote branch.
+The development environment was restored and the exact recovered commit `1c3788b99ee0d6a375adbebe2a623d8d159e73c5` was tested from a clean worktree. Subsequent milestones add verification tests, documentation and owner-run backup tooling only; runtime files and the proposed migration are unchanged. All milestones are pushed to the existing `codex/community-averages` remote branch.
 
 ## Results
 
@@ -55,3 +55,7 @@ The public preview uses labelled synthetic data and localStorage; it does not pr
 Hosted migration privileges, custom-role availability, PostgREST schema-cache/exposure settings, real multi-account concurrency, production-scale performance and remote Storage/Auth/contact integrations remain outside this local verification. Existing 1,000-row catalogue/API browsing limits remain documented. Other visitors refresh on navigation/focus/visibility and a 30-second visible-page timer, not realtime push.
 
 Before production, separately approve the complete proposed migration and coordinated deployment. Review backup availability, locks/backfill, helper-role permissions and the non-exposed private schema. Never replay historical migrations. The new production frontend must not be released before its approved schema.
+
+## Recovery preparation follow-up
+
+At tool milestone c8361a3, all 23 backend/build checks and desktop/mobile community, account and contact suites were rerun successfully. Eight additional synthetic recovery/security tests pass; see [backup verification](backup-verification.md). This does not pass the actual production recovery gate. Owner-run instructions and the fresh-session handover are linked from DEVELOPMENT.md.

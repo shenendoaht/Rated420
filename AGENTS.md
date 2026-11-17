@@ -10,6 +10,8 @@ Applies to the entire repository. Read [DEVELOPMENT.md](DEVELOPMENT.md) first; i
 
 ## Branches and milestones
 
+**Branch → Build → Test → Preview → Approve → Release.** No step implies approval for the next production action.
+
 - Start new work from current main on an isolated feature branch; continue an existing PR on its authorized feature branch. Never develop or push directly to main.
 - Commit and push reviewable development milestones regularly and before lengthy verification. Check diffs for credentials/user data before every push. Do not overwrite another contributor's work.
 - Use pull requests. Record tested commits, changes, validation and limitations. Before an approved merge, refetch the head and confirm it matches the reviewed/tested commit; review subsequent changes before proceeding.
@@ -25,6 +27,7 @@ Applies to the entire repository. Read [DEVELOPMENT.md](DEVELOPMENT.md) first; i
 
 ## Credentials and privacy
 
+- Run credentialed production backups on the owner’s computer, outside Git, using [the owner-run recovery procedure](docs/backup-recovery.md). Synthetic restore tests do not pass the production recovery gate.
 - Never commit or disclose credentials, secret/service-role keys, API tokens, passwords, cookies, auth state, private keys or sensitive user records. Keep backups outside Git/artifacts in approved secure storage.
 - Browser publishable keys and project URLs are public configuration, not permission to change policies. Preserve Auth, RLS and Storage protections. Do not grant private user IDs to visitors to simplify aggregation.
 - Prefer direct service integrations; use secure browser sign-in only when necessary. Never request secrets in chat or disable Turnstile to get a test to pass.

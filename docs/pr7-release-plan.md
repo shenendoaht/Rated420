@@ -4,7 +4,7 @@ Prepared November 17, 2026. No production mutation is authorized by this plan. F
 
 ## Reviewed inputs and current evidence
 
-- PR: https://github.com/shenendoaht/Rated420/pull/7, branch codex/community-averages. Verified milestone f17d15c; preparation changes are docs/tests only. Refetch the final head before approval/merge.
+- PR: https://github.com/shenendoaht/Rated420/pull/7, branch codex/community-averages. Verified milestone f17d15c; preparation changes add docs/tests and owner-run recovery tooling only; app runtime and SQL are unchanged. Refetch the final head before approval/merge.
 - Stable production baseline: 483b6d16d45f12d2c8aae1f056348e7f2aa80f24. Vercel rated420-staging serves rated420ny.com and the existing staging aliases. The production deployment is READY.
 - Only proposed migration: [20261117191511_community_listing_averages.sql](../supabase/migrations/20261117191511_community_listing_averages.sql).
 - SQL SHA-256: 8d419be1862dbb1ba6e1ba2457aa69057374484cdaa0d37efce05f5c568a628a.
@@ -45,4 +45,6 @@ Approval would authorize applying only the reviewed SQL to project ymluyoqkmzxom
 
 ## Remaining gates
 
-Recoverable backup/recovery and hosted PostgREST exposure configuration are not yet verified. Hosted Auth/JWT integration, remote multi-account concurrency, load performance and live mutation/provider tests remain outside local evidence. The inherited 1,000-row browsing cap is documented. These limits must be included in release approval; no new paid infrastructure is proposed.
+**Recovery gate remains blocked:** no actual production export/local restore is verified. The owner chose credentialed backups on their own computer; follow [backup/recovery instructions](backup-recovery.md) and [test evidence](backup-verification.md). The private-schema exposure check passed read-only (community_private rejected with PGRST106), but must be repeated before release and verified after migration. Hosted Auth/JWT integration, remote multi-account concurrency, load performance and live mutation/provider tests remain outside local evidence. The inherited 1,000-row browsing cap is documented. These limits must be included in release approval; no new paid infrastructure is proposed.
+
+The earlier a22841e release approval does not authorize the later branch head. Keep PR #7 draft/unmerged; request renewed explicit approval of the current head, exact SQL and gated sequence after real recovery evidence is available. Protocol: **Branch → Build → Test → Preview → Approve → Release.**

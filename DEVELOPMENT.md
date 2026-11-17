@@ -16,9 +16,9 @@ Last verified: November 17, 2026. Refetch GitHub/Vercel/Supabase status before r
 
 Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Vercel READY. Accounts/profiles, strain/dispensary review forms, photo uploads and Contact Us are live. The homepage CTA reflects authentication; strain review display defaults to All formats with empty-format recovery.
 
-## PR #7: pending production approval
+## PR #7: recovery gate open; production approval required
 
-Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated420/pull/7. Runtime implementation 1c3788b; verification milestone f17d15c; controlled-release preparation adds transaction/legacy-client checks (23 backend/build checks total). Later preparation commits contain docs/tests only. Fetch the latest PR head for approval rather than relying on these abbreviated references.
+Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated420/pull/7. Runtime implementation 1c3788b; verification milestone f17d15c; controlled-release preparation adds transaction/legacy-client checks (23 backend/build checks total). Later preparation commits add docs/tests and owner-run backup tooling only; app runtime and proposed SQL remain unchanged. Fetch the latest PR head for approval rather than relying on these abbreviated references.
 
 - Adds unique-reviewer community averages/cards/details, stable dispensary listing IDs, duplicate protection and data refreshes.
 - For each listing ID: average each user's saved review scores, then average those per-user contributions equally. Count unique contributors, not raw review rows. Apply the same rule within each format. Existing brand/format reviews remain intact.
@@ -34,6 +34,8 @@ Production ledger confirms these versions already applied: 20261115232821 (profi
 **Pending, not applied:** supabase/migrations/20261117191511_community_listing_averages.sql. It creates dispensary IDs/backfill, aggregate views and a restricted private helper role. Existing reviews/images and Auth/RLS/Storage policies are preserved. See [controlled release plan](docs/pr7-release-plan.md) before any production action.
 
 ## Development and testing
+
+Protocol: **Branch → Build → Test → Preview → Approve → Release.**
 
 1. Read AGENTS.md, fetch main/PR state and use an isolated feature branch. Push incremental milestones.
 2. Use Node, Docker, Playwright/Chromium and curl (or a cached pinned SDK). SQL tests use only a dedicated local container with network mode none; no production URLs are accepted.
@@ -52,6 +54,23 @@ git diff --check
 Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. Build production locally with VERCEL_ENV=production node scripts/build.mjs; this does not deploy.
 
 4. Verify exact-head previews/build logs, describe limitations in the PR, and obtain explicit migration/merge/live-deployment approval. Apply only the approved new migration, then deploy the approved frontend after database checks. See the release plan for stop gates and rollback.
+
+## Data and security map
+
+- `auth.users`/`auth.identities` hold accounts; `public.profiles` is owner-scoped. Never publish private profile/account data.
+- `public.strains` is a shared catalogue; `strain_reviews` references strain/user IDs, five scores, generated total, notes, timestamps and photo paths. Existing uniqueness is user/strain/normalized brand/format; PR #7 preserves it and weights each user once.
+- `dispensary_reviews` currently identifies shops by name/location and has five scores, notes/photo references and ownership policies. PR #7 adds `dispensaries`, stable FK IDs, one review per user/listing and compatible old-client mapping.
+- Review reads are public subject to existing column grants; writes require authenticated ownership. Storage buckets are `strain-review-photos`, `dispensary-review-photos`, `member-avatars`; public display URLs do not authorize object management. Upload/delete policies scope paths to the authenticated user.
+- `contact_submissions` and intake/notification RPCs are service-role-only, RLS enabled, with no visitor/member access. Server-side validation, Turnstile, rate limits and idempotency protect intake. Keep all provider/service credentials server-side.
+- New aggregate invoker views expose listing/count/category/total values only. Private helpers have fixed queries/empty search paths and a restricted NOLOGIN/NOBYPASSRLS owner. Existing policies are not replaced. Historical SQL is documentation, not a deployment action.
+
+## Backup/recovery and handoff
+
+See [owner-run instructions](docs/backup-recovery.md) and [recovery verification report](docs/backup-verification.md). Owner selected their own computer for existing credentials, encrypted exports and recovery keys. Native PG17 full database export includes Auth and managed schemas; Storage bytes are exported separately. No credentials or production archives have been obtained here. No-cost tooling does not create hosted resources or schedule automatic backups.
+
+Eight synthetic recovery/security tests pass, including isolated restore, Auth identities/hash fixtures, policies, object integrity and cross-snapshot mismatch rejection. **Actual production export/restore remains unverified**, including a compatible pinned image for supabase_vault 0.3.2. Production release remains blocked until the owner returns sanitized recovery evidence and approves the latest head. Existing a22841e approval is not approval of later commits. Hosted private-schema exposure was checked read-only (rejected); repeat before release.
+
+Fresh sessions: read [the self-contained handover](docs/CODEX_HANDOVER.md), then refetch current state. Do not treat that handover or the release plan as authorization. Production remains PR #6 at the baseline above; PR #7 has not been merged or applied.
 
 ## Known limits and next priorities
 
