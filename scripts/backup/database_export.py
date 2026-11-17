@@ -37,7 +37,7 @@ def checked_service(service_file, pass_file, name):
     if name not in parser:
         raise BackupError('Requested service is absent from the private service file.')
     config = parser[name]
-    if any(key in config for key in ['password','passfile','options','service']):
+    if set(config)-{'host','port','dbname','user','sslmode','sslrootcert'}:
         raise BackupError('Put only connection metadata in the service file; password belongs in the separate passfile.')
     if config.get('sslmode') != 'verify-full' or config.get('port') != '5432' or config.get('dbname') != 'postgres':
         raise BackupError('Require verified TLS and the direct/session connection on port 5432 to postgres.')

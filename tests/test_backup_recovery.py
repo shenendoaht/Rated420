@@ -6,14 +6,21 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
+import time
 import tempfile
 import unittest
+from unittest.mock import patch
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('storage_export', ROOT / 'scripts/backup/storage_export.py')
 backup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backup)
+sys.modules['storage_export']=backup
+sys.path.insert(0,str(ROOT/'scripts/backup'))
+import database_export
+import verify_database_local
 
 class RecoveryTests(unittest.TestCase):
     @classmethod
@@ -51,7 +58,7 @@ class RecoveryTests(unittest.TestCase):
                 self.calls += 1
                 return {'buckets': [{'id': 'fixture-public', 'public': True}, {'id': 'fixture-private', 'public': False}],
                         'files': [{'bucket': bucket, 'key': key, 'record': {
-                            'id': key, 'updated_at': 'changed' if drift and self.calls > 1 else 'fixture-v1',
+                            'id': str(uuid.uuid5(uuid.NAMESPACE_URL,bucket+'/'+key)), 'updated_at': '2026-01-02T00:00:00+00:00' if drift and self.calls > 1 else '2026-01-01T00:00:00+00:00',
                             'metadata': {'size': len(data), 'mimetype': 'image/fixture'}}}
                             for (bucket, key), data in self.payloads.items()]}
             def download(self, bucket, key):
@@ -95,6 +102,36 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(backup.BackupError):
             backup.encrypt_chunks([b'fixture'], self.folder / 'invalid.gpg', 'short-id')
 
+    def test_database_credentials_require_existing_private_files_verified_tls_and_read_only_options(self):
+        service=self.folder/'pg_service.conf';password=self.folder/'fixture.pgpass'
+        def write(options):
+            service.write_text('[rated420-backup]\nhost=db.'+database_export.PROJECT+'.supabase.co\nport=5432\ndbname=postgres\nuser=postgres\n'+options)
+            service.chmod(0o600)
+        password.write_text('fixture:5432:postgres:postgres:unused-fixture');password.chmod(0o600)
+        write('sslmode=verify-full\nsslrootcert=system\n')
+        environment=database_export.checked_service(service,password,'rated420-backup')
+        self.assertIn('default_transaction_read_only=on',environment['PGOPTIONS'])
+        self.assertNotIn('PGPASSWORD',environment)
+        write('sslmode=require\n')
+        with self.assertRaises(backup.BackupError): database_export.checked_service(service,password,'rated420-backup')
+        write('sslmode=verify-full\noptions=-c default_transaction_read_only=off\n')
+        with self.assertRaises(backup.BackupError): database_export.checked_service(service,password,'rated420-backup')
+        write('sslmode=verify-full\nhostaddr=127.0.0.1\n')
+        with self.assertRaises(backup.BackupError): database_export.checked_service(service,password,'rated420-backup')
+        write('sslmode=verify-full\npassword=unused-fixture\n')
+        with self.assertRaises(backup.BackupError): database_export.checked_service(service,password,'rated420-backup')
+
+    def test_local_verifier_rejects_remote_or_networked_restore_targets(self):
+        with patch.dict(os.environ,{'DOCKER_HOST':'tcp://fixture.invalid:2375'}):
+            with self.assertRaises(backup.BackupError): verify_database_local.validate_container('fixture')
+        with self.assertRaises(backup.BackupError): verify_database_local.validate_container('--host=fixture')
+        with patch.dict(os.environ,{},clear=True):
+            with patch.object(verify_database_local,'command',return_value=b'ssh://fixture.invalid'):
+                with self.assertRaises(backup.BackupError): verify_database_local.validate_container('fixture')
+            for host,mounts in [({'NetworkMode':'bridge'},[]),({'NetworkMode':'none','PortBindings':{'5432/tcp':[]}},[]),({'NetworkMode':'none'},[{'Type':'bind'}]),({'NetworkMode':'none','Privileged':True},[])]:
+                with patch.object(verify_database_local,'command',side_effect=[b'unix:///fixture.sock',json.dumps([{'HostConfig':host,'Mounts':mounts}]).encode()]):
+                    with self.assertRaises(backup.BackupError): verify_database_local.validate_container('fixture')
+
     def test_storage_inventory_paginates_and_recurses(self):
         class Response(io.BytesIO):
             def __enter__(self): return self
@@ -117,6 +154,68 @@ class RecoveryTests(unittest.TestCase):
         self.assertTrue(any(item['key'] == 'nested/photo.png' for item in inventory['files']))
         self.assertTrue(all(method in ('GET', 'POST') for _, method in requests))
         with self.assertRaises(backup.BackupError): reader.request('bucket', {})
+
+    def test_combined_recovery_verifier_checks_database_and_storage_snapshot(self):
+        source_container='rated420-averages-pg'
+        source='backup_combined_'+uuid.uuid4().hex
+        target='rated420-recovery-fixture-'+uuid.uuid4().hex[:12]
+        subprocess.run(['docker','exec',source_container,'createdb','-U','postgres',source],check=True)
+        subprocess.run(['docker','run','-d','--name',target,'--network','none','--label','rated420.fixture-recovery=yes','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:17.6'],check=True,stdout=subprocess.DEVNULL)
+        def sql(query):
+            return subprocess.check_output(['docker','exec','-i',source_container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d',source],input=query.encode())
+        try:
+            for attempt in range(100):
+                if subprocess.run(['docker','exec',target,'pg_isready','-U','postgres'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0: break
+                time.sleep(.1)
+            else: self.fail('Local fixture recovery PostgreSQL did not start')
+            sql("""create schema auth;create schema storage;
+            create table auth.users(id uuid primary key,email text,encrypted_password text);
+            create table auth.identities(user_id uuid references auth.users(id),provider text);
+            create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+            create table public.strain_reviews(id integer primary key,user_id uuid references auth.users(id),score integer,notes text,photo_path text);
+            alter table public.strain_reviews enable row level security;
+            create policy fixture_own on public.strain_reviews for all using(user_id=auth.uid()) with check(user_id=auth.uid());
+            grant usage on schema auth to authenticated;grant select,insert,update,delete on public.strain_reviews to authenticated;
+            create table storage.buckets(id text primary key,public boolean);
+            create table storage.objects(id uuid primary key,bucket_id text references storage.buckets(id),name text,metadata jsonb,updated_at timestamptz);
+            insert into auth.users values('11111111-1111-4111-8111-111111111111','fixture@example.test','fixture-not-a-real-password-hash');
+            insert into auth.identities values('11111111-1111-4111-8111-111111111111','email');
+            insert into public.strain_reviews values(1,'11111111-1111-4111-8111-111111111111',310,'Synthetic fixture','nested/photo.png');""")
+            reader=self.fixture_reader()
+            for bucket in ['fixture-public','fixture-private']:
+                sql("insert into storage.buckets values('"+bucket+"',"+str(bucket=='fixture-public').lower()+");")
+            for (bucket,key),payload in reader.payloads.items():
+                identifier=str(uuid.uuid5(uuid.NAMESPACE_URL,bucket+'/'+key))
+                metadata=json.dumps({"size":len(payload),"mimetype":"image/fixture"})
+                sql("insert into storage.objects values('"+identifier+"','"+bucket+"','"+key+"','"+metadata+"','2026-01-01T00:00:00+00:00');")
+            database_folder=self.folder/('database-'+uuid.uuid4().hex);database_folder.mkdir(mode=0o700)
+            artifacts={}
+            for name,command in [('database.dump.gpg',['pg_dump','-U','postgres','--format=custom',source]),('roles.sql.gpg',['pg_dumpall','-U','postgres','--roles-only','--no-role-passwords'])]:
+                content=subprocess.check_output(['docker','exec',source_container,*command])
+                artifacts[name]=backup.encrypt_chunks([content],database_folder/name,self.recipient)
+            manifest={'format':1,'project_ref':database_export.PROJECT,'synthetic':True,'finished':'fixture-time',
+                'catalogue':json.loads(sql(database_export.CATALOGUE_SQL)),
+                'inventory':[json.loads(line) for line in sql((ROOT/'scripts/backup/inventory.sql').read_text()).decode().splitlines() if line.strip()],
+                'artifacts':artifacts}
+            backup.encrypt_chunks([json.dumps(manifest).encode()],database_folder/'manifest.json.gpg',self.recipient)
+            (database_folder/'COMPLETE.json').write_text('{}')
+            storage_folder=self.folder/('combined-storage-'+uuid.uuid4().hex)
+            backup.export_storage(reader,storage_folder,self.recipient)
+            report=verify_database_local.verify_database(database_folder,storage_folder,target,self.folder/'scratch')
+            self.assertEqual(report['status'],'VERIFIED_LOCAL_DATABASE_AND_STORAGE_BYTES')
+            self.assertEqual(report['objects'],2)
+            self.assertEqual(report['tables'],5)
+            # Same-size replacement across the two capture windows must fail.
+            manifest_path=storage_folder/'manifest.json.gpg'
+            changed=json.loads(self.decrypt(manifest_path))
+            changed['objects'][0]['record']['updated_at']='2026-01-02T00:00:00+00:00'
+            manifest_path.unlink()
+            backup.encrypt_chunks([json.dumps(changed).encode()],manifest_path,self.recipient)
+            with self.assertRaisesRegex(backup.BackupError,'snapshot'):
+                verify_database_local.verify_database(database_folder,storage_folder,target,self.folder/'scratch')
+        finally:
+            subprocess.run(['docker','exec',source_container,'dropdb','-U','postgres',source],check=True)
+            subprocess.run(['docker','rm','-fv',target],check=True,stdout=subprocess.DEVNULL)
 
     def test_database_auth_records_rls_functions_and_references_round_trip(self):
         container = 'rated420-averages-pg'
