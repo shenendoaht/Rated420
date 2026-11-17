@@ -55,15 +55,18 @@ Before the development workspace disconnected, these checks passed:
 - Existing contact UI checks at 1280/390/320px and existing login/logout/refresh CTA regression checks.
 - Production-build isolation, JavaScript syntax and diff checks.
 
-The workspace became unavailable before commit. This branch was recovered from retained source/edit steps through GitHub. Recovered JavaScript syntax was checked, but the complete test suites MUST be rerun on this exact recovered commit when an execution environment is available. Earlier passing results are not represented as final-commit proof. Keep the PR draft.
+The workspace became unavailable before the initial commit. The development environment has now been restored and the exact recovered commit 1c3788b has passed all five local PostgreSQL tests, ten contact-handler tests, community desktop/mobile tests and existing contact UI checks. Account-session regressions also passed. Five repeatable build-isolation tests now verify production/default builds exclude the adapter, synthetic seed, tests, SQL and private-file canaries, even when local-demo flags are present. The tests also verify unrelated preview branches remain unaffected.
+
+These tests are being committed incrementally to the existing feature branch. The PR remains unmerged pending the owner's review and explicit production migration/deployment approval. Hosted integration limitations below still apply.
 
 Commands (dedicated local Docker container only, no production URLs accepted by SQL harness):
 
 ```sh
 docker run -d --name rated420-averages-pg --network none -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17.6
-node --test tests/community-db.test.mjs tests/contact-handler.test.mjs
+node --test tests/community-db.test.mjs tests/contact-handler.test.mjs tests/build-isolation.test.mjs
 RATED420_LOCAL_DEMO=1 node scripts/build.mjs
 node tests/community.browser.cjs
+node tests/auth.browser.cjs
 node tests/contact.browser.cjs
 node --check app.js
 git diff --check
