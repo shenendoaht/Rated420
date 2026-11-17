@@ -77,6 +77,7 @@
     $('accountPage').hidden = name !== 'account';
     $('strainPage').hidden = name !== 'strain';
     $('dispensaryPage').hidden = name !== 'dispensary';
+    $('contactPage').hidden = name !== 'contact';
     if (name === 'account' && db && user) {
       void loadMyStrainReviews();
       void loadDispensaryReviews(true);
@@ -1050,6 +1051,12 @@
   $('ageYes').addEventListener('click', acceptAge);
   $('ageNo').addEventListener('click', denyAge);
   $('navLogin').addEventListener('click', () => showAuth('login'));
+  document.querySelectorAll('[data-open-contact]').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    page('contact');
+    $('contactTitle').focus({ preventScroll: true });
+    window.dispatchEvent(new Event('rated420:contact-open'));
+  }));
   [$('navJoin'), $('bottomJoin')].forEach(btn => btn.addEventListener('click', () => showAuth('signup')));
   $('heroJoin').addEventListener('click', () => user ? openStrains('review') : showAuth('signup'));
   $('navAccount').addEventListener('click', () => page('account'));
