@@ -298,7 +298,7 @@
             <form id="contactForm" method="post" action="https://ymluyoqkmzxomjokjmkj.supabase.co/functions/v1/submit-contact">
               <p class="contact-required">All fields are required unless marked optional.</p>
               <div class="contact-fields">
-                <label for="contactName">Full Name<input id="contactName" name="full_name" autocomplete="name" required maxlength="120"></label>
+                <label for="contactName">Full Name<input id="contactName" name="full_name" autocomplete="name" required minlength="2" maxlength="120"></label>
                 <label for="contactEmail">Email Address<input id="contactEmail" name="email" type="email" autocomplete="email" required maxlength="254"></label>
               </div>
               <label for="contactCategory">Inquiry Category<select id="contactCategory" name="category" required>
@@ -317,7 +317,7 @@
                 <label for="contactWebsite">Website<input id="contactWebsite" name="website" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://"></label>
                 <label for="contactTelephone">Telephone Number<input id="contactTelephone" name="telephone" type="tel" autocomplete="tel" maxlength="40"></label>
               </fieldset>
-              <label for="contactSubject">Subject<input id="contactSubject" name="subject" required maxlength="160"></label>
+              <label for="contactSubject">Subject<input id="contactSubject" name="subject" required minlength="2" maxlength="160"></label>
               <label for="contactMessage">Message<textarea id="contactMessage" name="message" required minlength="10" maxlength="5000" rows="7" aria-describedby="contactMessageHelp"></textarea></label>
               <p class="field-tip" id="contactMessageHelp">10–5,000 characters. Give us the details that will help our team respond.</p>
               <div class="contact-trap" aria-hidden="true"><label for="contactCompanyFax">Leave this field empty<input id="contactCompanyFax" name="company_fax" tabindex="-1" autocomplete="off"></label></div>

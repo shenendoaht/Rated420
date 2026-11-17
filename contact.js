@@ -7,13 +7,14 @@
   const status = document.getElementById('contactFormStatus');
   const submit = document.getElementById('contactSubmit');
   const success = document.getElementById('contactSuccess');
-  const siteKey = document.querySelector('meta[name="contact-turnstile-site-key"]').content.trim();
+  let siteKey = document.querySelector('meta[name="contact-turnstile-site-key"]').content.trim();
   const endpoint = 'https://ymluyoqkmzxomjokjmkj.supabase.co/functions/v1/submit-contact';
   let widget = null;
   let token = '';
   let loading = false;
   let busy = false;
   let requestId = null;
+  let configuration = null;
 
   function message(text) {
     status.textContent = text;
@@ -30,15 +31,27 @@
   function renderChallenge() {
     if (!window.turnstile || widget !== null || document.getElementById('contactPage').hidden || form.hidden) return;
     widget = window.turnstile.render('#contactChallenge', {
-      sitekey: siteKey, theme: 'dark', size: 'flexible', action: 'contact',
+      sitekey: siteKey, theme: 'dark', size: 'flexible', action: 'contact', 'response-field': false,
       callback: value => { token = value; },
       'expired-callback': () => { token = ''; },
       'error-callback': () => { token = ''; message('Spam protection could not load. Check your connection and try again.'); }
     });
   }
 
-  function loadChallenge() {
-    if (!siteKey) return;
+  async function loadChallenge() {
+    if (!siteKey) {
+      try {
+        configuration ||= fetch(endpoint + '/config', { credentials: 'omit', signal: AbortSignal.timeout(8000) })
+          .then(response => response.ok ? response.json() : null);
+        const config = await configuration;
+        if (!config?.ready || typeof config.site_key !== 'string' || !config.site_key) throw new Error();
+        siteKey = config.site_key;
+      } catch {
+        configuration = null;
+        message('Contact submissions are not available yet. Please try again later.');
+        return;
+      }
+    }
     if (window.turnstile) return renderChallenge();
     if (loading) return;
     loading = true;
@@ -80,11 +93,14 @@
       status.focus();
       return;
     }
-    const data = Object.fromEntries(new FormData(form));
+    const allowedFields = new Set(['full_name','email','category','company','company_location','website','telephone','subject','message','company_fax']);
+    const data = Object.fromEntries([...new FormData(form)].filter(([key]) => allowedFields.has(key)));
     for (const key of Object.keys(data)) data[key] = String(data[key]).trim();
     requestId ||= crypto.randomUUID();
     const payload = { ...data, request_id: requestId, turnstile_token: token };
     busy = true;
+    const controls = [...form.querySelectorAll('input,select,textarea,button')].map(control => [control, control.disabled]);
+    controls.forEach(([control]) => { control.disabled = true; });
     submit.disabled = true;
     submit.textContent = 'Sending…';
     form.setAttribute('aria-busy', 'true');
@@ -121,6 +137,7 @@
       window.clearTimeout(timeout);
       resetChallenge();
       busy = false;
+      controls.forEach(([control, disabled]) => { control.disabled = disabled; });
       submit.disabled = false;
       submit.replaceChildren(document.createTextNode('Send message '));
       const arrow = document.createElement('span');
