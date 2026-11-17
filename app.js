@@ -421,6 +421,7 @@
   let editingReviewId = null;
   let photoObjectUrl = null;
   let strainLoading = false;
+  let strainRefreshPending = false;
 
   function cleanStrainName(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
   function nameKey(value) { return cleanStrainName(value).toLocaleLowerCase(); }
@@ -428,7 +429,7 @@
   function openStrains(target = 'catalogue') {
     page('strain');
     if (!db) setMessage('strainPageMessage', 'The catalogue is connecting to Supabase. Check your connection if it does not load.', true);
-    else if (!knownStrains.length) void loadStrainCatalogue();
+    else void loadStrainCatalogue();
     if (target === 'review') {
       requestAnimationFrame(() => $('rated420-strain-rating-form').scrollIntoView({behavior:'smooth',block:'start'}));
     } else {
@@ -443,20 +444,29 @@
     return node;
   }
   function formatCount(n, singular, plural) { return n + ' ' + (n === 1 ? singular : plural); }
+function communityReviewLabel(stats) {
+  const count = Number(stats?.review_count || 0);
+  return count ? `Avg out of ${count} user ${count === 1 ? 'review' : 'reviews'}` : 'Be the first to rate.';
+}
+function appendCommunityScore(node, stats) {
+  node.append(makeNode('strong','community-score', stats && Number(stats.review_count) ? `${Math.round(Number(stats.avg_total))} / 420` : 'Not yet rated'),
+    makeNode('small','community-review-count',communityReviewLabel(stats)));
+}
   function totalForFormat(strainId, format) {
-    return ratingStats.find(s => Number(s.strain_id) === Number(strainId) && s.product_type === format) || null;
+    return ratingStats.find(s => Number(s.strain_id) === Number(strainId) && s.product_type === (format === ALL_FORMATS ? null : format)) || null;
   }
   function summedReviews(strainId) {
-    return ratingStats.filter(s => Number(s.strain_id) === Number(strainId)).reduce((count,s) => count + (Number(s.review_count)||0), 0);
+    return Number(totalForFormat(strainId, ALL_FORMATS)?.review_count || 0);
   }
 
   async function loadStrainCatalogue() {
-    if (!db || strainLoading) return;
+    if (!db) return;
+    if (strainLoading) { strainRefreshPending = true; return; }
     strainLoading = true;
     try {
       const [directory, stats] = await Promise.all([
         db.from('strains').select('id,name,created_at').order('name', {ascending:true}).limit(1000),
-        db.from('strain_rating_stats').select('*').limit(1000)
+        db.from('strain_community_stats').select('*').limit(1000)
       ]);
       if (directory.error) throw directory.error;
       if (stats.error) throw stats.error;
@@ -471,7 +481,10 @@
       }
     } catch(e) {
       setMessage('strainPageMessage', 'Could not load strain catalogue: ' + (e.message || 'connection unavailable'), true);
-    } finally { strainLoading = false; }
+    } finally {
+      strainLoading = false;
+      if (strainRefreshPending) { strainRefreshPending = false; void loadStrainCatalogue(); }
+    }
   }
 
   function renderStrainOptions() {
@@ -485,8 +498,7 @@
       button.type = 'button';
       button.setAttribute('aria-pressed', String(!!selectedStrain && selectedStrain.id === strain.id));
       button.append(document.createTextNode(strain.name));
-      const count = summedReviews(strain.id);
-      if (count) button.append(makeNode('small', '', ` ${count} ${count === 1 ? 'rating' : 'ratings'}`));
+      appendCommunityScore(button, totalForFormat(strain.id, ALL_FORMATS));
       button.addEventListener('click', () => selectStrain(strain));
       list.append(button);
     }
@@ -537,20 +549,19 @@
     card.replaceChildren();
     formatControl();
     const allFormats = formatFilter === ALL_FORMATS;
-    const summary = allFormats ? null : totalForFormat(selectedStrain.id, formatFilter);
+    const summary = totalForFormat(selectedStrain.id, formatFilter);
     const head = makeNode('div','strain-summary-head');
     const title = makeNode('div');
     title.append(makeNode('span','eyebrow', `${formatFilter.toUpperCase()} · COMMUNITY RATINGS`),makeNode('h3','',selectedStrain.name));
     head.append(title);
-    if (!allFormats) head.append(makeNode('strong','strain-avg-total', summary ? `${summary.avg_total} / 420` : '— / 420'));
+    head.append(makeNode('strong','strain-avg-total', summary ? `${Math.round(Number(summary.avg_total))} / 420` : 'Not yet rated'));
     card.append(head);
-    if (allFormats) card.append(makeNode('p','',`${formatCount(summedReviews(selectedStrain.id),'real review','real reviews')} across all formats.`));
-    else if (summary) card.append(makeNode('p','',`${formatCount(Number(summary.review_count),'real review','real reviews')} for this product format.`));
+    card.append(makeNode('p','', communityReviewLabel(summary)));
     if (summary) {
       const bars = makeNode('div','strain-avg-categories');
       for (const [field,label] of STRAIN_CATEGORIES) {
         const tile = makeNode('div','strain-avg-category');
-        tile.append(makeNode('span','',label),makeNode('strong','',`${summary['avg_'+field]} / 84`));
+        tile.append(makeNode('span','',label),makeNode('strong','',`${Math.round(Number(summary['avg_'+field]))} / 84`));
         bars.append(tile);
       }
       card.append(bars);
@@ -907,6 +918,88 @@
     }
   });
 
+  let dispensaryListings = [];
+  let dispensaryStats = [];
+  let selectedDispensaryId = null;
+  let dispensaryLoading = false;
+  let dispensaryRefreshPending = false;
+async function loadDispensaryCatalogue() {
+  if (!db) return;
+  if (dispensaryLoading) { dispensaryRefreshPending = true; return; }
+  dispensaryLoading = true;
+  try {
+    const [listings,stats] = await Promise.all([
+      db.from('dispensaries').select('id,name,location').order('name').limit(1000),
+      db.from('dispensary_community_stats').select('*').limit(1000)
+    ]);
+    if (listings.error || stats.error) throw new Error('Community ratings could not be loaded.');
+    dispensaryListings = listings.data || [];
+    dispensaryStats = stats.data || [];
+    $('dispensaryCatalogueMessage').textContent = '';
+    renderDispensaryCatalogue();
+    renderDispensarySummary();
+  } catch {
+    $('dispensaryCatalogueMessage').textContent = 'Community ratings could not be loaded. Please try again.';
+  } finally {
+    dispensaryLoading = false;
+    if (dispensaryRefreshPending) { dispensaryRefreshPending = false; void loadDispensaryCatalogue(); }
+  }
+}
+function renderDispensaryCatalogue() {
+  const box = $('dispensaryOptions');
+  const search = nameKey($('dispensarySearch').value);
+  box.replaceChildren();
+  const listings = dispensaryListings.filter(d => nameKey(d.name + ' ' + d.location).includes(search));
+  for (const listing of listings) {
+    const button = makeNode('button','strain-option',listing.name + ' · ' + listing.location);
+    button.type = 'button';
+    button.setAttribute('aria-pressed',String(Number(listing.id) === selectedDispensaryId));
+    appendCommunityScore(button,dispensaryStats.find(s => Number(s.dispensary_id) === Number(listing.id)));
+    button.addEventListener('click', () => {
+      selectedDispensaryId = Number(listing.id);
+      dispensaryFields.namedItem('name').value = listing.name;
+      dispensaryFields.location.value = listing.location;
+      renderDispensaryCatalogue();
+      renderDispensarySummary();
+    });
+    box.append(button);
+  }
+  if (!listings.length) box.append(makeNode('p','strain-empty', search ? 'No matching dispensaries.' : 'No dispensaries listed yet. Add one with your first review.'));
+}
+function renderDispensarySummary() {
+  const box = $('dispensaryCommunitySummary');
+  const listing = dispensaryListings.find(d => Number(d.id) === selectedDispensaryId);
+  box.hidden = !listing;
+  box.replaceChildren();
+  if (!listing) return;
+  const stats = dispensaryStats.find(d => Number(d.dispensary_id) === selectedDispensaryId);
+  box.append(makeNode('h2','',listing.name + ' · ' + listing.location));
+  appendCommunityScore(box,stats);
+  if (stats) {
+    const categories = makeNode('div','strain-avg-categories');
+    for (const [field,label] of DISPENSARY_CATEGORIES) {
+      const category = makeNode('div','strain-avg-category');
+      category.append(makeNode('span','',label),makeNode('strong','',`${Math.round(Number(stats['avg_'+field]))} / 84`));
+      categories.append(category);
+    }
+    box.append(categories);
+  }
+}
+async function ensureDispensary(name,location) {
+  const selected = dispensaryListings.find(d => Number(d.id) === selectedDispensaryId);
+  if (selected && nameKey(selected.name) === nameKey(name) && nameKey(selected.location) === nameKey(location)) return selected;
+  const {data,error} = await db.from('dispensaries').select('id,name,location')
+    .eq('name_key',name.toLowerCase()).eq('location_key',location.toLowerCase()).maybeSingle();
+  if (error) throw error;
+  if (data) return data;
+  const added = await db.from('dispensaries').insert({name,location}).select('id,name,location').single();
+  if (!added.error) return added.data;
+  if (added.error.code !== '23505') throw added.error;
+  const retried = await db.from('dispensaries').select('id,name,location')
+    .eq('name_key',name.toLowerCase()).eq('location_key',location.toLowerCase()).single();
+  if (retried.error) throw retried.error;
+  return retried.data;
+}
   function updateDispensaryPreview() {
     if (dispensaryPreviewUrl) URL.revokeObjectURL(dispensaryPreviewUrl);
     dispensaryPreviewUrl = null;
@@ -928,6 +1021,10 @@
   function resetDispensaryForm(review = null) {
     editingDispensary = review;
     dispensaryForm.reset();
+    if (review?.dispensary_id) {
+      selectedDispensaryId = Number(review.dispensary_id);
+      void loadDispensaryCatalogue();
+    }
     if (review) {
       for (const field of ['name', 'location', 'notes', ...DISPENSARY_CATEGORIES.map(([key]) => key)]) {
         dispensaryFields.namedItem(field).value = review[field];
@@ -950,7 +1047,7 @@
     }
     const memberId = user?.id;
     let query = db.from('dispensary_reviews')
-      .select('id, name, location, aesthetic, accessibility, staff, menu, overall, total, notes, photo_path, created_at')
+      .select('id, dispensary_id, name, location, aesthetic, accessibility, staff, menu, overall, total, notes, photo_path, created_at')
       .order('created_at', { ascending: false });
     query = own ? query.eq('user_id', memberId) : query.limit(12);
     const { data, error } = await query;
@@ -995,6 +1092,8 @@
           if (review.photo_path) void db.storage.from(DISPENSARY_BUCKET).remove([review.photo_path]);
           if (editingDispensary?.id === review.id) resetDispensaryForm();
           void loadDispensaryReviews(true);
+          void loadDispensaryReviews();
+          void loadDispensaryCatalogue();
           toast('Dispensary review deleted.');
         });
         actions.append(edit, remove);
@@ -1027,19 +1126,27 @@
     $('cancelDispensaryEdit').disabled = true;
     let uploaded = null;
     try {
+      const listing = await ensureDispensary(row.name, row.location);
+      row.dispensary_id = listing.id;
+      row.name = listing.name; row.location = listing.location;
+      const {data:existing,error:lookupError} = await db.from('dispensary_reviews').select('id,photo_path').eq('dispensary_id',listing.id).eq('user_id',memberId).maybeSingle();
+      if (lookupError) throw lookupError;
+      if (existing && previous && existing.id !== previous.id) throw new Error('You already reviewed this listing. Edit that review in My account.');
+      const target = previous || existing;
       const file = dispensaryFields.photo.files[0];
       if (file) uploaded = await uploadPhoto(DISPENSARY_BUCKET, file, memberId);
-      row.photo_path = uploaded || (dispensaryFields.removePhoto.checked ? null : previous?.photo_path || null);
+      row.photo_path = uploaded || (dispensaryFields.removePhoto.checked ? null : target?.photo_path || null);
       const table = db.from('dispensary_reviews');
-      const query = previous ? table.update(row).eq('id', previous.id).eq('user_id', memberId) : table.insert(row);
+      const query = target ? table.update(row).eq('id', target.id).eq('user_id', memberId) : table.insert(row);
       const { error } = await query.select('id').single();
       if (error) throw error;
-      if (previous?.photo_path && previous.photo_path !== row.photo_path) {
-        void db.storage.from(DISPENSARY_BUCKET).remove([previous.photo_path]);
+      if (target?.photo_path && target.photo_path !== row.photo_path) {
+        void db.storage.from(DISPENSARY_BUCKET).remove([target.photo_path]);
       }
       resetDispensaryForm();
       setMessage('dispensaryMessage', 'Dispensary rating saved.');
       void loadDispensaryReviews();
+      void loadDispensaryCatalogue();
     } catch (error) {
       if (uploaded) void db.storage.from(DISPENSARY_BUCKET).remove([uploaded]);
       setMessage('dispensaryMessage', error.code === '23505'
@@ -1052,15 +1159,26 @@
     }
   }
 
+  $('dispensarySearch').addEventListener('input',renderDispensaryCatalogue);
   buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES);
   document.querySelectorAll('[data-open-dispensary]').forEach(button => button.addEventListener('click', () => {
     page('dispensary');
     void loadDispensaryReviews();
+    void loadDispensaryCatalogue();
   }));
   dispensaryForm.addEventListener('submit', saveDispensaryReview);
   dispensaryFields.photo.addEventListener('change', updateDispensaryPreview);
   dispensaryFields.removePhoto.addEventListener('change', updateDispensaryPreview);
   $('cancelDispensaryEdit').addEventListener('click', () => resetDispensaryForm());
+
+function refreshCommunityScores() {
+  if (!db || document.hidden || !isAgeAccepted()) return;
+  if (currentPage === 'strain') void loadStrainCatalogue();
+  if (currentPage === 'dispensary') void loadDispensaryCatalogue();
+}
+  window.addEventListener('focus',refreshCommunityScores);
+  document.addEventListener('visibilitychange',refreshCommunityScores);
+  window.setInterval(refreshCommunityScores,30000);
 
   // Navigation and forms
   $('ageYes').addEventListener('click', acceptAge);

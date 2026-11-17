@@ -1,0 +1,81 @@
+const {chromium}=require('playwright');
+const fs=require('fs');const path=require('path');const assert=require('assert/strict');
+const root=path.resolve(__dirname,'../dist');
+async function runCommunityBrowserTests() {
+  const browser=await chromium.launch({headless:true});
+  try {
+    for(const width of [1280,390]){
+      const context=await browser.newContext({viewport:{width,height:950},reducedMotion:'reduce'});
+      const page=await context.newPage();const errors=[],backend=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      await context.route('**/*',route=>{
+        const u=new URL(route.request().url());
+        if(u.hostname!=='community.test'){if(u.hostname.endsWith('.supabase.co'))backend.push(u.href);return route.abort();}
+        const file=path.join(root,u.pathname==='/'?'index.html':u.pathname);
+        return route.fulfill({contentType:file.endsWith('.html')?'text/html':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'image/png',body:fs.readFileSync(file)});
+      });
+      const openStrains=async()=>{await page.locator('#brandLink').click();await page.locator('#homePage [data-open-strains="catalogue"]').click();};
+      const openDispensaries=async()=>{await openStrains();await page.locator('#strainPage [data-open-dispensary]').click();};
+      const card=name=>page.locator('#rated420-strain-options button').filter({hasText:name});
+      const dispCard=()=>page.locator('#dispensaryOptions button').filter({hasText:'Demo Community Shop'});
+      const expectScore=async(node,score,count)=>{await node.getByText(`${score} / 420`,{exact:true}).waitFor();assert((await node.innerText()).includes(`Avg out of ${count} user ${count===1?'review':'reviews'}`));};
+      const setScores=async(form,value)=>{for(const slider of await page.locator(form+' input[type=range]').all())await slider.evaluate((el,v)=>{el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));},value);};
+      await page.goto('https://community.test/');await page.locator('#ageYes').click();await openStrains();
+      await expectScore(card('Demo Citrus'),278,2);await expectScore(card('Demo Cedar'),300,1);
+      assert((await card('Demo Unrated').innerText()).includes('Not yet rated'));
+      assert((await card('Demo Unrated').innerText()).includes('Be the first to rate.'));
+      await card('Demo Citrus').click();
+      assert((await page.locator('#rated420-strain-summary').innerText()).includes('56 / 84'));
+      await page.locator('#strainFormatButtons').getByRole('button',{name:'Pre-Roll',exact:true}).click();
+      assert((await page.locator('#rated420-strain-summary').innerText()).includes('200 / 420'));
+      await page.locator('#strainFormatButtons').getByRole('button',{name:'Edible',exact:true}).click();
+      await page.getByText('No Edible reviews yet.',{exact:true}).waitFor();
+      await page.getByRole('button',{name:'Show all formats',exact:true}).click();
+      await page.locator('#rated420-strain-summary').getByText('278 / 420',{exact:true}).waitFor();
+      await openDispensaries();await expectScore(dispCard(),308,2);await dispCard().click();
+      assert((await page.locator('#dispensaryCommunitySummary').innerText()).includes('61 / 84'));
+      assert((await page.locator('#dispensaryOptions').innerText()).includes('Not yet rated'));
+      await page.locator('#demoReviewer').selectOption('11111111-1111-4111-8111-111111111111');
+      await page.locator('#accountPage').waitFor({state:'visible'});
+      await openStrains();await card('Demo Citrus').click();
+      await page.locator('#rated420-strain-brand').fill('Demo Grower');
+      await page.locator('#rated420-strain-product-type').selectOption('Flower');
+      await page.locator('#rated420-strain-photo').setInputFiles({name:'fixture.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=','base64')});
+      await setScores('#rated420-strain-rating-form',84);
+      await page.locator('#reviewSaveButton').click();await expectScore(card('Demo Citrus'),358,2);
+      await page.waitForFunction(()=>!document.getElementById('reviewSaveButton').disabled);
+      await page.locator('#rated420-strain-brand').fill('Demo Grower');
+      await setScores('#rated420-strain-rating-form',40);
+      await page.locator('#reviewSaveButton').click();await expectScore(card('Demo Citrus'),303,2);
+      const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('rated420-community-demo-v1')));
+      assert.equal(stored.strain_reviews.filter(r=>r.strain_id===101).length,3);
+      await page.reload();await openStrains();await expectScore(card('Demo Citrus'),303,2);await card('Demo Citrus').click();
+      const savedPhoto=page.locator('.strain-review-thumb');await savedPhoto.scrollIntoViewIfNeeded();await savedPhoto.evaluate(img=>img.decode());assert(await savedPhoto.evaluate(img=>img.naturalWidth>0));
+      await openDispensaries();await dispCard().click();await setScores('#dispensaryForm',84);
+      await page.locator('#saveDispensary').click();await expectScore(dispCard(),368,2);
+      await page.locator('#navAccount').click();page.once('dialog',d=>d.accept());
+      await page.locator('#myDispensaryReviewList article').first().getByRole('button',{name:'Delete',exact:true}).click();
+      await openDispensaries();await expectScore(dispCard(),315,1);
+      await page.locator('#navAccount').click();page.once('dialog',d=>d.accept());
+      await page.locator('#myStrainReviewList article').filter({hasText:'Demo Grower · Flower'}).getByRole('button',{name:'Delete',exact:true}).click();
+      await openStrains();await expectScore(card('Demo Citrus'),303,2);
+      await page.locator('#navAccount').click();page.once('dialog',d=>d.accept());
+      await page.locator('#myStrainReviewList article').filter({hasText:'Demo Grower · Pre-Roll'}).getByRole('button',{name:'Delete',exact:true}).click();
+      await openStrains();await expectScore(card('Demo Citrus'),405,1);
+      await page.locator('#demoReviewer').selectOption('22222222-2222-4222-8222-222222222222');
+      await page.locator('#accountPage').waitFor({state:'visible'});
+      await openStrains();await card('Demo Citrus').click();await page.locator('#rated420-strain-brand').fill('Demo Grower');
+      await page.locator('#rated420-strain-product-type').selectOption('Flower');await setScores('#rated420-strain-rating-form',60);
+      await page.locator('#reviewSaveButton').click();await expectScore(card('Demo Citrus'),300,1);
+      await page.waitForFunction(()=>!document.getElementById('reviewSaveButton').disabled);
+      await card('Demo Unrated').click();await page.locator('#rated420-strain-brand').fill('Zero Score Fixture');
+      await setScores('#rated420-strain-rating-form',0);await page.locator('#reviewSaveButton').click();await expectScore(card('Demo Unrated'),0,1);
+      await page.locator('#demoReviewer').selectOption('');await openStrains();await expectScore(card('Demo Citrus'),300,1);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      assert.deepEqual(errors,[]);assert.deepEqual(backend,[]);
+      console.log(JSON.stringify({width,result:'PASS',checks:['zero/one/multiple users','equal weighting','rounding','categories','formats','repeat save','edits/deletions','photo and refresh persistence','second account','zero score','no production connections']}));
+      await context.close();
+    }
+  } finally {await browser.close();}
+}
+runCommunityBrowserTests().catch(e=>{console.error(e);process.exit(1)});

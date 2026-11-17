@@ -237,6 +237,15 @@
 <section id="dispensaryPage" class="strain-page page-width" hidden aria-labelledby="dispensaryTitle">
   <button class="btn btn-outline" type="button" data-go-home>← Home</button>
   <h1 id="dispensaryTitle">Rate a dispensary.</h1>
+  <section class="directory-panel" aria-labelledby="dispensaryDirectoryTitle">
+    <div class="directory-panel__heading"><div><span class="eyebrow">COMMUNITY RATINGS</span><h2 id="dispensaryDirectoryTitle">Explore dispensaries.</h2></div></div>
+    <label class="directory-search-field" for="dispensarySearch">SEARCH DISPENSARIES
+      <span class="directory-search-control"><input id="dispensarySearch" type="search" placeholder="Search name or location" autocomplete="off"></span>
+    </label>
+    <p id="dispensaryCatalogueMessage" role="status" aria-live="polite"></p>
+    <div id="dispensaryOptions" class="strain-options" aria-label="Dispensary catalogue"></div>
+    <section id="dispensaryCommunitySummary" class="strain-community-summary" aria-live="polite" hidden></section>
+  </section>
   <div class="review-layout">
     <form id="dispensaryForm" data-kind="dispensary">
       <div class="fields">
