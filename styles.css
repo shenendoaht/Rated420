@@ -319,3 +319,43 @@ input[type=range] {accent-color:#d5f58a;min-height:36px;cursor:pointer}
   .main-nav{display:flex;order:1;flex-basis:100%;justify-content:center;margin-left:0}
   .header-actions{flex-wrap:wrap;justify-content:flex-end}
 }
+
+/* Contact Us: scoped to the new page and footer link. */
+.footer-contact{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--lime);font-size:12px;font-weight:700}
+.footer-contact:hover{text-decoration:underline;text-underline-offset:4px}
+.contact-page{padding-top:48px;padding-bottom:90px;min-height:650px}
+.contact-heading{max-width:750px;margin:25px 0 38px}
+.contact-heading h1{font:700 clamp(48px,6vw,76px)/1.07 'Space Grotesk',Arial,sans-serif;letter-spacing:-2.8px;margin:0 0 22px}
+.contact-heading em,.contact-aside em,.contact-success em{color:var(--lime);font-style:normal}
+.contact-heading>p:last-child{font-size:16px;color:var(--muted);line-height:1.8;margin:0;max-width:650px}
+.contact-layout{display:grid;grid-template-columns:.75fr 1.25fr;gap:42px;align-items:start}
+.contact-layout>*{min-width:0}
+.contact-aside{padding:30px 4px 20px 0}
+.contact-aside .eyebrow{font-size:10px;letter-spacing:1.7px}
+.contact-aside h2{font:700 clamp(25px,3vw,34px)/1.2 'Space Grotesk',Arial,sans-serif;letter-spacing:-1px;margin:16px 0 24px}
+.contact-aside p{font-size:14px;line-height:1.8;color:var(--muted);margin:0 0 18px}
+.contact-privacy{border-top:1px solid var(--line);margin-top:28px;padding-top:24px}
+.contact-privacy strong{font-size:13px;color:var(--ink)}
+.contact-privacy p{font-size:12px;margin-top:9px}
+.contact-panel{padding:clamp(20px,3vw,36px);border:1px solid #526c4d;border-radius:16px;background:linear-gradient(145deg,#1b2920,#141f17);box-shadow:0 14px 38px #0002}
+.contact-required{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 24px}
+.contact-panel form label{display:block;font-size:13px;font-weight:700;line-height:1.5;margin:0 0 20px}
+.contact-panel label>span,.contact-business legend>span{font-weight:400;color:var(--muted)}
+.contact-fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.contact-panel input,.contact-panel select,.contact-panel textarea{display:block;width:100%;min-width:0;min-height:50px;margin-top:9px;padding:12px 14px;border:1px solid #6c8462;border-radius:7px;color:var(--ink);background:#18271d;font:400 16px/1.5 'DM Sans',Arial,sans-serif}
+.contact-panel textarea{min-height:170px;resize:vertical}
+.contact-panel select{padding-right:9px;text-overflow:ellipsis;white-space:nowrap}
+.contact-panel input::placeholder{color:#9ba995}
+.contact-panel :is(input,select,textarea):focus{outline:2px solid var(--lime);outline-offset:2px}
+.contact-panel .field-tip{margin:-10px 0 24px;color:var(--muted)}
+.contact-business{border:1px solid #47613e;border-radius:9px;padding:19px 17px 0;margin:2px 0 24px;min-width:0}
+.contact-business legend{font-size:12px;line-height:1.6;color:var(--lime);padding:0 6px;max-width:100%}
+.contact-note{font-size:11px;line-height:1.7;color:var(--muted);margin:17px 0 0}
+.contact-challenge{max-width:100%;margin-bottom:20px;min-width:0}
+.contact-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.contact-success h2{font:700 clamp(42px,5vw,62px)/1.1 'Space Grotesk',Arial,sans-serif;letter-spacing:-2px;margin:14px 0 24px}
+.contact-success>p{font-size:15px;line-height:1.8;color:var(--muted)}
+.contact-success .contact-reference{font-size:11px;overflow-wrap:anywhere}
+.contact-success-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+@media(max-width:850px){.contact-layout{grid-template-columns:1fr;gap:12px}.contact-aside{padding-top:0;max-width:680px}.contact-privacy{margin-top:18px;padding-top:18px}.contact-heading{margin-bottom:26px}}
+@media(max-width:640px){.contact-page{padding-top:28px;padding-bottom:65px}.contact-heading h1{font-size:51px}.contact-heading>p:last-child{font-size:14px}.contact-fields{grid-template-columns:1fr;gap:0}.contact-panel{padding:20px 17px}.contact-panel #contactSubmit,.contact-success-actions .btn{width:100%}.contact-business{padding-inline:12px}}

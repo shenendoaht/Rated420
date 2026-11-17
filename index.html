@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111711">
+  <meta name="contact-turnstile-site-key" content="">
   <meta name="description" content="Rated420 NY — community-powered cannabis reviews, rated out of 420. For adults 21 and older.">
   <title>Rated420 NY | Your experience. Out of 420.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -278,6 +279,64 @@
 <section class="member-reviews" id="myDispensaryReviews"><h2>My dispensary reviews.</h2><div id="myDispensaryReviewList" aria-live="polite"></div><button class="btn btn-primary" type="button" data-open-dispensary>Rate a dispensary ↗</button></section>
 <div class="next-card"><span class="eyebrow">WHAT COMES NEXT</span><div><h3>Your voice goes further soon.</h3><p>Strain reviews now save to your account. Polls and HQ are next.</p></div><span class="next-arrow" aria-hidden="true">↗</span></div>
       </section>
+      <section class="contact-page page-width" id="contactPage" hidden aria-labelledby="contactTitle">
+        <button class="text-back" type="button" data-go-home>← Back to home</button>
+        <div class="contact-heading">
+          <p class="eyebrow">CONTACT RATED420 NY</p>
+          <h1 id="contactTitle" tabindex="-1">Let’s <em>talk.</em></h1>
+          <p>Questions, fresh ideas, a correction, or an invitation? Get in touch with Rated420 NY. There’s a place for your perspective here.</p>
+        </div>
+        <div class="contact-layout">
+          <aside class="contact-aside" aria-label="About contacting Rated420">
+            <span class="eyebrow">A DIRECT LINE TO RATED420</span>
+            <h2>Good conversations.<br><em>Growing together.</em></h2>
+            <p>We welcome our community and the people building the cannabis industry—from your next suggestion to a chance to meet, film, or collaborate.</p>
+            <p>For catalogue corrections, include the strain or dispensary name and what needs updating. For invitations, tell us where, when, and what you have in mind.</p>
+            <div class="contact-privacy"><strong>Your message stays private.</strong><p>Submissions are for the Rated420 team, never public reviews. Please don’t include passwords, payment details, or sensitive medical information.</p></div>
+          </aside>
+          <div class="contact-panel">
+            <form id="contactForm" method="post" action="https://ymluyoqkmzxomjokjmkj.supabase.co/functions/v1/submit-contact">
+              <p class="contact-required">All fields are required unless marked optional.</p>
+              <div class="contact-fields">
+                <label for="contactName">Full Name<input id="contactName" name="full_name" autocomplete="name" required maxlength="120"></label>
+                <label for="contactEmail">Email Address<input id="contactEmail" name="email" type="email" autocomplete="email" required maxlength="254"></label>
+              </div>
+              <label for="contactCategory">Inquiry Category<select id="contactCategory" name="category" required>
+                <option value="">Select a category</option>
+                <option value="general">General Questions &amp; Comments</option>
+                <option value="feedback">Suggestions &amp; Feedback</option>
+                <option value="correction">Strain &amp; Dispensary Catalogue Corrections</option>
+                <option value="filming">Filming &amp; Interview Invitations</option>
+                <option value="partnership">Business Partnerships &amp; Collaborations</option>
+                <option value="other">Other</option>
+              </select></label>
+              <label for="contactCompany">Company / Organization <span>(optional)</span><input id="contactCompany" name="company" autocomplete="organization" maxlength="160"></label>
+              <fieldset class="contact-business" id="contactBusiness" hidden disabled>
+                <legend>A little more about your invitation or business <span>(optional)</span></legend>
+                <label for="contactLocation">Company Location<input id="contactLocation" name="company_location" autocomplete="address-level2" maxlength="200" placeholder="City, state / region, country"></label>
+                <label for="contactWebsite">Website<input id="contactWebsite" name="website" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://"></label>
+                <label for="contactTelephone">Telephone Number<input id="contactTelephone" name="telephone" type="tel" autocomplete="tel" maxlength="40"></label>
+              </fieldset>
+              <label for="contactSubject">Subject<input id="contactSubject" name="subject" required maxlength="160"></label>
+              <label for="contactMessage">Message<textarea id="contactMessage" name="message" required minlength="10" maxlength="5000" rows="7" aria-describedby="contactMessageHelp"></textarea></label>
+              <p class="field-tip" id="contactMessageHelp">10–5,000 characters. Give us the details that will help our team respond.</p>
+              <div class="contact-trap" aria-hidden="true"><label for="contactCompanyFax">Leave this field empty<input id="contactCompanyFax" name="company_fax" tabindex="-1" autocomplete="off"></label></div>
+              <div id="contactChallenge" class="contact-challenge" aria-label="Spam protection"></div>
+              <div class="auth-message" id="contactFormStatus" role="status" aria-live="polite" tabindex="-1" hidden></div>
+              <button class="btn btn-primary btn-large" id="contactSubmit" type="submit" disabled>Send message <span aria-hidden="true">↗</span></button>
+              <noscript><p class="contact-note">Please enable JavaScript to use the secure contact form.</p></noscript>
+              <p class="contact-note">By sending, you agree that Rated420 may use these details to review and respond to your inquiry. This form is not for emergencies.</p>
+            </form>
+            <section class="contact-success" id="contactSuccess" aria-labelledby="contactSuccessTitle" hidden>
+              <span class="eyebrow">MESSAGE RECEIVED · RATED420 NY</span>
+              <h2 id="contactSuccessTitle" tabindex="-1">Your voice.<br><em>Heard.</em></h2>
+              <p>Thanks for reaching out. Your message has been received by Rated420, and our team will review it.</p>
+              <p id="contactReference" class="contact-reference" hidden></p>
+              <div class="contact-success-actions"><button class="btn btn-primary" type="button" data-go-home>Back to Rated420 ↗</button><button class="btn btn-outline" id="contactAgain" type="button">Send another message</button></div>
+            </section>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="footer">
@@ -288,6 +347,7 @@
         </div>
         <div class="footer-description">
           <p>Independent community platform. For adults 21 and older.<br>Not a dispensary. No cannabis products sold here.</p>
+          <a class="footer-contact" href="#contact" data-open-contact>Contact Us <span aria-hidden="true">↗</span></a>
         </div>
         <nav class="footer-social" aria-label="Rated420 social media">
           <a href="https://www.youtube.com/@rated420ny" target="_blank" rel="noopener noreferrer" aria-label="Rated420 NY on YouTube (opens in new tab)">
@@ -306,5 +366,6 @@
   <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
   <script src="app.js"></script>
+  <script src="contact.js"></script>
 </body>
 </html>
