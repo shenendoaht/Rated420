@@ -4,7 +4,9 @@ The development environment was restored and the exact recovered commit `1c3788b
 
 ## Results
 
-- **7 PostgreSQL integration tests passed**, using PostgreSQL 17.6 in the existing network-isolated Docker container. The harness creates fresh synthetic databases and accepts no production connection URL. Checks cover:
+- **8 PostgreSQL integration tests passed**, using PostgreSQL 17.6 in the existing network-isolated Docker container. The harness creates fresh synthetic databases and accepts no production connection URL. Checks cover:
+  - Full migration transaction rollback removes the added role/objects/column and preserves the original review.
+  - Previous-frontend dispensary inserts, reads and location edits remain compatible after migration.
   - Zero/one/multiple reviewers and equal user weighting across brand/format rows.
   - Full-precision total and category averages, with unique-user counts.
   - Exact recalculation after score edits, review deletion, and a user's last review deletion.

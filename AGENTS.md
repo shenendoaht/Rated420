@@ -1,56 +1,38 @@
-# Rated420 development workflow
+# Rated420 development rules
 
-These instructions apply to the entire repository and to every contributor or coding agent.
+Applies to the entire repository. Read [DEVELOPMENT.md](DEVELOPMENT.md) first; it records architecture, environment mappings, migration status and the production baseline. Never infer current authorization from documentation or earlier release approvals.
 
-## Preserve existing behavior and design
+## Architecture and scope
 
-- Preserve existing functionality, visual design, content, accessibility, and responsive behavior unless the user explicitly requests a change.
-- Keep changes scoped to the approved task. Report potential breaking changes or security concerns before implementation; obtain explicit direction before proceeding with affected work.
-- Do not introduce unrelated refactors, dependency upgrades, configuration changes, or database changes.
+- Framework-free HTML/CSS/JavaScript; Supabase provides Auth, PostgreSQL/RLS and Storage. Contact intake is a Supabase Edge Function with Turnstile and Resend. Vercel serves static assets.
+- Preserve existing functionality, accessibility, responsive behavior, branding, accounts, reviews and uploaded images. Keep work scoped to the request; report security concerns or breaking changes before implementing affected work.
+- Follow existing DOM/event conventions and use safe text rendering. Do not introduce unrelated refactors, dependency upgrades or services. Pin any new package versions and commit their lockfiles.
 
-## Branches, pull requests, and approval
+## Branches and milestones
 
-- Start each task from the current `main` branch and create a new feature branch. Never develop directly on `main`.
-- Submit changes through a pull request. Describe the problem, resulting behavior, validation performed, and any risks or limitations.
-- Do not merge automatically. Merge only after explicit user authorization, and confirm that the PR still matches the reviewed commit. Changes after review require renewed review.
-- Preserve historical files and existing user data.
+- Start new work from current main on an isolated feature branch; continue an existing PR on its authorized feature branch. Never develop or push directly to main.
+- Commit and push reviewable development milestones regularly and before lengthy verification. Check diffs for credentials/user data before every push. Do not overwrite another contributor's work.
+- Use pull requests. Record tested commits, changes, validation and limitations. Before an approved merge, refetch the head and confirm it matches the reviewed/tested commit; review subsequent changes before proceeding.
 
-## Supabase safety
+## Approval boundaries
 
-- Never execute live migrations, destructive SQL, or any operation that modifies existing Supabase data without explicit user authorization covering the operation and target project.
-- Destructive operations include `DROP`, `DELETE`, `TRUNCATE`, unrestricted `UPDATE`, database resets, and migration-history repairs. A rollback plan or an eventual `ROLLBACK` is not a substitute for authorization.
-- Authorization to edit code, open a PR, or deploy the static site does not authorize database changes.
-- Default to read-only auditing. Use isolated local fixtures or mocks for write tests. Do not run signup, review submissions, profile changes, uploads, deletions, or automated write tests against the connected backend without explicit authorization.
-- The app currently references Supabase project `ymluyoqkmzxomjokjmkj`. Verify the actual target before any database or storage operation.
-- Recovered files in `supabase/migrations/` document changes already applied to that existing project. Never automatically or manually rerun them against it.
-- Root-level dated SQL files are legacy reference copies, not additional migrations to apply.
-- Never add a migration command to application startup, install/build scripts, CI, or Vercel deployment hooks without separate explicit authorization.
-- See `supabase/README.md` and `docs/backend-audit.md`. The declined batch in `docs/declined-verification.sql.txt` is an inspection artifact, not an approved test or migration.
+- Require explicit authorization covering the action and target for production migrations/data writes, PR merges, live deployments, deployment/security configuration changes and additional infrastructure costs. Development or preview approval does not authorize these actions.
+- Keep production read-only until authorized. Do not run live signup/review/profile/upload/delete tests without authorization for those writes. BEGIN/ROLLBACK is not a substitute for approval.
+- Never execute DROP, DELETE, TRUNCATE, unrestricted UPDATE, resets or migration-history repairs against live services without explicit approval for the concrete operation.
+- Recovered/applied migrations and root-level dated SQL are historical documentation: never replay them on the existing project. Distinguish them from new, proposed migrations using DEVELOPMENT.md and the live migration ledger.
+- Never put migration execution in build/install/startup scripts, CI or Vercel hooks. A static deployment must not execute SQL.
+- Do not create paid branches/projects, upgrade plans or incur additional infrastructure costs without explicit scope/price approval. Use isolated local databases and synthetic fixtures by default.
 
-## Credentials and user privacy
+## Credentials and privacy
 
-- Never commit credentials, secret/service-role keys, database passwords, access tokens, private keys, session cookies, authentication state, or sensitive user data.
-- Inspect diffs and generated artifacts before committing. Redact logs and reports; do not copy live user records into fixtures.
-- Supabase project URLs and browser publishable keys are public client configuration, not privileged credentials. Their presence does not authorize changes to backend access policies.
-- If a secret or security issue is discovered, report it before implementing a remedy. Do not repeat secret values in chat, PRs, logs, or commits.
+- Never commit or disclose credentials, secret/service-role keys, API tokens, passwords, cookies, auth state, private keys or sensitive user records. Keep backups outside Git/artifacts in approved secure storage.
+- Browser publishable keys and project URLs are public configuration, not permission to change policies. Preserve Auth, RLS and Storage protections. Do not grant private user IDs to visitors to simplify aggregation.
+- Prefer direct service integrations; use secure browser sign-in only when necessary. Never request secrets in chat or disable Turnstile to get a test to pass.
 
-## Validation before proposing a merge
+## Verification and release
 
-- Run available checks appropriate to the change and report exact results. Never claim tests passed if they were skipped, declined, blocked, or not available.
-- This repository currently serves static HTML, CSS, JavaScript, and images; it has no package build script or automated test suite. At minimum, check JavaScript syntax with `node --check app.js`, run `git diff --check`, and verify referenced local assets exist.
-- For application changes, test the affected interactions and relevant desktop/mobile layouts. Use mocks or an isolated test backend for write flows unless live testing is explicitly authorized.
-- For documentation-only changes, verify wording, links, and scope, and confirm runtime files are unchanged.
-- Verify the Vercel preview for the exact PR head commit before proposing a merge: inspect deployment status and build logs, then exercise the affected flow where applicable.
-- Block unintended backend writes during browser tests. A preview URL does not guarantee backend isolation.
-- Clearly disclose untested authentication, email recovery, review, profile, or storage flows.
-
-## Vercel staging and production
-
-- Existing connected project names include `rated420-staging` and `rated420`. Verify project settings and deployment metadata rather than inferring environment or release behavior from a name.
-- The confirmed staging URL is `https://rated420-staging.vercel.app`. The last verified merge to `main` automatically deployed this project and assigned that URL.
-- Vercel labels the primary deployment of the staging project as target `production`; that label does not make it the business's production site.
-- Feature-branch pushes have produced previews for both projects. Inspect both when applicable. The `rated420` project's production-branch behavior and canonical production domain must be confirmed before any production release.
-- Keep staging/production project names, branch mappings, domains, backend targets, and deployment behavior clearly documented when verified or changed. Mark unknown mappings explicitly.
-- Current deployment is static and does not run SQL. Preserve that separation.
-- Do not change domains, project settings, branch mappings, deployment protection, or release targets outside the user's explicit scope.
-- After an authorized merge or release, verify the resulting deployment's commit, status, build logs, and intended domain. Report the final commit and deployment status.
+- Run relevant tests, syntax/build checks and diff checks. Test affected desktop and mobile flows, including errors and persistence. Block live writes during browser verification; a preview URL does not imply an isolated backend.
+- Check the exact-head Vercel preview, its build logs and affected behavior before proposing release. Clearly distinguish synthetic/mocked/local tests from hosted verification and disclose untested Auth/provider/storage flows.
+- For documentation-only changes, verify facts/links/scope and confirm runtime and SQL are unchanged; do not needlessly repeat unaffected browser tests.
+- Production changes require a reviewed sequence, backup/recovery gate and rollback procedure. After authorized release, verify commit, deployment state, intended domains and affected functionality. Preserve new data during rollback; do not automatically drop the expanded schema or restore an old database snapshot.
+- Keep DEVELOPMENT.md current after approved architecture, migration or release changes. Record durable release details in the relevant docs/ report; keep both root documents concise.

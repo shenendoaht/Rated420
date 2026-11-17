@@ -1,0 +1,48 @@
+# PR #7 controlled release — approval required
+
+Prepared November 17, 2026. No production mutation is authorized by this plan. Final approval must identify the latest PR head and the exact SQL content below.
+
+## Reviewed inputs and current evidence
+
+- PR: https://github.com/shenendoaht/Rated420/pull/7, branch codex/community-averages. Verified milestone f17d15c; preparation changes are docs/tests only. Refetch the final head before approval/merge.
+- Stable production baseline: 483b6d16d45f12d2c8aae1f056348e7f2aa80f24. Vercel rated420-staging serves rated420ny.com and the existing staging aliases. The production deployment is READY.
+- Only proposed migration: [20261117191511_community_listing_averages.sql](../supabase/migrations/20261117191511_community_listing_averages.sql).
+- SQL SHA-256: 8d419be1862dbb1ba6e1ba2457aa69057374484cdaa0d37efce05f5c568a628a.
+- Read-only production preflight: PostgreSQL 17.11; postgres reports CREATEROLE and public-schema CREATE privileges; two strain reviews, zero dispensary reviews; new catalogue/views/private schema/helper role do not exist. Repeat these checks immediately before migration, since live data may change.
+- Existing ledger versions through 20261117064837 are applied and must never be replayed.
+- [Verification report](community-verification.md): local backend, desktop/mobile, Auth/session, photo, contact and build isolation checks pass. Additional local preparation checks demonstrate full transaction rollback and old-frontend dispensary insert/read/edit compatibility.
+
+## Migration review
+
+**Preservation:** no strain review updates, review deletions, image changes, bucket changes or existing Auth/RLS policy replacements. The sole data backfill populates a newly added dispensary_id where it is null, using a one-time legacy identity mapping. Review IDs, timestamps, scores, notes and photo references remain unchanged; local fixtures verify this with a non-null photo path. Runtime aggregation uses IDs.
+
+**Security:** new catalogue RLS permits public reads and authenticated additions. Existing review ownership policies remain in force. Public invoker views expose listing IDs, counts and averages only. Private fixed-query helpers use an empty search_path and a read-only NOLOGIN/NOBYPASSRLS owner inheriting anon's existing public-review policies. The helper role is not granted to visitors/members; no private user-ID grant is added to anon. Confirm community_private is not a PostgREST-exposed schema. Basic role capabilities are confirmed read-only, but the complete hosted privilege/exposure path remains a release gate.
+
+**Compatibility:** original strain stats view and original review constraints remain. New dispensary FK/unique constraints reject invalid or duplicate listing references. A caller-permission trigger supports the previous frontend's name/location writes and maps name/location edits to the appropriate listing ID. New frontend views do not exist before migration: do not deploy/merge first. The old frontend can run with the expanded schema, enabling frontend-only rollback.
+
+**Operational risks:** table alterations/backfill/index creation take locks and may conflict with concurrent submissions. Use a low-traffic window, bounded lock/statement timeouts and an atomic migration runner. The migration is not designed for replay; stop on object/history collisions. Do not use blanket db push/include-all/reset/history-repair operations.
+
+## Approval scope requested
+
+Approval would authorize applying only the reviewed SQL to project ymluyoqkmzxomjokjmkj, checking its results, merging the approved PR head to main, allowing its existing Vercel production deployment, and performing read-only post-release checks. It may also authorize frontend-only rollback to the recorded baseline if deployment verification fails. It does not authorize paid resources, policy/secrets changes, historical replay, destructive SQL, database restoration or live test-account/review/upload/delete writes.
+
+## Recommended sequence after approval
+
+1. **Freeze inputs and establish recovery.** Refetch approved head, confirm SQL hash, clean branch and passing tests/preview. Record current production deployment/aliases. Verify a fresh recoverable backup/export, including the required Auth/database recovery scope and separately preserved Storage objects. Keep backup contents/credentials outside Git/chat. Confirm the recovery procedure and destination; do not assume a free-plan project has PITR or usable backups. No backup has been independently verified in this preparation. Stop if recovery cannot be established without further approval/cost.
+2. **Repeat read-only preflight.** Verify project, PostgreSQL support, migration ledger, new-object/role absence, privileges, normalized legacy identity uniqueness and current counts. Record protected-field fingerprints/ownership/storage metadata for before/after comparison without copying user records into Git. Confirm community_private is not exposed. Stop on schema drift, unexpected objects, duplicates or permission gaps; do not repair history or replace objects automatically.
+3. **Apply one approved migration atomically.** Confirm the selected migration runner's transaction and ledger semantics before execution. Use a 5-second lock timeout and 60-second statement timeout through that transaction/runner, and apply only the exact approved SQL once. The SQL supports PostgreSQL transaction rollback, tested locally; do not claim a nontransactional runner guarantees rollback. Capture the actual new ledger version. If the tool assigns a different version from the proposed filename, stop before merge to reconcile only the new migration's filename/test references under an explicitly approved metadata-only change; never alter/replay existing ledger entries or silently proceed with mismatched history.
+4. **Database gate before merge.** Verify protected fields/fingerprints and counts unchanged apart from the added ID references; no null/orphan dispensary IDs; original Auth/RLS/Storage policies intact; no raw private-ID access for visitors; role attributes/grants and invoker settings correct. Query new public aggregates via anonymous REST and compare against independent database calculations for current reviews. Check schema cache/errors; pause if hosted configuration changes would be needed beyond approval. Do not create/write/delete test records without separate approval.
+5. **Merge and deploy.** If the database gate passes, recheck the approved PR head, merge to main and allow the existing Vercel Git integration to deploy. Do not create an extra deployment or change project/domain settings. Verify the exact merge SHA, production-mode build logs, READY state and intended aliases. Confirm no demo adapter/seed/controls or SQL/test sources are published and no build SQL ran.
+6. **Read-only production checks.** Exercise desktop/mobile catalogue/detail views, current total/category averages and unique-user counts, All formats/individual filters, zero-review states and refresh persistence. Verify existing photo reads, navigation, account-entry and contact UI/configuration. Check existing records/metadata again and inspect relevant errors. Real Auth/write/provider testing beyond this read-only scope needs separately approved accounts/records/actions; synthetic preview results do not prove it.
+7. **Record the release.** Update DEVELOPMENT.md's baseline/migration status and the release report with the final merge/deployment/ledger IDs, verification evidence and limitations. Push documentation milestones; do not accidentally trigger a second unapproved live release just to update docs. Agree the mechanism for any post-release documentation PR separately.
+
+## Rollback procedures
+
+- **Before transaction commit:** abort/ROLLBACK through the confirmed transactional runner on errors/timeouts. Local PostgreSQL tests verify new objects/role/column disappear and the legacy review is unchanged. Confirm the production ledger has no committed new entry. A lost connection is not proof of rollback: inspect schema/history read-only before retrying.
+- **Migration committed, frontend not released:** leave the compatible expanded schema and existing site in place; stop the release and investigate. Do not drop the new schema/columns or delete the ledger entry to simulate rollback.
+- **Frontend released and checks fail:** if that contingency was explicitly approved, restore Vercel's production aliases to the recorded baseline deployment, retaining the expanded database and all new records/images. Verify baseline health. Freeze further merges/releases; prepare a reviewed revert/fix PR rather than force-pushing main or letting an unrelated push redeploy the failed code.
+- **Data/security issue or destructive rollback:** stop and present the concrete affected objects/records and remedy for separate approval. Restoring an old full database snapshot can erase legitimate post-migration writes and is not an automatic rollback. No destructive compensating SQL or restore is authorized here.
+
+## Remaining gates
+
+Recoverable backup/recovery and hosted PostgREST exposure configuration are not yet verified. Hosted Auth/JWT integration, remote multi-account concurrency, load performance and live mutation/provider tests remain outside local evidence. The inherited 1,000-row browsing cap is documented. These limits must be included in release approval; no new paid infrastructure is proposed.

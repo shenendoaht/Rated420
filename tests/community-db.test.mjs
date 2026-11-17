@@ -25,7 +25,11 @@ function registerDatabaseTests() {
     sql(disp.slice(disp.indexOf('create table public.dispensary_reviews'),disp.indexOf('insert into storage.buckets')));
     asUser(u1,`insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,notes,photo_path) values('Fixture Shop','Test City',60,60,60,60,60,'Preserve legacy notes','${u1}/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg');`);
     legacyReview=row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews');
-    sql(readFileSync(path.join(projectRoot,'supabase/migrations/20261117191511_community_listing_averages.sql'),'utf8'));
+    const migration=readFileSync(path.join(projectRoot,'supabase/migrations/20261117191511_community_listing_averages.sql'),'utf8');
+    sql('begin;\n'+migration+'\nrollback;');
+    assert.equal(sql("select to_regclass('public.dispensaries') is null and not exists(select 1 from pg_roles where rolname='rated420_community_reader') and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='dispensary_reviews' and column_name='dispensary_id')"),'t');
+    assert.deepEqual(row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews'),legacyReview);
+    sql('begin;\n'+migration+'\ncommit;');
   });
   test('zero reviews and legacy dispensary backfill preserve data',()=>{
     assert.equal(sql('select count(*) from public.strain_community_stats'),'0');
@@ -80,6 +84,15 @@ function registerDatabaseTests() {
     const east=row("select d.id,s.review_count,s.avg_total from public.dispensaries d join public.dispensary_community_stats s on s.dispensary_id=d.id where d.location='Fixture East'");
     const west=row("select d.id,s.review_count,s.avg_total from public.dispensaries d join public.dispensary_community_stats s on s.dispensary_id=d.id where d.location='Fixture West'");
     assert.notEqual(east.id,west.id);assert.equal(east.review_count,1);assert.equal(west.review_count,1);assert.equal(east.avg_total,100);assert.equal(west.avg_total,350);
+  });
+  test('previous frontend can insert, read and edit dispensary reviews without listing IDs',()=>{
+    asUser(u2,"insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,notes) values('Legacy Client Shop','Fixture North',25,25,25,25,25,'Legacy compatibility fixture');");
+    const before=row("select id,dispensary_id from public.dispensary_reviews where name='Legacy Client Shop'");
+    assert(before.dispensary_id);
+    asUser(u2,"update public.dispensary_reviews set location='Fixture South' where name='Legacy Client Shop';");
+    const after=row("select id,dispensary_id,location,total,notes from public.dispensary_reviews where name='Legacy Client Shop'");
+    assert.equal(after.id,before.id);assert.notEqual(after.dispensary_id,before.dispensary_id);assert.equal(after.location,'Fixture South');assert.equal(after.total,125);assert.equal(after.notes,'Legacy compatibility fixture');
+    const legacyRead=sql("set role anon;select total from public.dispensary_reviews where name='Legacy Client Shop';").split('\n').at(-1);assert.equal(legacyRead,'125');
   });
   after(()=>{execFileSync('docker',['exec',container,'dropdb','-U','postgres',db]);execFileSync('docker',['exec',container,'psql','-U','postgres','-c','drop role rated420_community_reader;']);});
 }
