@@ -2,6 +2,7 @@ const {chromium}=require('playwright');
 const fs=require('fs');
 const path=require('path');
 const assert=require('assert/strict');
+const {execFileSync}=require('child_process');
 const root=path.resolve(__dirname,'..');
 const fixtureUser={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',email:'fixture@example.test',created_at:'2026-01-01T00:00:00Z',app_metadata:{provider:'email',providers:['email']},user_metadata:{},identities:[]};
 const encode=v=>Buffer.from(JSON.stringify(v)).toString('base64url');
@@ -11,9 +12,10 @@ const session=()=>({access_token:token,refresh_token:'fixture-refresh-not-a-cred
  let sdk;
  if(process.env.AUTH_TEST_SDK_PATH) sdk=fs.readFileSync(process.env.AUTH_TEST_SDK_PATH);
  else {
-  const response=await fetch('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1');
-  assert(response.ok,'Could not load the pinned public Supabase SDK');
-  sdk=Buffer.from(await response.arrayBuffer());
+  // curl uses the configured network proxy; raw Node fetch may not in CI.
+  // Only a pinned public SDK asset is downloaded. Every backend request is mocked.
+  sdk=execFileSync('curl',['--fail','--silent','--show-error','--location',
+   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1']);
  }
  const browser=await chromium.launch({headless:true});
  try {

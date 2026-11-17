@@ -10,6 +10,7 @@ function registerDatabaseTests() {
   const container=process.env.COMMUNITY_TEST_CONTAINER||'rated420-averages-pg';
   assert.equal(execFileSync('docker',['inspect','--format','{{.HostConfig.NetworkMode}}',container],{encoding:'utf8'}).trim(),'none');
   const db='community_test_'+Date.now();
+  let legacyReview;
   const sql=q=>execFileSync('docker',['exec','-i',container,'psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d',db,'-At'],{input:q,encoding:'utf8'}).trim();
   const row=q=>JSON.parse(sql(`select row_to_json(t) from (${q}) t;`).split('\n').at(-1));
   const u1='11111111-1111-4111-8111-111111111111',u2='22222222-2222-4222-8222-222222222222';
@@ -22,12 +23,16 @@ function registerDatabaseTests() {
     sql(historical.split('insert into storage.buckets')[0]);
     const disp=readFileSync(path.join(projectRoot,'supabase/migrations/20261116004719_rated420_dispensary_and_avatars.sql'),'utf8');
     sql(disp.slice(disp.indexOf('create table public.dispensary_reviews'),disp.indexOf('insert into storage.buckets')));
-    asUser(u1,"insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,notes,photo_path) values('Fixture Shop','Test City',60,60,60,60,60,'Preserve legacy notes',null);");
+    asUser(u1,`insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,notes,photo_path) values('Fixture Shop','Test City',60,60,60,60,60,'Preserve legacy notes','${u1}/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg');`);
+    legacyReview=row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews');
     sql(readFileSync(path.join(projectRoot,'supabase/migrations/20261117191511_community_listing_averages.sql'),'utf8'));
   });
   test('zero reviews and legacy dispensary backfill preserve data',()=>{
     assert.equal(sql('select count(*) from public.strain_community_stats'),'0');
     assert.deepEqual(row('select name,location,notes,dispensary_id is not null as linked from public.dispensary_reviews'),{name:'Fixture Shop',location:'Test City',notes:'Preserve legacy notes',linked:true});
+  });
+  test('legacy backfill preserves IDs, timestamps, all scores, notes and photo reference',()=>{
+    assert.deepEqual(row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews'),legacyReview);
   });
   test('per-user contributions have equal weight and retain decimals',()=>{
     strain(u1,'Fixture Brand A','Flower',20);strain(u1,'Fixture Brand B','Pre-Roll',40);
@@ -40,12 +45,14 @@ function registerDatabaseTests() {
   });
   test('edit/delete recalculate, repeated tuple is rejected and ownership is enforced',()=>{
     asUser(u1,"update public.strain_reviews set aesthetic=30 where brand='Fixture Brand A';");
-    assert.equal(row('select * from public.strain_community_stats where strain_id=1 and product_type is null').review_count,2);
+    const edited=row('select * from public.strain_community_stats where strain_id=1 and product_type is null');
+    assert.equal(edited.review_count,2);assert(Math.abs(edited.avg_total-815/3)<1e-10);assert(Math.abs(edited.avg_aesthetic-167/3)<1e-10);assert.equal(edited.avg_aroma,54);
     assert.throws(()=>strain(u1,'Fixture Brand A','Flower',84),/duplicate key/);
     asUser(u2,"update public.strain_reviews set aesthetic=0 where brand='Fixture Brand A';");
     assert.equal(sql("select aesthetic from public.strain_reviews where brand='Fixture Brand A'"),'30');
     asUser(u2,'delete from public.strain_reviews;');
-    assert.equal(row('select * from public.strain_community_stats where strain_id=1 and product_type is null').review_count,1);
+    const remaining=row('select * from public.strain_community_stats where strain_id=1 and product_type is null');
+    assert.equal(remaining.review_count,1);assert(Math.abs(remaining.avg_total-415/3)<1e-10);
     asUser(u1,'delete from public.strain_reviews;');assert.equal(sql('select count(*) from public.strain_community_stats'),'0');
   });
   test('dispensary ID aggregation, duplicate protection and edit/delete',()=>{
@@ -53,7 +60,7 @@ function registerDatabaseTests() {
     asUser(u2,`insert into public.dispensary_reviews(dispensary_id,name,location,aesthetic,accessibility,staff,menu,overall) values(${id},'Fixture Shop','Test City',61,62,63,64,65);`);
     let r=row('select * from public.dispensary_community_stats');assert.equal(r.review_count,2);assert.equal(r.avg_total,307.5);assert.equal(r.avg_menu,62);
     assert.throws(()=>asUser(u2,`insert into public.dispensary_reviews(dispensary_id,name,location,aesthetic,accessibility,staff,menu,overall) values(${id},'Alternate Name','Elsewhere',84,84,84,84,84);`),/duplicate key/);
-    asUser(u2,'update public.dispensary_reviews set menu=80;');assert.equal(row('select * from public.dispensary_community_stats').avg_menu,70);
+    asUser(u2,'update public.dispensary_reviews set menu=80;');const edited=row('select * from public.dispensary_community_stats');assert.equal(edited.avg_menu,70);assert.equal(edited.avg_total,315.5);assert.equal(edited.review_count,2);
     asUser(u2,'delete from public.dispensary_reviews;');r=row('select * from public.dispensary_community_stats');assert.equal(r.review_count,1);assert.equal(r.avg_total,300);
   });
   test('public stats match member stats; private IDs, helper role and writes remain protected',()=>{
@@ -65,6 +72,14 @@ function registerDatabaseTests() {
     assert.throws(()=>asUser(u2,`insert into public.strain_reviews(strain_id,user_id,brand,product_type,aesthetic,aroma,flavor,effects,overall) values(1,'${u1}','Spoof Fixture','Flower',84,84,84,84,84);`),/row-level security/);
     assert.equal(sql("select bool_and(reloptions @> array['security_invoker=true']) from pg_class where relname in ('strain_community_stats','dispensary_community_stats')"),'t');
     assert.deepEqual(row("select rolcanlogin,rolbypassrls,rolsuper from pg_roles where rolname='rated420_community_reader'"),{rolcanlogin:false,rolbypassrls:false,rolsuper:false});
+  });
+  test('same-name dispensaries in different locations aggregate by distinct listing IDs',()=>{
+    for(const [location,score] of [['Fixture East',20],['Fixture West',70]]){
+      asUser(u1,`insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall) values('Fixture Shop','${location}',${score},${score},${score},${score},${score});`);
+    }
+    const east=row("select d.id,s.review_count,s.avg_total from public.dispensaries d join public.dispensary_community_stats s on s.dispensary_id=d.id where d.location='Fixture East'");
+    const west=row("select d.id,s.review_count,s.avg_total from public.dispensaries d join public.dispensary_community_stats s on s.dispensary_id=d.id where d.location='Fixture West'");
+    assert.notEqual(east.id,west.id);assert.equal(east.review_count,1);assert.equal(west.review_count,1);assert.equal(east.avg_total,100);assert.equal(west.avg_total,350);
   });
   after(()=>{execFileSync('docker',['exec',container,'dropdb','-U','postgres',db]);execFileSync('docker',['exec',container,'psql','-U','postgres','-c','drop role rated420_community_reader;']);});
 }
