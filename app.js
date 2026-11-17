@@ -415,7 +415,8 @@
   let knownStrains = [];
   let ratingStats = [];
   let selectedStrain = null;
-  let formatFilter = 'Flower';
+  const ALL_FORMATS = 'All formats';
+  let formatFilter = ALL_FORMATS;
   let reviewsByMe = [];
   let editingReviewId = null;
   let photoObjectUrl = null;
@@ -505,22 +506,22 @@
     $('rated420-strain-name').value = name;
     $('rated420-strain-selected-text').textContent = name;
     $('rated420-strain-selection').hidden = !name;
-    formatFilter = $('rated420-strain-product-type').value || 'Flower';
+    formatFilter = ALL_FORMATS;
     renderStrainOptions();
     void renderStrainSummary();
   }
   function formatControl() {
     const box = $('strainFormatButtons');
     box.replaceChildren();
-    const formats = [...new Set(ratingStats.filter(s => selectedStrain && Number(s.strain_id) === Number(selectedStrain.id)).map(s => s.product_type))];
-    const show = [formatFilter, ...formats.filter(f => f !== formatFilter)];
+    const formats = [...$('rated420-strain-product-type').options].map(option => option.value).filter(Boolean);
+    const show = [ALL_FORMATS, ...formats];
     for (const label of [...new Set(show)]) {
       const btn = makeNode('button','strain-format-filter__button',label);
       btn.type = 'button';
       btn.setAttribute('aria-pressed', String(formatFilter === label));
       btn.addEventListener('click', () => {
         formatFilter = label;
-        $('rated420-strain-product-type').value = label;
+        if (label !== ALL_FORMATS) $('rated420-strain-product-type').value = label;
         void renderStrainSummary();
       });
       box.append(btn);
@@ -535,13 +536,16 @@
     card.hidden = false;
     card.replaceChildren();
     formatControl();
-    const summary = totalForFormat(selectedStrain.id, formatFilter);
+    const allFormats = formatFilter === ALL_FORMATS;
+    const summary = allFormats ? null : totalForFormat(selectedStrain.id, formatFilter);
     const head = makeNode('div','strain-summary-head');
     const title = makeNode('div');
     title.append(makeNode('span','eyebrow', `${formatFilter.toUpperCase()} · COMMUNITY RATINGS`),makeNode('h3','',selectedStrain.name));
-    head.append(title,makeNode('strong','strain-avg-total', summary ? `${summary.avg_total} / 420` : '— / 420'));
+    head.append(title);
+    if (!allFormats) head.append(makeNode('strong','strain-avg-total', summary ? `${summary.avg_total} / 420` : '— / 420'));
     card.append(head);
-    card.append(makeNode('p','',summary ? `${formatCount(Number(summary.review_count),'real review','real reviews')} for this product format.` : `No ${formatFilter.toLowerCase()} ratings yet. Yours could be the first.`));
+    if (allFormats) card.append(makeNode('p','',`${formatCount(summedReviews(selectedStrain.id),'real review','real reviews')} across all formats.`));
+    else if (summary) card.append(makeNode('p','',`${formatCount(Number(summary.review_count),'real review','real reviews')} for this product format.`));
     if (summary) {
       const bars = makeNode('div','strain-avg-categories');
       for (const [field,label] of STRAIN_CATEGORIES) {
@@ -556,11 +560,11 @@
     try {
       const requestedStrainId = selectedStrain.id;
       const requestedFormat = formatFilter;
-      const {data,error} = await db.from('strain_reviews')
+      let query = db.from('strain_reviews')
         .select('id,brand,product_type,total,notes,photo_path,created_at')
-        .eq('strain_id', selectedStrain.id)
-        .eq('product_type',formatFilter)
-        .order('created_at',{ascending:false}).limit(5);
+        .eq('strain_id', selectedStrain.id);
+      if (!allFormats) query = query.eq('product_type',requestedFormat);
+      const {data,error} = await query.order('created_at',{ascending:false});
       if (error) throw error;
       if (!selectedStrain || Number(selectedStrain.id) !== Number(requestedStrainId) || formatFilter !== requestedFormat) return;
       if (data?.length) {
@@ -579,6 +583,17 @@
             row.append(image);
           }
           feed.append(row);
+        }
+      } else {
+        feed.append(makeNode('p','strain-empty', allFormats ? 'No reviews yet.' : `No ${requestedFormat} reviews yet.`));
+        if (!allFormats) {
+          const showAll = makeNode('button','strain-format-filter__button','Show all formats');
+          showAll.type = 'button';
+          showAll.addEventListener('click', () => {
+            formatFilter = ALL_FORMATS;
+            void renderStrainSummary();
+          });
+          feed.append(showAll);
         }
       }
     } catch(e) { feed.append(makeNode('p','strain-empty','Recent reviews could not be loaded.')); }
