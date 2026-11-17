@@ -14,9 +14,10 @@ const root=path.resolve(__dirname,'..');
      const file=path.join(root,url.pathname==='/'?'index.html':url.pathname);
      const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp'};
      let body=fs.existsSync(file)?fs.readFileSync(file):'missing';
-     if(file.endsWith('index.html'))body=String(body).replace('name="contact-turnstile-site-key" content=""','name="contact-turnstile-site-key" content="fixture-site-key"');
+     if(file.endsWith('index.html')&&width!==1280)body=String(body).replace('name="contact-turnstile-site-key" content=""','name="contact-turnstile-site-key" content="fixture-site-key"');
      return route.fulfill({status:fs.existsSync(file)?200:404,contentType:mime[path.extname(file)]||'text/plain',body});
     }
+    if(url.hostname.endsWith('.supabase.co') && url.pathname==='/functions/v1/submit-contact/config')return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({ready:true,site_key:'fixture-site-key'})});
     if(url.hostname.endsWith('.supabase.co') && url.pathname==='/functions/v1/submit-contact'){
      submissions.push(req.postDataJSON());
      if(mode==='network')return route.abort();
@@ -49,6 +50,7 @@ const root=path.resolve(__dirname,'..');
    await page.locator('#contactEmail').fill('fixture@example.test');
    await page.locator('#contactSubject').fill('A suggestion for Rated420');
    await page.locator('#contactMessage').fill('Fixture message for mocked testing only.');
+   await page.locator('#contactForm').evaluate(form=>form.insertAdjacentHTML('beforeend','<input type="hidden" name="cf-turnstile-response" value="fixture-provider-field">'));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    for(const failure of ['server','rate','network']){
     mode=failure;await page.locator('#contactSubmit').click();
@@ -66,6 +68,7 @@ const root=path.resolve(__dirname,'..');
    assert.equal(submissions.at(-1).company_location,undefined,'Hidden business information must not be submitted');
    assert.equal(submissions.at(-1).website,undefined);
    assert.equal(submissions.at(-1).telephone,undefined);
+   assert.equal(submissions.at(-1)['cf-turnstile-response'],undefined);
    assert.equal(new Set(submissions.map(s=>s.request_id)).size,1,'Retries retain idempotency identifier');
    await page.locator('#contactAgain').click();assert(await page.locator('#contactForm').isVisible());
    await page.locator('#contactCategory').selectOption('filming');
