@@ -359,3 +359,11 @@ input[type=range] {accent-color:#d5f58a;min-height:36px;cursor:pointer}
 .contact-success-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 @media(max-width:850px){.contact-layout{grid-template-columns:1fr;gap:12px}.contact-aside{padding-top:0;max-width:680px}.contact-privacy{margin-top:18px;padding-top:18px}.contact-heading{margin-bottom:26px}}
 @media(max-width:640px){.contact-page{padding-top:28px;padding-bottom:65px}.contact-heading h1{font-size:51px}.contact-heading>p:last-child{font-size:14px}.contact-fields{grid-template-columns:1fr;gap:0}.contact-panel{padding:20px 17px}.contact-panel #contactSubmit,.contact-success-actions .btn{width:100%}.contact-business{padding-inline:12px}}
+
+/* Community scores reuse the catalogue's existing typography and palette. */
+.strain-options .strain-option {display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:min(220px,100%);border-radius:14px;padding:14px 16px}
+.community-score {display:block;font-family:var(--font-display,inherit);font-size:22px;font-weight:700;line-height:1.2}
+.strain-options .strain-option .community-review-count,.community-review-count {display:block;margin:0;font-size:12px;line-height:1.5;opacity:.85}
+#dispensaryCommunitySummary {margin-top:24px;border-top:1px solid var(--line,#466044);padding-top:24px}
+#dispensaryCommunitySummary .strain-avg-categories {margin-top:20px}
+@media(max-width:480px) {.strain-options .strain-option{width:100%;min-width:0}.community-score{font-size:21px}}

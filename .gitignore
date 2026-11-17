@@ -1,0 +1,18 @@
+dist/
+supabase/.temp/
+.env*
+!.env.example
+node_modules/
+# Defense in depth: actual backups/credentials must also stay outside the repo.
+backups/
+private-backups/
+.secrets/
+*.gpg
+*.pgp
+*.dump
+*.backup
+*.pgpass
+pg_service.conf
+
+__pycache__/
+*.py[cod]
