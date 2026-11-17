@@ -57,7 +57,7 @@ DNS remains authoritative at Hover. Vercel currently returns these target record
 
 Replace only the Hover parking records that conflict. Preserve unrelated records and add the exact Resend DKIM/SPF/MX values supplied by the provider. Do not invent email DNS records. Ownership verification in Vercel does not establish correct DNS or HTTPS. rated420ny.store is reserved for future merchandise and has not been configured or changed.
 
-Before launch, update Supabase Auth's Site URL to https://rated420ny.com and include its allowed redirects, while retaining the existing staging/preview redirects and authentication settings. These dashboard settings have not been changed through this connection.
+Before launch, update Supabase Auth's Site URL to https://rated420ny.com and include its allowed redirects, while retaining the existing staging/preview redirects and authentication settings. These Auth URL settings were updated through the user's authenticated TinyFish session. The Site URL is https://rated420ny.com, and the visible saved redirect list contains the original https://rated420-staging-shenendoahts-projects.vercel.app/** plus the four exact origins listed above with /** path patterns. Malformed entries introduced during automation were removed. The dashboard's footer count was inconsistent with its visible rows; no real signup/login/email recovery round trip has been claimed yet.
 
 ## Remaining activation and verification gates
 
@@ -83,3 +83,6 @@ git diff --check
 ```
 
 The browser test uses only synthetic data, local repository files, a mocked Turnstile widget, and mocked submission responses. All other requests are blocked. It is not evidence of working live email delivery or server-side protection.
+
+
+Domain verification update: Hover's intended A/CNAME records are saved and public DNS resolves to Vercel. Vercel issued a certificate for rated420ny.com and www.rated420ny.com; the apex returns Rated420 HTML over HTTPS with HTTP 200, www responds HTTP 308 to the apex, and the existing staging URL remains HTTP 200. Email provider/Turnstile configuration and real contact-delivery testing are still pending.
