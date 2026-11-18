@@ -28,10 +28,16 @@
     return [...listings].map(([id,values])=>({[idField]:id,...(idField==='strain_id'?{product_type:format}:{}),review_count:values.length,
       ...Object.fromEntries(['total',...fields].map(f=>['avg_'+f,values.reduce((sum,row)=>sum+row[f],0)/values.length]))}));
   }
+  const demoProfile = (state, id) => ({
+    id, username: id === users[0] ? 'demo_a' : 'demo_b', display_name: 'Demo reviewer',
+    created_at: '2026-01-01T00:00:00Z', avatar_choice: id === users[0] ? 2 : 3,
+    show_review_identity: true, ...state.demoProfiles?.[id]
+  });
   const normalized=row=>({...row,brand_key:row.brand?.trim().toLowerCase(),name_key:row.name?.trim().toLowerCase(),location_key:row.location?.trim().toLowerCase()});
   class Query {
     constructor(table){this.table=table;this.filters=[];this.operation='read';this.max=Infinity;this.orders=[];}
-    select(columns){this.columns=columns;return this;}
+    select(columns,options={}){this.columns=columns;this.options=options;return this;}
+    range(from,to){this.start=from;this.max=to+1;return this;}
     eq(field,value){this.filters.push(row=>String(normalized(row)[field])===String(value));return this;}
     order(field,{ascending=true}={}){this.orders.push([field,ascending]);return this;}
     limit(n){this.max=n;return this;}
@@ -46,10 +52,23 @@
       if(this.table==='strain_community_stats')rows=[...aggregate(state.strain_reviews,'strain_id',categories.strain_reviews),
         ...[...new Set(state.strain_reviews.map(r=>r.product_type))].flatMap(format=>aggregate(state.strain_reviews,'strain_id',categories.strain_reviews,format))];
       if(this.table==='dispensary_community_stats')rows=aggregate(state.dispensary_reviews,'dispensary_id',categories.dispensary_reviews);
-      if(this.table==='member_profiles')rows=actor?[{id:actor,username:actor===users[0]?'demo_a':'demo_b',display_name:'Demo reviewer',created_at:'2026-01-01T00:00:00Z'}]:[];
+      if(this.table==='member_profiles')rows=actor?[demoProfile(state,actor)]:[];
+      if(this.table==='strain_community_reviews')rows=state.strain_reviews.map(review=>{
+        const {username,avatar_choice,show_review_identity}=demoProfile(state,review.user_id);
+        const {id,strain_id,product_type,total,created_at}=review;
+        return {id,strain_id,product_type,total,created_at,
+          username: show_review_identity ? username : null,
+          avatar_choice: show_review_identity && username ? avatar_choice : null};
+      });
       const matches=row=>this.filters.every(filter=>filter(row));
       if(this.operation!=='read'){
         if(!actor)return error('Choose a demo reviewer in the preview toolbar first.');
+        if(this.table==='member_profiles'&&this.operation==='update'&&rows.some(matches)){
+          state.demoProfiles||={};
+          state.demoProfiles[actor]={...rows[0],...this.value};
+          save(state);
+          return {data:clone(state.demoProfiles[actor]),error:null};
+        }
         if(!['strains','dispensaries','strain_reviews','dispensary_reviews'].includes(this.table))return error('This action is disabled in the community preview.');
         if(this.operation==='insert'){
           let row={...this.value};
@@ -76,10 +95,11 @@
         save(state);
       }else rows=rows.filter(matches);
       for(const [field,asc] of [...this.orders].reverse())rows=[...rows].sort((a,b)=>String(a[field]).localeCompare(String(b[field]))*(asc?1:-1));
-      rows=rows.slice(0,this.max);
+      const count=this.options?.count==='exact'?rows.length:null;
+      rows=rows.slice(this.start||0,this.max);
       if(this.columns&&this.columns!=='*')rows=rows.map(row=>Object.fromEntries(this.columns.split(',').map(f=>f.trim()).map(f=>[f,row[f]])));
       if(this.one){if(rows.length>1||(!rows.length&&this.one==='required'))return error('Expected one demo record.');return {data:rows[0]||null,error:null};}
-      return {data:clone(rows),error:null};
+      return {data:this.options?.head?null:clone(rows),count,error:null};
     }
   }
   const emit=event=>callbacks.forEach(cb=>cb(event));

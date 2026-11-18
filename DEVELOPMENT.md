@@ -24,6 +24,14 @@ Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Verce
 - The owner confirmed that **rated420-staging** tracks `main` for Production and has a **Custom** Ignored Build Step in **Settings → Build and Deployment**. The rule is `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. It allows the normal main production build and cancels other automatic builds that reach this step. Canceled attempts can count toward deployment quotas. Before changing this setup, verify current repository links and Production branch tracking in Vercel.
 - Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
 
+## Build 8: individual community reviews
+
+The **Community Reviews** disclosure sits beneath a selected strain’s community averages and starts collapsed. Its count is individual public review rows for the selected strain and format. Expand it to fetch scores and public identities in pages of 20. The average and unique-reviewer count retain the Build 7 scoring rule. The existing Recent Experiences feed and review editor remain available.
+
+Profiles remain owner-only. A member can opt in from **My profile** to show their username and selected preset avatar beside their reviews. Existing accounts default to private. Private or missing identities use a generic label and the Rated420 logo. Uploaded profile photos remain in the private avatar bucket. The public projection returns only review identifiers, format, score, creation time, and opted-in username/preset. It returns no account IDs, uploaded-photo paths, display names, or emails.
+
+The proposed Build 8 migration is `supabase/migrations/20261118120000_community_review_display.sql`. It depends on the pending community averages migration and must go through a separately reviewed release sequence, including the existing recovery and approval gates. Verify using the community SQL and browser suites below with synthetic fixtures. Do not apply either migration to production during development.
+
 ## PR #7: recovery gate open; production approval required
 
 Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated420/pull/7. Runtime implementation 1c3788b; verification milestone f17d15c; controlled-release preparation adds transaction/legacy-client checks (23 backend/build checks total). Later preparation commits add docs/tests and owner-run backup tooling only; app runtime and proposed SQL remain unchanged. Fetch the latest PR head for approval rather than relying on these abbreviated references.

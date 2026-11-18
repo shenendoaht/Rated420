@@ -133,7 +133,7 @@
   async function readOrCreateProfile(authUser) {
     const { data: existing, error: readError } = await db
       .from('member_profiles')
-      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path')
+      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
       .eq('id', authUser.id)
       .maybeSingle();
     if (readError) throw readError;
@@ -146,7 +146,7 @@
     let { data: inserted, error: insertError } = await db
       .from('member_profiles')
       .insert(record)
-      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path')
+      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
       .single();
 
     if (insertError && username && insertError.code === '23505') {
@@ -154,14 +154,14 @@
       ({ data: inserted, error: insertError } = await db
         .from('member_profiles')
         .insert({ id: authUser.id })
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path')
+        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
         .single());
       if (!insertError) toast('Your account is ready. That username was taken — choose a new one in My account.');
     }
     if (insertError && insertError.code === '23505') {
       // Rare simultaneous browser tabs. The other tab may already have created it.
       const { data: fromOtherTab, error } = await db.from('member_profiles')
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path')
+        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
         .eq('id', authUser.id).maybeSingle();
       if (!error && fromOtherTab) return fromOtherTab;
     }
@@ -178,6 +178,7 @@
     $('memberSince').textContent = joined ? 'Member since ' + new Date(joined).toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' }) : '';
     $('profileUsername').value = profile?.username || '';
     $('profileDisplayName').value = profile?.display_name || '';
+    $('profileReviewIdentity').checked = Boolean(profile?.show_review_identity);
   }
 
   async function refreshUser(goToAccount = false) {
@@ -331,6 +332,8 @@
     if (!db || !user) return setMessage('profileMessage', 'Please log in again.', true);
     const username = $('profileUsername').value.trim();
     const displayName = $('profileDisplayName').value.trim();
+    const showReviewIdentity = $('profileReviewIdentity').checked;
+    if (showReviewIdentity && !username) return setMessage('profileMessage', 'Choose a username to show on community reviews.', true);
     if (username && !/^[A-Za-z0-9_]{3,24}$/.test(username)) return setMessage('profileMessage', 'Username must have 3–24 letters, numbers, or underscores.', true);
     if (displayName && (displayName.length < 2 || displayName.length > 60)) return setMessage('profileMessage', 'Display name must have 2–60 characters.', true);
     setMessage('profileMessage', '');
@@ -345,9 +348,9 @@
       if (choice === 'upload' && file) uploaded = await uploadPhoto(AVATAR_BUCKET, file, memberId);
       const avatarPath = choice === 'upload' ? (uploaded || oldAvatar) : null;
       const { data, error } = await db.from('member_profiles')
-        .update({ username:username || null, display_name:displayName || null, avatar_choice: choice && choice !== 'upload' ? Number(choice) : null, avatar_path: avatarPath, updated_at:new Date().toISOString() })
+        .update({ username:username || null, display_name:displayName || null, avatar_choice: choice && choice !== 'upload' ? Number(choice) : null, avatar_path: avatarPath, show_review_identity:showReviewIdentity, updated_at:new Date().toISOString() })
         .eq('id', memberId)
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path')
+        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
         .single();
       if (error) throw error;
       if (oldAvatar && oldAvatar !== avatarPath) void db.storage.from(AVATAR_BUCKET).remove([oldAvatar]);
@@ -539,6 +542,85 @@ function appendCommunityScore(node, stats) {
       box.append(btn);
     }
   }
+  function communityReviewDisclosure(strainId, format, wasOpen) {
+    const pageSize = 20;
+    const details = makeNode('details', 'community-review-disclosure');
+    details.dataset.selection = JSON.stringify([strainId, format]);
+    const title = makeNode('summary', '', 'Community Reviews');
+    const status = makeNode('p', 'strain-empty');
+    status.setAttribute('role', 'status');
+    const list = makeNode('ul', 'community-review-list');
+    const more = makeNode('button', 'strain-format-filter__button', 'Show more reviews');
+    more.type = 'button';
+    more.hidden = true;
+    details.append(title, status, list, more);
+    let offset = 0;
+    let loaded = false;
+    let loading = false;
+
+    const forSelection = query => {
+      query = query.eq('strain_id', strainId);
+      return format === ALL_FORMATS ? query : query.eq('product_type', format);
+    };
+    const updateCount = count => {
+      title.textContent = `Community Reviews (${count})`;
+    };
+
+    async function loadPage() {
+      if (loading) return;
+      loading = true;
+      more.hidden = true;
+      status.textContent = 'Loading community reviews…';
+      try {
+        const { data, count, error } = await forSelection(db.from('strain_community_reviews')
+          .select('total,username,avatar_choice', { count: 'exact' }))
+          .order('created_at', { ascending: false }).order('id', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        if (!details.isConnected) return;
+        updateCount(count);
+        for (const review of data) {
+          const item = makeNode('li', 'community-review-entry');
+          const image = makeNode('img');
+          image.alt = '';
+          const choice = Number(review.avatar_choice);
+          image.src = Number.isInteger(choice) && choice >= 1 && choice <= AVATARS.length
+            ? avatarImage(choice) : avatarLogo;
+          item.append(image, makeNode('span', '', review.username ? '@' + review.username : 'Community member'),
+            makeNode('strong', '', `${review.total} / 420`));
+          list.append(item);
+        }
+        offset += data.length;
+        loaded = true;
+        status.textContent = count ? '' : 'No community reviews yet.';
+        more.textContent = 'Show more reviews';
+        more.hidden = offset >= count || data.length === 0;
+      } catch {
+        status.textContent = 'Community reviews could not be loaded.';
+        more.textContent = 'Try again';
+        more.hidden = false;
+      } finally {
+        loading = false;
+      }
+    }
+
+    details.addEventListener('toggle', () => {
+      if (details.open && !loaded) void loadPage();
+    });
+    more.addEventListener('click', loadPage);
+    details.open = wasOpen;
+    void (async () => {
+      try {
+        const { count, error } = await forSelection(db.from('strain_reviews')
+          .select('id', { count: 'exact', head: true }));
+        if (!error && details.isConnected && !loaded) updateCount(count);
+      } catch {
+        // Opening the section retries with the full list query.
+      }
+    })();
+    return details;
+  }
+
   async function renderStrainSummary() {
     const card = $('rated420-strain-summary');
     if (!selectedStrain?.id) {
@@ -546,6 +628,9 @@ function appendCommunityScore(node, stats) {
       return;
     }
     card.hidden = false;
+    const previousReviews = card.querySelector('.community-review-disclosure');
+    const keepReviewsOpen = previousReviews?.open &&
+      previousReviews.dataset.selection === JSON.stringify([selectedStrain.id, formatFilter]);
     card.replaceChildren();
     formatControl();
     const allFormats = formatFilter === ALL_FORMATS;
@@ -566,6 +651,7 @@ function appendCommunityScore(node, stats) {
       }
       card.append(bars);
     }
+    card.append(communityReviewDisclosure(selectedStrain.id, formatFilter, Boolean(keepReviewsOpen)));
     const feed = makeNode('div','recent-strain-reviews');
     card.append(feed);
     try {

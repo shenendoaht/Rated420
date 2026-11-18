@@ -367,3 +367,13 @@ input[type=range] {accent-color:#d5f58a;min-height:36px;cursor:pointer}
 #dispensaryCommunitySummary {margin-top:24px;border-top:1px solid var(--line,#466044);padding-top:24px}
 #dispensaryCommunitySummary .strain-avg-categories {margin-top:20px}
 @media(max-width:480px) {.strain-options .strain-option{width:100%;min-width:0}.community-score{font-size:21px}}
+
+.community-review-disclosure { margin: 1rem 0; border-block: 1px solid var(--line, #48613e); padding: .65rem 0; }
+.community-review-disclosure summary { cursor: pointer; font-weight: 700; }
+.community-review-list { list-style: none; margin: .5rem 0; padding: 0; }
+.community-review-entry { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: center; gap: .6rem; padding: .35rem 0; }
+.community-review-entry img { width: 2rem; height: 2rem; object-fit: contain; border-radius: 50%; }
+.community-review-entry span { overflow-wrap: anywhere; }
+.community-review-entry strong { white-space: nowrap; }
+.review-identity-option { display: flex; align-items: center; gap: .5rem; }
+#profileForm .review-identity-option input { width: auto; margin: 0; }
