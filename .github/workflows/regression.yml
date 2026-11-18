@@ -1,0 +1,80 @@
+name: Cumulative regression
+
+on:
+  push:
+    branches: [codex/ci-regression]
+  pull_request:
+    branches: [development]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Static build and browser regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.11.1'
+      - name: Check capacity and build isolation
+        run: |
+          bash tests/ci/runner-preflight.sh 3
+          git diff --check HEAD^ HEAD
+          for script in app.js contact.js preview/client.js scripts/build.mjs; do
+            node --check "$script"
+          done
+          node --test tests/build-isolation.test.mjs tests/contact-handler.test.mjs
+          VERCEL_ENV=production VERCEL_GIT_COMMIT_REF=main node scripts/build.mjs
+          node scripts/build.mjs
+      - name: Run all browser regressions
+        run: |
+          npm ci --prefix tests/ci --no-audit --no-fund
+          tests/ci/node_modules/.bin/playwright install --with-deps chromium
+          export NODE_PATH="$PWD/tests/ci/node_modules"
+          for suite in tests/*.browser.cjs; do
+            node "$suite"
+          done
+
+  recovery:
+    name: Database regression and synthetic recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.11.1'
+      - name: Run database and GPG recovery checks
+        run: |
+          bash tests/ci/runner-preflight.sh 4
+          python3 --version
+          gpg --version | head -n 1
+          bash tests/ci/postgres-fixture.sh rated420-averages-pg postgres
+          node --test tests/community-db.test.mjs
+          python3 -B -m unittest discover -s tests -p 'test_*.py' -v
+
+  storage:
+    name: Isolated Supabase Storage API
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Run Storage HTTP and ownership checks
+        run: |
+          bash tests/ci/runner-preflight.sh 5
+          bash tests/ci/storage-fixture.sh

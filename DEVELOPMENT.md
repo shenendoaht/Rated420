@@ -87,6 +87,14 @@ Use the existing rated420-averages-pg container or provision the local container
 
 Record the tested head, target tip, and results in the PR. After integration, verify the merged tree against the tested tree and tag the verified development milestone. The Git checkpoint preserves source and migrations. The production backup and approval gates still apply.
 
+## Independent GitHub Actions verification
+
+[Cumulative regression](.github/workflows/regression.yml) runs on the standard public-repository `ubuntu-24.04` runner for pull requests into `development`. The initial review branch also has a push trigger so it can be verified before integration. Treat the job's logged commit and tree as the tested input. Rerun on the updated candidate whenever the head or target changes.
+
+The three jobs check free disk before setup, then run static and browser regressions, PostgreSQL and synthetic GPG recovery regressions, and the real local Supabase Storage API fixture. The PostgreSQL fixtures use disposable containers with no network, ports, or host binds. The Storage API shares the isolated database container’s loopback. GitHub-authored actions are pinned to full commit SHAs, checkout discards credentials, and jobs use read-only repository permissions. CI uses synthetic fixtures with no deployment steps, hosted database connections, or production credentials or archives.
+
+Before approving integration, verify all three jobs passed on the current candidate. After an authorized merge, compare the merged and tested trees and keep the verified Git checkpoint. The CI recovery test covers synthetic fixtures. Production backup recovery, migration review, preview authorization, and release approval remain separate.
+
 ## Data and security map
 
 - `auth.users`/`auth.identities` hold accounts; `public.profiles` is owner-scoped. Never publish private profile/account data.
