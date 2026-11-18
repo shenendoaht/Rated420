@@ -2,7 +2,10 @@ name: Cumulative regression
 
 on:
   push:
-    branches: [codex/ci-regression]
+    branches:
+      - development
+      - codex/ci-regression
+      - 'codex/release-candidate/**'
   pull_request:
     branches: [development]
     types: [opened, synchronize, reopened, ready_for_review]
