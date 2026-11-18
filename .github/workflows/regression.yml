@@ -38,10 +38,15 @@ jobs:
           node --test tests/build-isolation.test.mjs tests/contact-handler.test.mjs
           VERCEL_ENV=production VERCEL_GIT_COMMIT_REF=main node scripts/build.mjs
           node scripts/build.mjs
+      - name: Install pinned Playwright package
+        timeout-minutes: 3
+        run: npm ci --prefix tests/ci --no-audit --no-fund
+      - name: Install pinned Chromium on the standard runner image
+        timeout-minutes: 3
+        run: tests/ci/node_modules/.bin/playwright install --only-shell chromium
       - name: Run all browser regressions
+        timeout-minutes: 6
         run: |
-          npm ci --prefix tests/ci --no-audit --no-fund
-          tests/ci/node_modules/.bin/playwright install --with-deps chromium
           export NODE_PATH="$PWD/tests/ci/node_modules"
           for suite in tests/*.browser.cjs; do
             node "$suite"
