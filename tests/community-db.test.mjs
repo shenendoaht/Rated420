@@ -22,7 +22,8 @@ function registerDatabaseTests() {
     const historical=readFileSync(path.join(projectRoot,'supabase/migrations/20261116002045_create_strain_catalogue_reviews_and_photo_bucket.sql'),'utf8');
     sql(historical.split('insert into storage.buckets')[0]);
     const disp=readFileSync(path.join(projectRoot,'supabase/migrations/20261116004719_rated420_dispensary_and_avatars.sql'),'utf8');
-    sql(disp.slice(disp.indexOf('create table public.dispensary_reviews'),disp.indexOf('insert into storage.buckets')));
+    sql(readFileSync(path.join(projectRoot,'supabase/migrations/20261115232821_create_member_profiles_foundation.sql'),'utf8'));
+    sql(disp.split('insert into storage.buckets')[0]);
     asUser(u1,`insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall,notes,photo_path) values('Fixture Shop','Test City',60,60,60,60,60,'Preserve legacy notes','${u1}/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg');`);
     legacyReview=row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews');
     const migration=readFileSync(path.join(projectRoot,'supabase/migrations/20261117191511_community_listing_averages.sql'),'utf8');
@@ -30,6 +31,7 @@ function registerDatabaseTests() {
     assert.equal(sql("select to_regclass('public.dispensaries') is null and not exists(select 1 from pg_roles where rolname='rated420_community_reader') and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='dispensary_reviews' and column_name='dispensary_id')"),'t');
     assert.deepEqual(row('select id,user_id,name,location,aesthetic,accessibility,staff,menu,overall,total,notes,photo_path,created_at from public.dispensary_reviews'),legacyReview);
     sql('begin;\n'+migration+'\ncommit;');
+    sql(readFileSync(path.join(projectRoot,'supabase/migrations/20261118120000_community_review_display.sql'),'utf8'));
   });
   test('zero reviews and legacy dispensary backfill preserve data',()=>{
     assert.equal(sql('select count(*) from public.strain_community_stats'),'0');
@@ -93,6 +95,24 @@ function registerDatabaseTests() {
     const after=row("select id,dispensary_id,location,total,notes from public.dispensary_reviews where name='Legacy Client Shop'");
     assert.equal(after.id,before.id);assert.notEqual(after.dispensary_id,before.dispensary_id);assert.equal(after.location,'Fixture South');assert.equal(after.total,125);assert.equal(after.notes,'Legacy compatibility fixture');
     const legacyRead=sql("set role anon;select total from public.dispensary_reviews where name='Legacy Client Shop';").split('\n').at(-1);assert.equal(legacyRead,'125');
+  });
+  test('individual score feed exposes only opted-in handles and preset avatars',()=>{
+    sql('delete from public.strain_reviews');
+    asUser(u1,`insert into public.member_profiles(id,username,display_name,avatar_choice) values('${u1}','fixture_public','Private Name',2)`);
+    asUser(u2,`insert into public.member_profiles(id,username,avatar_path) values('${u2}','fixture_private','${u2}/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg')`);
+    strain(u1,'Public Flower','Flower',20);
+    strain(u1,'Public Pre-Roll','Pre-Roll',40);
+    strain(u2,'Private Flower','Flower',81);
+    const feed=()=>JSON.parse(sql("set role anon; select json_agg(json_build_array(total,username,avatar_choice) order by total) from public.strain_community_reviews where strain_id=1").split('\n').at(-1));
+    assert.deepEqual(feed(),[[100,null,null],[200,null,null],[405,null,null]]);
+    asUser(u1,'update public.member_profiles set show_review_identity=true');
+    assert.deepEqual(feed(),[[100,'fixture_public',2],[200,'fixture_public',2],[405,null,null]]);
+    assert.equal(sql("set role anon; select count(*) from public.strain_community_reviews where strain_id=1 and product_type='Flower'").split('\n').at(-1),'2');
+    assert.throws(()=>sql('set role anon; select username from public.member_profiles'));
+    assert.throws(()=>sql('set role anon; select avatar_path from public.strain_community_reviews'));
+    assert.throws(()=>sql('set role anon; select user_id from public.strain_community_reviews'));
+    asUser(u1,'update public.member_profiles set show_review_identity=false');
+    assert.deepEqual(feed(),[[100,null,null],[200,null,null],[405,null,null]]);
   });
   after(()=>{execFileSync('docker',['exec',container,'dropdb','-U','postgres',db]);execFileSync('docker',['exec',container,'psql','-U','postgres','-c','drop role rated420_community_reader;']);});
 }

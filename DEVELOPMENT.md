@@ -24,6 +24,14 @@ Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Verce
 - The owner confirmed that **rated420-staging** tracks `main` for Production and has a **Custom** Ignored Build Step in **Settings → Build and Deployment**. The rule is `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. It allows the normal main production build and cancels other automatic builds that reach this step. Canceled attempts can count toward deployment quotas. Before changing this setup, verify current repository links and Production branch tracking in Vercel.
 - Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
 
+## Build 8: individual community reviews
+
+The **Community Reviews** disclosure sits beneath a selected strain’s community averages and starts collapsed. Its count is individual public review rows for the selected strain and format. Expand it to fetch scores and public identities in pages of 20. The average and unique-reviewer count retain the Build 7 scoring rule. The existing Recent Experiences feed and review editor remain available.
+
+Profiles remain owner-only. A member can opt in from **My profile** to show their username and selected preset avatar beside their reviews. Existing accounts default to private. Private or missing identities use a generic label and the Rated420 logo. Uploaded profile photos remain in the private avatar bucket. The public projection returns only review identifiers, format, score, creation time, and opted-in username/preset. It returns no account IDs, uploaded-photo paths, display names, or emails.
+
+The proposed Build 8 migration is `supabase/migrations/20261118120000_community_review_display.sql`. It depends on the pending community averages migration and must go through a separately reviewed release sequence, including the existing recovery and approval gates. Verify using the community SQL and browser suites below with synthetic fixtures. Do not apply either migration to production during development.
+
 ## PR #7: recovery gate open; production approval required
 
 Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated420/pull/7. Runtime implementation 1c3788b; verification milestone f17d15c; controlled-release preparation adds transaction/legacy-client checks (23 backend/build checks total). Later preparation commits add docs/tests and owner-run backup tooling only; app runtime and proposed SQL remain unchanged. Fetch the latest PR head for approval rather than relying on these abbreviated references.
@@ -43,25 +51,24 @@ Production ledger confirms these versions already applied: 20261115232821 (profi
 
 ## Development and testing
 
-Protocol: **Branch → Build → Test → Preview → Approve → Release.**
-
-1. Read AGENTS.md, fetch main/PR state and use an isolated feature branch. Push incremental milestones.
-2. Use Node, Docker, Playwright/Chromium and curl (or a cached pinned SDK). SQL tests use only a dedicated local container with network mode none; no production URLs are accepted.
-3. Follow [verification commands and results](docs/community-verification.md). Core commands:
+For the integration gate in [AGENTS.md](AGENTS.md), run these commands from the candidate tree. Use Node, Docker, Playwright/Chromium and curl (or a cached pinned SDK). The SQL and recovery suites use a dedicated local PostgreSQL container with network mode none.
 
 ```sh
-node --test tests/community-db.test.mjs tests/contact-handler.test.mjs tests/build-isolation.test.mjs
+git diff --check
+node --check app.js
+node --check contact.js
+node --test tests/*.test.mjs
+python3 -B -m unittest discover -s tests -p 'test_*.py'
+VERCEL_ENV=production VERCEL_GIT_COMMIT_REF=main node scripts/build.mjs
 node scripts/build.mjs
 node tests/community.browser.cjs
 node tests/auth.browser.cjs
 node tests/contact.browser.cjs
-node --check app.js
-git diff --check
 ```
 
-Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. Build production locally with VERCEL_ENV=production VERCEL_GIT_COMMIT_REF=main node scripts/build.mjs; this does not deploy.
+Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. The production-mode build above only writes local static assets.
 
-4. Verify exact-head previews/build logs, describe limitations in the PR, and obtain explicit migration/merge/live-deployment approval. Apply only the approved new migration, then deploy the approved frontend after database checks. See the release plan for stop gates and rollback.
+Record the tested head, target tip, and results in the PR. After integration, verify the merged tree against the tested tree and tag the verified development milestone. The Git checkpoint preserves source and migrations. The production backup and approval gates still apply.
 
 ## Data and security map
 
