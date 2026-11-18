@@ -414,6 +414,79 @@
     ['aesthetic', 'Aesthetic'], ['aroma', 'Aroma'], ['flavor', 'Flavor'],
     ['effects', 'Effects'], ['overall', 'Overall']
   ];
+  // Prompt order follows the five strain categories above.
+  const STRAIN_SCORE_GUIDANCE = {
+    Flower: [
+      "How does it look? How’s the trim?",
+      "How does the flower smell? What about the smoke?",
+      "What did it taste like? Did the flavor linger?",
+      "How did you feel, and how long did it last?",
+      "How was the whole experience? Would you choose it again?"
+    ],
+    'Pre-Roll': [
+      "How neat and evenly packed is the roll?",
+      "How does it smell before you light it? What about the smoke?",
+      "How did it taste from the first puff to the last?",
+      "How did you feel as the effects set in?",
+      "How was the draw and burn? Would you pick it again?"
+    ],
+    'Infused Pre-Roll': [
+      "How does the roll look? Is the coating even, if there is one?",
+      "What do you smell before lighting it and in the smoke?",
+      "Could you taste the flower, the infusion, or both?",
+      "How did the infused roll make you feel?",
+      "How was the draw, burn, and overall experience?"
+    ],
+    'Vape Cartridge': [
+      "How does the cartridge look? Is the oil clear or cloudy?",
+      "What did the vapor smell like?",
+      "What flavors came through? Did they stay consistent?",
+      "How did you feel after vaping it?",
+      "How was the draw? Would you use this cartridge again?"
+    ],
+    'Disposable Vape': [
+      "How does the device look and feel in your hand?",
+      "What did the vapor smell like?",
+      "How did it taste from one puff to the next?",
+      "How did you feel after using it?",
+      "How easy was it to use? Would you choose it again?"
+    ],
+    Concentrate: [
+      "How does it look? What stands out about the color or texture?",
+      "How does it smell before and during use?",
+      "What flavors came through? How was the aftertaste?",
+      "How did you feel, and how long did it last?",
+      "How was the whole experience? Would you choose it again?"
+    ],
+    Edible: [
+      "How does it look? Does the texture look inviting?",
+      "What does it smell like before you take a bite?",
+      "How did it taste? What about the aftertaste?",
+      "When did you notice the effects, and how long did they last?",
+      "How was the edible as a whole? Would you try it again?"
+    ],
+    Tincture: [
+      "How does the liquid look? Is it clear or cloudy?",
+      "What do you notice when you open the bottle?",
+      "How did it taste? Did the flavor linger?",
+      "What did you notice after taking it, and when?",
+      "How was it to measure and use? Would you choose it again?"
+    ],
+    Topical: [
+      "How does it look? What’s the texture like?",
+      "What does it smell like on your skin?",
+      "If taste applies to this product, how was it? Never taste a topical to score it.",
+      "How did the area feel after you applied it?",
+      "How did it spread and absorb? Would you use it again?"
+    ],
+    Other: [
+      "What stands out about how it looks?",
+      "What did it smell like before or during use?",
+      "If it has a taste, what flavors did you notice?",
+      "What did you notice after using it, and for how long?",
+      "How was the whole experience? Would you choose it again?"
+    ]
+  };
   const PHOTO_BUCKET = 'strain-review-photos';
   let knownStrains = [];
   let ratingStats = [];
@@ -536,7 +609,7 @@ function appendCommunityScore(node, stats) {
       btn.setAttribute('aria-pressed', String(formatFilter === label));
       btn.addEventListener('click', () => {
         formatFilter = label;
-        if (label !== ALL_FORMATS) $('rated420-strain-product-type').value = label;
+        if (label !== ALL_FORMATS) setStrainReviewFormat(label);
         void renderStrainSummary();
       });
       box.append(btn);
@@ -709,10 +782,18 @@ function appendCommunityScore(node, stats) {
     form.querySelector('.meter').setAttribute('aria-valuenow',String(total));
     form.querySelector('.meter span').style.width = `${total / 420 * 100}%`;
   }
-  function buildScoreSliders(form, categories) {
+  function setStrainReviewFormat(format) {
+    $('rated420-strain-product-type').value = format;
+    const guidance = STRAIN_SCORE_GUIDANCE[format] || STRAIN_SCORE_GUIDANCE.Other;
+    getScoreForm().querySelectorAll('.rating-guidance').forEach((description, index) => {
+      description.textContent = guidance[index];
+    });
+  }
+
+  function buildScoreSliders(form, categories, guidance) {
     const sliders = form.querySelector('.sliders');
     sliders.replaceChildren();
-    for(const [field,label] of categories) {
+    for (const [index, [field, label]] of categories.entries()) {
       const wrapper = makeNode('div','rating-row');
       const heading = makeNode('div','rating-heading');
       const caption = makeNode('label','',label);
@@ -727,7 +808,10 @@ function appendCommunityScore(node, stats) {
       const slider = document.createElement('input');
       slider.id=id;slider.type='range';slider.name=field;slider.min='0';slider.max='84';slider.step='1';slider.value='0';
       slider.addEventListener('input', () => updateScoreTotal(form, categories));
-      wrapper.append(heading,slider);
+      const description = makeNode('p', 'rating-guidance', guidance[index]);
+      description.id = id + '-guidance';
+      slider.setAttribute('aria-describedby', description.id);
+      wrapper.append(heading, slider, description);
       sliders.append(wrapper);
     }
     updateScoreTotal(form, categories);
@@ -829,7 +913,7 @@ function appendCommunityScore(node, stats) {
       setMessage('strainReviewMessage',`Your ${result.data.total}/420 rating is saved to Rated420. ${existing ? 'Your previous rating for this brand and format was updated.' : 'Welcome to the catalogue!'}`);
       form.reset();
       $('rated420-strain-name').value=strain.name;
-      $('rated420-strain-product-type').value=type;
+      setStrainReviewFormat(type);
       resetStrainPhotoPreview();
       updateScoreTotal(getScoreForm(), STRAIN_CATEGORIES);
       $('reviewSaveButton').textContent='Save rating →';
@@ -874,7 +958,7 @@ function appendCommunityScore(node, stats) {
     selectStrain(strain);
     editingReviewId=review.id;
     $('rated420-strain-brand').value=review.brand;
-    $('rated420-strain-product-type').value=review.product_type;
+    setStrainReviewFormat(review.product_type);
     $('rated420-strain-notes').value=review.notes||'';
     STRAIN_CATEGORIES.forEach(([f])=> {getScoreForm().elements.namedItem(f).value=review[f];});
     formatFilter=review.product_type;
@@ -895,7 +979,8 @@ function appendCommunityScore(node, stats) {
     toast('Strain rating deleted.');
   }
 
-  buildScoreSliders(getScoreForm(), STRAIN_CATEGORIES);
+  buildScoreSliders(getScoreForm(), STRAIN_CATEGORIES, STRAIN_SCORE_GUIDANCE.Flower);
+  setStrainReviewFormat($('rated420-strain-product-type').value);
   $('rated420-strain-search').addEventListener('input',renderStrainOptions);
   $('rated420-strain-use-search').addEventListener('click',()=>{
     const typed=cleanStrainName($('rated420-strain-search').value);
@@ -905,6 +990,7 @@ function appendCommunityScore(node, stats) {
   $('rated420-strain-continue').addEventListener('click',()=>getScoreForm().scrollIntoView({behavior:'smooth',block:'start'}));
   $('rated420-strain-product-type').addEventListener('change',()=>{
     formatFilter=$('rated420-strain-product-type').value;
+    setStrainReviewFormat(formatFilter);
     void renderStrainSummary();
   });
   $('rated420-strain-name').addEventListener('input',()=>{
@@ -1246,7 +1332,13 @@ async function ensureDispensary(name,location) {
   }
 
   $('dispensarySearch').addEventListener('input',renderDispensaryCatalogue);
-  buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES);
+  buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES, [
+    "How did the shop look and feel inside?",
+    "How easy was it to get there, get in, and find your way around?",
+    "Were the staff welcoming and helpful?",
+    "How was the selection? Was it easy to find what you wanted?",
+    "How was the visit as a whole? Would you go back?"
+  ]);
   document.querySelectorAll('[data-open-dispensary]').forEach(button => button.addEventListener('click', () => {
     page('dispensary');
     void loadDispensaryReviews();

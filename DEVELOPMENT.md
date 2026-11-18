@@ -24,6 +24,12 @@ Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Verce
 - The owner confirmed that **rated420-staging** tracks `main` for Production and has a **Custom** Ignored Build Step in **Settings → Build and Deployment**. The rule is `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. It allows the normal main production build and cancels other automatic builds that reach this step. Canceled attempts can count toward deployment quotas. Before changing this setup, verify current repository links and Production branch tracking in Vercel.
 - Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
 
+## Build 9: rating slider guidance
+
+Each strain-format slider and dispensary slider has a short prompt directly beneath it. The strain prompts follow the rating form’s product type when a reviewer changes the selection or edits a saved rating. Category labels, slider ranges, totals, averages, and the community review disclosure are unchanged.
+
+For manual review, build with `node scripts/build.mjs` and serve `dist/` on localhost. Use the synthetic reviewer selector to try the rating forms, switch product types, and expand Community Reviews.
+
 ## Build 8: individual community reviews
 
 The **Community Reviews** disclosure sits beneath a selected strain’s community averages and starts collapsed. Its count is individual public review rows for the selected strain and format. Expand it to fetch scores and public identities in pages of 20. The average and unique-reviewer count retain the Build 7 scoring rule. The existing Recent Experiences feed and review editor remain available.

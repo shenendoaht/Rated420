@@ -61,6 +61,28 @@ async function runCommunityBrowserTests() {
       await page.getByRole('button',{name:'Save profile',exact:true}).click();
       await page.getByText('Profile saved to your Rated420 account.',{exact:true}).waitFor();
       await openStrains();await card('Demo Citrus').click();
+      const productType=page.locator('#rated420-strain-product-type');
+      const strainSliders=page.locator('#rated420-strain-rating-form .rating-row');
+      const formatHints=new Set();
+      await strainSliders.first().locator('input').fill('37');
+      for (const {value} of await productType.locator('option').evaluateAll(options=>options.map(option=>({value:option.value})))) {
+        await productType.selectOption(value);
+        assert.equal(await strainSliders.count(),5);
+        for (const row of await strainSliders.all()) {
+          const hint=row.locator('.rating-guidance');
+          assert((await hint.innerText()).trim());
+          assert.equal(await row.locator('input').getAttribute('aria-describedby'),await hint.getAttribute('id'));
+          assert(await hint.evaluate(node=>node.previousElementSibling?.matches('input[type=range]')));
+        }
+        formatHints.add((await strainSliders.locator('.rating-guidance').allTextContents()).join('|'));
+        assert.equal(await strainSliders.first().locator('input').inputValue(),'37');
+      }
+      assert.equal(formatHints.size,10);
+      await page.locator('#strainFormatButtons').getByRole('button',{name:'Edible',exact:true}).click();
+      assert.equal(await productType.inputValue(),'Edible');
+      assert.match(await strainSliders.locator('.rating-guidance').nth(1).innerText(),/bite/);
+      await page.locator('#strainFormatButtons').getByRole('button',{name:'All formats',exact:true}).click();
+      assert.equal(await productType.inputValue(),'Edible');
       await disclosure.locator('summary').click();
       await reviewList.getByText('@demo_b',{exact:true}).waitFor();
       assert.equal(await reviewList.getByText('Community member',{exact:true}).count(),2);
@@ -78,7 +100,11 @@ async function runCommunityBrowserTests() {
       assert.equal(stored.strain_reviews.filter(r=>r.strain_id===101).length,3);
       await page.reload();await openStrains();await expectScore(card('Demo Citrus'),303,2);await card('Demo Citrus').click();
       const savedPhoto=page.locator('.strain-review-thumb');await savedPhoto.scrollIntoViewIfNeeded();await savedPhoto.evaluate(img=>img.decode());assert(await savedPhoto.evaluate(img=>img.naturalWidth>0));
-      await openDispensaries();await dispCard().click();await setScores('#dispensaryForm',84);
+      await openDispensaries();await dispCard().click();
+      const shopGuidance=page.locator('#dispensaryForm .rating-guidance');
+      assert.equal(await shopGuidance.count(),5);
+      assert.match(await shopGuidance.nth(2).innerText(),/staff/);
+      await setScores('#dispensaryForm',84);
       await page.locator('#saveDispensary').click();await expectScore(dispCard(),368,2);
       await page.locator('#navAccount').click();page.once('dialog',d=>d.accept());
       await page.locator('#myDispensaryReviewList article').first().getByRole('button',{name:'Delete',exact:true}).click();
@@ -116,7 +142,7 @@ async function runCommunityBrowserTests() {
       assert.equal(await more.isVisible(),false);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       assert.deepEqual(errors,[]);assert.deepEqual(backend,[]);
-      console.log(JSON.stringify({width,result:'PASS',checks:['zero/one/multiple users','equal weighting','rounding','categories','formats','individual counts and scores','disclosure and paging','private identity fallback','repeat save','edits/deletions','photo and refresh persistence','second account','zero score','no production connections']}));
+      console.log(JSON.stringify({width,result:'PASS',checks:['zero/one/multiple users','equal weighting','rounding','categories','formats','format-specific slider guidance and labels','individual counts and scores','disclosure and paging','private identity fallback','repeat save','edits/deletions','photo and refresh persistence','second account','zero score','no production connections']}));
       await context.close();
     }
   } finally {await browser.close();}
