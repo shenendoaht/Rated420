@@ -854,7 +854,7 @@ function appendCommunityScore(node, stats) {
       const removal = await db.storage.from(bucket).remove([path]);
       if (removal.error) throw removal.error;
     } catch {
-      toast('Image cleanup could not be confirmed. The file was left for follow-up.');
+      toast('Image cleanup could not be confirmed. Check before retrying.');
     }
   }
 
@@ -884,20 +884,20 @@ function appendCommunityScore(node, stats) {
   }
 
   function setPublicImage(image, bucket, path) {
-    image.addEventListener('error', () => {
-      if (image.getAttribute('src') !== avatarLogo) {
-        image.src = avatarLogo;
-        image.alt = 'Review image unavailable';
-      }
-    }, { once: true });
+    image.onerror = () => {
+      image.onerror = null;
+      image.src = avatarLogo;
+      image.alt = 'Review image unavailable';
+    };
     const url = db.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     image.src = url || avatarLogo;
     if (!url) image.alt = 'Review image unavailable';
   }
 
+  const IMAGE_EXTENSIONS = new Map([['image/jpeg','jpg'],['image/png','png'],['image/webp','webp']]);
+
   function imageExtension(file) {
-    const extensions = new Map([['image/jpeg','jpg'],['image/png','png'],['image/webp','webp']]);
-    return file.size > 0 && file.size <= 5 * 1024 * 1024 && extensions.get(file.type);
+    return file.size > 0 && file.size <= 5 * 1024 * 1024 && IMAGE_EXTENSIONS.get(file.type);
   }
 
   async function uploadPhoto(bucket, file, memberId) {
@@ -1269,7 +1269,9 @@ async function ensureDispensary(name,location) {
     dispensaryPreviewUrl = null;
     const file = dispensaryFields.photo.files[0];
     const path = editingDispensary?.photo_path;
-    let src;
+    const preview = $('dispensaryPhotoPreview');
+    preview.onerror = null;
+    preview.alt = 'Review photo';
     if (file && !imageExtension(file)) {
       dispensaryFields.photo.value = '';
       setMessage('dispensaryMessage', 'Use a JPG, PNG, or WebP image up to 5 MB.', true);
@@ -1277,14 +1279,15 @@ async function ensureDispensary(name,location) {
     }
     if (file) {
       dispensaryPreviewUrl = URL.createObjectURL(file);
-      src = dispensaryPreviewUrl;
+      preview.src = dispensaryPreviewUrl;
+      preview.hidden = false;
     } else if (path && !dispensaryFields.removePhoto.checked) {
-      src = db.storage.from(DISPENSARY_BUCKET).getPublicUrl(path).data.publicUrl;
+      setPublicImage(preview, DISPENSARY_BUCKET, path);
+      preview.hidden = false;
+    } else {
+      preview.removeAttribute('src');
+      preview.hidden = true;
     }
-    const preview = $('dispensaryPhotoPreview');
-    if (src) preview.src = src;
-    else preview.removeAttribute('src');
-    preview.hidden = !src;
   }
 
   function resetDispensaryForm(review = null) {

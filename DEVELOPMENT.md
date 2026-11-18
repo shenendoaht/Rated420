@@ -24,6 +24,16 @@ Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Verce
 - The owner confirmed that **rated420-staging** tracks `main` for Production and has a **Custom** Ignored Build Step in **Settings → Build and Deployment**. The rule is `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. It allows the normal main production build and cancels other automatic builds that reach this step. Canceled attempts can count toward deployment quotas. Before changing this setup, verify current repository links and Production branch tracking in Vercel.
 - Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
 
+## Image handling and local verification
+
+Synthetic preview images use IndexedDB in the current browser. Existing data-URL fixtures remain readable. Clearing demo data clears both stores. A quota or browser-access error gives a recoverable message. Preview reviews and images still stay in that browser. The hosted Build 9 preview is an earlier, fixed build.
+
+Live image writes keep unique paths and the existing bucket policies. The client checks the previous reference when updating a saved review or profile. If a write returns an uncertain outcome, it reads back the new reference before deciding whether the save succeeded. A confirmed database rejection can trigger cleanup after a reference check. An unresolved outcome retains the upload for follow-up. Cleanup errors are reported, and catalogue refresh errors cannot trigger cleanup of a committed image. Private avatar URLs are renewed once after an image-load failure. No schema or bucket change is required for the image handling update.
+
+Use `tests/storage.browser.cjs` with the synthetic build to cover near-limit and rejected files, reload, quota failure, replacement, removal, signed avatar fallback, and injected failures before and after a save. For real API verification, run `tests/storage-api.integration.cjs` inside a network-isolated local Supabase Storage API fixture on port 5500. The fixture uses PostgreSQL 17.6 and Storage API 1.89.12 (linux/amd64 manifest `sha256:4a71028f91060c8d2e86d7426faa6841947d63f4ee97f9683d058d3ec367fb6c`). Initialize the Storage schema with the service migrations, the standard local Supabase roles and schema grants, and the Storage bucket and policy statements from migrations 20261116002045 and 20261116004719 **in the fixture only**. Bind the API to loopback, use the synthetic JWT secret in the test, and use the file backend. The test covers MIME and size, public retrieval, private signing and expiry, cross-account denial, and deletion for all three buckets. The browser suite injects client failures separately from the API fixture.
+
+The client-to-Storage and database operations are separate requests. A lost upload response or unresolved save can leave an unreferenced image. Reconcile these separately before considering any cleanup. This fixture does not exercise hosted Auth, CDN caches, or production backups.
+
 ## Build 9: rating slider guidance
 
 Each strain-format slider and dispensary slider has a short prompt directly beneath it. The strain prompts follow the rating form’s product type when a reviewer changes the selection or edits a saved rating. Category labels, slider ranges, totals, averages, and the community review disclosure are unchanged.
@@ -70,6 +80,7 @@ node scripts/build.mjs
 node tests/community.browser.cjs
 node tests/auth.browser.cjs
 node tests/contact.browser.cjs
+node tests/storage.browser.cjs
 ```
 
 Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. The production-mode build above only writes local static assets.
