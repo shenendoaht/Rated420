@@ -12,9 +12,9 @@ Applies to the entire repository. Read [DEVELOPMENT.md](DEVELOPMENT.md) first; i
 
 **Branch → Build → Test → Preview → Approve → Release.** No step implies approval for the next production action.
 
-- Start new work from current main on an isolated feature branch; continue an existing PR on its authorized feature branch. Never develop or push directly to main.
+- Start new work from current development on an isolated feature branch and target development in the PR. Continue existing PRs on their authorized branches. Never develop or push directly to main.
 - Commit and push reviewable development milestones regularly and before lengthy verification. Check diffs for credentials/user data before every push. Do not overwrite another contributor's work.
-- Use pull requests. Record tested commits, changes, validation and limitations. Before an approved merge, refetch the head and confirm it matches the reviewed/tested commit; review subsequent changes before proceeding.
+- Use pull requests. Record tested commits, changes, validation and limitations. Before an approved merge, refetch both refs and confirm the tested integration matches the current PR head and target tip. Retest if either changes.
 
 ## Approval boundaries
 
@@ -34,8 +34,8 @@ Applies to the entire repository. Read [DEVELOPMENT.md](DEVELOPMENT.md) first; i
 
 ## Verification and release
 
-- Run relevant tests, syntax/build checks and diff checks. Test affected desktop and mobile flows, including errors and persistence. Block live writes during browser verification; a preview URL does not imply an isolated backend.
+- Before integrating a feature into development, run the full cumulative regression suite documented in DEVELOPMENT.md against the combined tree. Test against isolated databases and synthetic browser fixtures. After a verified milestone, record the integrated commit and keep a Git checkpoint.
 - Check the exact-head Vercel preview, its build logs and affected behavior before proposing release. Clearly distinguish synthetic/mocked/local tests from hosted verification and disclose untested Auth/provider/storage flows.
-- For documentation-only changes, verify facts/links/scope and confirm runtime and SQL are unchanged; do not needlessly repeat unaffected browser tests.
+- For documentation-only PRs, verify facts, links and scope and confirm runtime and SQL are unchanged.
 - Production changes require a reviewed sequence, backup/recovery gate and rollback procedure. After authorized release, verify commit, deployment state, intended domains and affected functionality. Preserve new data during rollback; do not automatically drop the expanded schema or restore an old database snapshot.
 - Keep DEVELOPMENT.md current after approved architecture, migration or release changes. Record durable release details in the relevant docs/ report; keep both root documents concise.
