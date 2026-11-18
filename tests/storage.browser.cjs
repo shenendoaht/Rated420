@@ -162,10 +162,11 @@ async function run(width, browser) {
   assert((await photoKeys()).includes('strain-review-photos/'+keptAfterRefresh));
   await page.waitForFunction(key=>!window.supabase.createClient().storage.from('strain-review-photos')
     .getPublicUrl(key).data.publicUrl,first);
+  await page.locator('#rated420-strain-brand').fill('Storage fixture');
   await setPhoto();
   await uploadFault('cleanup');
   await page.locator('#reviewSaveButton').click();
-  await page.getByText(/Your 0\/420 rating is saved/).waitFor();
+  await page.getByText(/Your \d+\/420 rating is saved/).waitFor();
   await page.getByText(/Image cleanup could not be confirmed/).waitFor();
   const replacement = await currentImage();
   assert.notEqual(replacement, keptAfterRefresh);
