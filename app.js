@@ -130,10 +130,12 @@
     return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : undefined;
   }
 
+  const PROFILE_FIELDS = 'id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity';
+
   async function readOrCreateProfile(authUser) {
     const { data: existing, error: readError } = await db
       .from('member_profiles')
-      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
+      .select(PROFILE_FIELDS)
       .eq('id', authUser.id)
       .maybeSingle();
     if (readError) throw readError;
@@ -146,7 +148,7 @@
     let { data: inserted, error: insertError } = await db
       .from('member_profiles')
       .insert(record)
-      .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
+      .select(PROFILE_FIELDS)
       .single();
 
     if (insertError && username && insertError.code === '23505') {
@@ -154,14 +156,14 @@
       ({ data: inserted, error: insertError } = await db
         .from('member_profiles')
         .insert({ id: authUser.id })
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
+        .select(PROFILE_FIELDS)
         .single());
       if (!insertError) toast('Your account is ready. That username was taken — choose a new one in My account.');
     }
     if (insertError && insertError.code === '23505') {
       // Rare simultaneous browser tabs. The other tab may already have created it.
       const { data: fromOtherTab, error } = await db.from('member_profiles')
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
+        .select(PROFILE_FIELDS)
         .eq('id', authUser.id).maybeSingle();
       if (!error && fromOtherTab) return fromOtherTab;
     }
@@ -347,20 +349,22 @@
       if (choice === 'upload' && !file && !oldAvatar) throw new Error('Choose a photo to upload.');
       if (choice === 'upload' && file) uploaded = await uploadPhoto(AVATAR_BUCKET, file, memberId);
       const avatarPath = choice === 'upload' ? (uploaded || oldAvatar) : null;
-      const { data, error } = await db.from('member_profiles')
+      const update = db.from('member_profiles')
         .update({ username:username || null, display_name:displayName || null, avatar_choice: choice && choice !== 'upload' ? Number(choice) : null, avatar_path: avatarPath, show_review_identity:showReviewIdentity, updated_at:new Date().toISOString() })
-        .eq('id', memberId)
-        .select('id, username, display_name, created_at, updated_at, avatar_choice, avatar_path, show_review_identity')
-        .single();
-      if (error) throw error;
-      if (oldAvatar && oldAvatar !== avatarPath) void db.storage.from(AVATAR_BUCKET).remove([oldAvatar]);
+        .eq('id', memberId);
+      const data = await saveImageReference({
+        table:'member_profiles', field:'avatar_path', bucket:AVATAR_BUCKET, uploaded,
+        columns:PROFILE_FIELDS, write:matchImageReference(update, 'avatar_path', oldAvatar).select(PROFILE_FIELDS).single()
+      });
+      if (oldAvatar && oldAvatar !== avatarPath) {
+        void removeUnreferencedImage('member_profiles', 'avatar_path', AVATAR_BUCKET, oldAvatar);
+      }
       if (user?.id !== memberId) return;
       profile = data;
       fillAccount();
       fillAvatar();
       setMessage('profileMessage', 'Profile saved to your Rated420 account.');
     } catch (e) {
-      if (uploaded) void db.storage.from(AVATAR_BUCKET).remove([uploaded]);
       const duplicate = e?.code === '23505';
       setMessage('profileMessage', duplicate ? 'That username is already taken. Try another.' : (e?.message || 'Unable to save profile.'), true);
     } finally { setBusy(form, false); }
@@ -414,6 +418,79 @@
     ['aesthetic', 'Aesthetic'], ['aroma', 'Aroma'], ['flavor', 'Flavor'],
     ['effects', 'Effects'], ['overall', 'Overall']
   ];
+  // Prompt order follows the five strain categories above.
+  const STRAIN_SCORE_GUIDANCE = {
+    Flower: [
+      "How does it look? How’s the trim?",
+      "How does the flower smell? What about the smoke?",
+      "What did it taste like? Did the flavor linger?",
+      "How did you feel, and how long did it last?",
+      "How was the whole experience? Would you choose it again?"
+    ],
+    'Pre-Roll': [
+      "How neat and evenly packed is the roll?",
+      "How does it smell before you light it? What about the smoke?",
+      "How did it taste from the first puff to the last?",
+      "How did you feel as the effects set in?",
+      "How was the draw and burn? Would you pick it again?"
+    ],
+    'Infused Pre-Roll': [
+      "How does the roll look? Is the coating even, if there is one?",
+      "What do you smell before lighting it and in the smoke?",
+      "Could you taste the flower, the infusion, or both?",
+      "How did the infused roll make you feel?",
+      "How was the draw, burn, and overall experience?"
+    ],
+    'Vape Cartridge': [
+      "How does the cartridge look? Is the oil clear or cloudy?",
+      "What did the vapor smell like?",
+      "What flavors came through? Did they stay consistent?",
+      "How did you feel after vaping it?",
+      "How was the draw? Would you use this cartridge again?"
+    ],
+    'Disposable Vape': [
+      "How does the device look and feel in your hand?",
+      "What did the vapor smell like?",
+      "How did it taste from one puff to the next?",
+      "How did you feel after using it?",
+      "How easy was it to use? Would you choose it again?"
+    ],
+    Concentrate: [
+      "How does it look? What stands out about the color or texture?",
+      "How does it smell before and during use?",
+      "What flavors came through? How was the aftertaste?",
+      "How did you feel, and how long did it last?",
+      "How was the whole experience? Would you choose it again?"
+    ],
+    Edible: [
+      "How does it look? Does the texture look inviting?",
+      "What does it smell like before you take a bite?",
+      "How did it taste? What about the aftertaste?",
+      "When did you notice the effects, and how long did they last?",
+      "How was the edible as a whole? Would you try it again?"
+    ],
+    Tincture: [
+      "How does the liquid look? Is it clear or cloudy?",
+      "What do you notice when you open the bottle?",
+      "How did it taste? Did the flavor linger?",
+      "What did you notice after taking it, and when?",
+      "How was it to measure and use? Would you choose it again?"
+    ],
+    Topical: [
+      "How does it look? What’s the texture like?",
+      "What does it smell like on your skin?",
+      "If taste applies to this product, how was it? Never taste a topical to score it.",
+      "How did the area feel after you applied it?",
+      "How did it spread and absorb? Would you use it again?"
+    ],
+    Other: [
+      "What stands out about how it looks?",
+      "What did it smell like before or during use?",
+      "If it has a taste, what flavors did you notice?",
+      "What did you notice after using it, and for how long?",
+      "How was the whole experience? Would you choose it again?"
+    ]
+  };
   const PHOTO_BUCKET = 'strain-review-photos';
   let knownStrains = [];
   let ratingStats = [];
@@ -536,7 +613,7 @@ function appendCommunityScore(node, stats) {
       btn.setAttribute('aria-pressed', String(formatFilter === label));
       btn.addEventListener('click', () => {
         formatFilter = label;
-        if (label !== ALL_FORMATS) $('rated420-strain-product-type').value = label;
+        if (label !== ALL_FORMATS) setStrainReviewFormat(label);
         void renderStrainSummary();
       });
       box.append(btn);
@@ -676,7 +753,7 @@ function appendCommunityScore(node, stats) {
             const image = makeNode('img','strain-review-thumb');
             image.alt = 'Member-uploaded strain review photo';
             image.loading = 'lazy';
-            image.src = db.storage.from(PHOTO_BUCKET).getPublicUrl(item.photo_path).data.publicUrl;
+            setPublicImage(image, PHOTO_BUCKET, item.photo_path);
             row.append(image);
           }
           feed.append(row);
@@ -709,10 +786,18 @@ function appendCommunityScore(node, stats) {
     form.querySelector('.meter').setAttribute('aria-valuenow',String(total));
     form.querySelector('.meter span').style.width = `${total / 420 * 100}%`;
   }
-  function buildScoreSliders(form, categories) {
+  function setStrainReviewFormat(format) {
+    $('rated420-strain-product-type').value = format;
+    const guidance = STRAIN_SCORE_GUIDANCE[format] || STRAIN_SCORE_GUIDANCE.Other;
+    getScoreForm().querySelectorAll('.rating-guidance').forEach((description, index) => {
+      description.textContent = guidance[index];
+    });
+  }
+
+  function buildScoreSliders(form, categories, guidance) {
     const sliders = form.querySelector('.sliders');
     sliders.replaceChildren();
-    for(const [field,label] of categories) {
+    for (const [index, [field, label]] of categories.entries()) {
       const wrapper = makeNode('div','rating-row');
       const heading = makeNode('div','rating-heading');
       const caption = makeNode('label','',label);
@@ -727,7 +812,10 @@ function appendCommunityScore(node, stats) {
       const slider = document.createElement('input');
       slider.id=id;slider.type='range';slider.name=field;slider.min='0';slider.max='84';slider.step='1';slider.value='0';
       slider.addEventListener('input', () => updateScoreTotal(form, categories));
-      wrapper.append(heading,slider);
+      const description = makeNode('p', 'rating-guidance', guidance[index]);
+      description.id = id + '-guidance';
+      slider.setAttribute('aria-describedby', description.id);
+      wrapper.append(heading, slider, description);
       sliders.append(wrapper);
     }
     updateScoreTotal(form, categories);
@@ -743,7 +831,7 @@ function appendCommunityScore(node, stats) {
     resetStrainPhotoPreview();
     const file = $('rated420-strain-photo').files[0];
     if (!file) return;
-    if (file.size > 5*1024*1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    if (!imageExtension(file)) {
       $('rated420-strain-photo').value = '';
       setMessage('strainReviewMessage','Use a JPG, PNG, or WebP image under 5 MB.',true);
       return;
@@ -753,9 +841,68 @@ function appendCommunityScore(node, stats) {
     $('rated420-strain-preview').src = photoObjectUrl;
     $('rated420-strain-preview').hidden = false;
   }
+  function matchImageReference(query, field, path) {
+    return path ? query.eq(field, path) : query.is(field, null);
+  }
+
+  async function removeUnreferencedImage(table, field, bucket, path) {
+    if (!path) return;
+    try {
+      const { data, error } = await db.from(table).select(field).eq(field, path).limit(1);
+      if (error) throw error;
+      if (data.length) return;
+      const removal = await db.storage.from(bucket).remove([path]);
+      if (removal.error) throw removal.error;
+    } catch {
+      toast('Image cleanup could not be confirmed. Check before retrying.');
+    }
+  }
+
+  async function saveImageReference({ table, field, bucket, uploaded, columns, write }) {
+    let failure;
+    try {
+      const { data, error } = await write;
+      if (!error) return data;
+      failure = error;
+    } catch (error) {
+      failure = error;
+    }
+    if (!uploaded) throw failure;
+
+    try {
+      const { data, error } = await db.from(table).select(columns)
+        .eq(field, uploaded).limit(1).maybeSingle();
+      if (!error && data) return data;
+    } catch {
+      // Keep the uploaded file if the database result cannot be reconciled.
+    }
+    if (/^(22|23|40|42)[0-9A-Z]{3}$/.test(failure?.code || '')) {
+      await removeUnreferencedImage(table, field, bucket, uploaded);
+      throw failure;
+    }
+    throw new Error('Could not confirm the save. The uploaded image was kept. Check your account before retrying.');
+  }
+
+  function setPublicImage(image, bucket, path) {
+    image.onerror = () => {
+      image.onerror = null;
+      image.src = avatarLogo;
+      image.alt = 'Review image unavailable';
+    };
+    const url = db.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    image.src = url || avatarLogo;
+    if (!url) image.alt = 'Review image unavailable';
+  }
+
+  const IMAGE_EXTENSIONS = new Map([['image/jpeg','jpg'],['image/png','png'],['image/webp','webp']]);
+
+  function imageExtension(file) {
+    return file.size > 0 && file.size <= 5 * 1024 * 1024 && IMAGE_EXTENSIONS.get(file.type);
+  }
+
   async function uploadPhoto(bucket, file, memberId) {
-    const ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type];
-    if (!ext || file.size > 5*1024*1024) throw new Error('Upload a JPG, PNG, or WebP image up to 5 MB.');
+    const ext = imageExtension(file);
+    if (!ext) throw new Error('Upload a JPG, PNG, or WebP image up to 5 MB.');
     const path = `${memberId}/${crypto.randomUUID()}.${ext}`;
     const {error} = await db.storage.from(bucket).upload(path,file,{upsert:false,contentType:file.type});
     if (error) throw error;
@@ -807,36 +954,34 @@ function appendCommunityScore(node, stats) {
       if (file) uploaded = await uploadPhoto(PHOTO_BUCKET, file, user.id);
       const payload = {...scores,brand,product_type:type,notes,
         photo_path:uploaded || (existing?.photo_path || null)};
-      let result;
-      if (existing) {
-        result = await db.from('strain_reviews').update({...payload,updated_at:new Date().toISOString()})
-          .eq('id',existing.id).eq('user_id',user.id).select('id,total').single();
-      } else {
-        result = await db.from('strain_reviews').insert({strain_id:strain.id,user_id:user.id,...payload})
-          .select('id,total').single();
-      }
-      if (result.error) throw result.error;
-      const previousPath=existing?.photo_path;
-      if (uploaded && previousPath && previousPath !== uploaded) {
-        void db.storage.from(PHOTO_BUCKET).remove([previousPath]);
+      const reviews = db.from('strain_reviews');
+      const write = existing
+        ? matchImageReference(reviews.update({...payload,updated_at:new Date().toISOString()})
+          .eq('id',existing.id).eq('user_id',user.id), 'photo_path', existing.photo_path)
+        : reviews.insert({strain_id:strain.id,user_id:user.id,...payload});
+      const result = await saveImageReference({
+        table:'strain_reviews', field:'photo_path', bucket:PHOTO_BUCKET, uploaded,
+        columns:'id,total', write:write.select('id,total').single()
+      });
+      if (uploaded && existing?.photo_path) {
+        void removeUnreferencedImage('strain_reviews', 'photo_path', PHOTO_BUCKET, existing.photo_path);
       }
       selectedStrain=strain;
       formatFilter=type;
       editingReviewId=null;
-      await loadStrainCatalogue();
-      await loadMyStrainReviews();
       $('reviewEditNote').hidden = true;
-      setMessage('strainReviewMessage',`Your ${result.data.total}/420 rating is saved to Rated420. ${existing ? 'Your previous rating for this brand and format was updated.' : 'Welcome to the catalogue!'}`);
+      setMessage('strainReviewMessage',`Your ${result.total}/420 rating is saved to Rated420. ${existing ? 'Your previous rating for this brand and format was updated.' : 'Welcome to the catalogue!'}`);
       form.reset();
       $('rated420-strain-name').value=strain.name;
-      $('rated420-strain-product-type').value=type;
+      setStrainReviewFormat(type);
       resetStrainPhotoPreview();
       updateScoreTotal(getScoreForm(), STRAIN_CATEGORIES);
       $('reviewSaveButton').textContent='Save rating →';
-      await renderStrainSummary();
       toast('Your strain rating is live!');
+      void Promise.all([loadStrainCatalogue(), loadMyStrainReviews()]).catch(() => {
+        toast('Rating saved. Reload the page if the catalogue has not refreshed.');
+      });
     } catch(e) {
-      if (uploaded) void db.storage.from(PHOTO_BUCKET).remove([uploaded]);
       let message = e?.message || 'Could not save your review.';
       if (e?.code === '23505') message = 'A review already exists for this strain, brand, and product type. Reload your catalogue and try again.';
       setMessage('strainReviewMessage', message,true);
@@ -874,7 +1019,7 @@ function appendCommunityScore(node, stats) {
     selectStrain(strain);
     editingReviewId=review.id;
     $('rated420-strain-brand').value=review.brand;
-    $('rated420-strain-product-type').value=review.product_type;
+    setStrainReviewFormat(review.product_type);
     $('rated420-strain-notes').value=review.notes||'';
     STRAIN_CATEGORIES.forEach(([f])=> {getScoreForm().elements.namedItem(f).value=review[f];});
     formatFilter=review.product_type;
@@ -889,13 +1034,14 @@ function appendCommunityScore(node, stats) {
     if (!window.confirm('Delete this strain rating from Rated420? This cannot be undone.')) return;
     const {error} = await db.from('strain_reviews').delete().eq('id',review.id).eq('user_id',user.id);
     if (error) return toast(error.message||'Unable to delete review.');
-    if (review.photo_path) void db.storage.from(PHOTO_BUCKET).remove([review.photo_path]);
+    void removeUnreferencedImage('strain_reviews', 'photo_path', PHOTO_BUCKET, review.photo_path);
     await loadStrainCatalogue();
     await loadMyStrainReviews();
     toast('Strain rating deleted.');
   }
 
-  buildScoreSliders(getScoreForm(), STRAIN_CATEGORIES);
+  buildScoreSliders(getScoreForm(), STRAIN_CATEGORIES, STRAIN_SCORE_GUIDANCE.Flower);
+  setStrainReviewFormat($('rated420-strain-product-type').value);
   $('rated420-strain-search').addEventListener('input',renderStrainOptions);
   $('rated420-strain-use-search').addEventListener('click',()=>{
     const typed=cleanStrainName($('rated420-strain-search').value);
@@ -905,6 +1051,7 @@ function appendCommunityScore(node, stats) {
   $('rated420-strain-continue').addEventListener('click',()=>getScoreForm().scrollIntoView({behavior:'smooth',block:'start'}));
   $('rated420-strain-product-type').addEventListener('change',()=>{
     formatFilter=$('rated420-strain-product-type').value;
+    setStrainReviewFormat(formatFilter);
     void renderStrainSummary();
   });
   $('rated420-strain-name').addEventListener('input',()=>{
@@ -951,13 +1098,40 @@ function appendCommunityScore(node, stats) {
     memberAvatar.src = src || avatarLogo;
   }
 
+  let signedAvatarRequest;
+  let signedAvatarRetryUsed = false;
+  const currentAvatarRequest = request => signedAvatarRequest === request &&
+    user?.id === request.memberId && profile?.avatar_path === request.path &&
+    $('profileForm').elements.avatar.value === 'upload' && !$('avatarFile').files.length;
+
+  async function loadSignedAvatar(request) {
+    try {
+      const { data, error } = await db.storage.from(AVATAR_BUCKET).createSignedUrl(request.path, 3600);
+      if (error || !data?.signedUrl) throw error || new Error('Missing avatar URL.');
+      if (currentAvatarRequest(request)) showAvatar(data.signedUrl);
+    } catch {
+      if (currentAvatarRequest(request)) {
+        showAvatar();
+        toast('Profile photo is unavailable. Reopen My account to try again.');
+      }
+    }
+  }
+
   memberAvatar.addEventListener('error', () => {
-    if (memberAvatar.getAttribute('src') !== avatarLogo) showAvatar();
+    if (memberAvatar.getAttribute('src') === avatarLogo) return;
+    showAvatar();
+    if (signedAvatarRequest && currentAvatarRequest(signedAvatarRequest)) {
+      if (!signedAvatarRetryUsed) {
+        signedAvatarRetryUsed = true;
+        void loadSignedAvatar(signedAvatarRequest);
+      } else {
+        toast('Profile photo is unavailable. Reopen My account to try again.');
+      }
+    }
   });
 
   async function fillAvatar() {
     const form = $('profileForm');
-    const memberId = user?.id;
     const path = profile?.avatar_path;
     const choice = profile?.avatar_choice;
     form.elements.avatar.value = path ? 'upload' : String(choice || '');
@@ -965,12 +1139,9 @@ function appendCommunityScore(node, stats) {
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     avatarPreviewUrl = null;
     showAvatar(choice ? avatarImage(choice) : null);
-    if (!path) return;
-    const { data } = await db.storage.from(AVATAR_BUCKET).createSignedUrl(path, 3600);
-    if (user?.id === memberId && profile?.avatar_path === path &&
-        form.elements.avatar.value === 'upload' && !$('avatarFile').files.length) {
-      showAvatar(data?.signedUrl);
-    }
+    signedAvatarRetryUsed = false;
+    signedAvatarRequest = path ? { memberId:user?.id, path } : null;
+    if (signedAvatarRequest) await loadSignedAvatar(signedAvatarRequest);
   }
 
   AVATARS.forEach(([, name], index) => {
@@ -990,7 +1161,14 @@ function appendCommunityScore(node, stats) {
   $('profileForm').addEventListener('change', event => {
     const fileInput = $('avatarFile');
     const options = $('profileForm').elements.avatar;
-    if (event.target === fileInput && fileInput.files.length) options.value = 'upload';
+    if (event.target === fileInput && fileInput.files.length) {
+      if (!imageExtension(fileInput.files[0])) {
+        void fillAvatar();
+        setMessage('profileMessage', 'Use a JPG, PNG, or WebP image up to 5 MB.', true);
+        return;
+      }
+      options.value = 'upload';
+    }
     if (event.target !== fileInput && event.target.name !== 'avatar') return;
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     avatarPreviewUrl = null;
@@ -1091,17 +1269,25 @@ async function ensureDispensary(name,location) {
     dispensaryPreviewUrl = null;
     const file = dispensaryFields.photo.files[0];
     const path = editingDispensary?.photo_path;
-    let src;
+    const preview = $('dispensaryPhotoPreview');
+    preview.onerror = null;
+    preview.alt = 'Review photo';
+    if (file && !imageExtension(file)) {
+      dispensaryFields.photo.value = '';
+      setMessage('dispensaryMessage', 'Use a JPG, PNG, or WebP image up to 5 MB.', true);
+      return updateDispensaryPreview();
+    }
     if (file) {
       dispensaryPreviewUrl = URL.createObjectURL(file);
-      src = dispensaryPreviewUrl;
+      preview.src = dispensaryPreviewUrl;
+      preview.hidden = false;
     } else if (path && !dispensaryFields.removePhoto.checked) {
-      src = db.storage.from(DISPENSARY_BUCKET).getPublicUrl(path).data.publicUrl;
+      setPublicImage(preview, DISPENSARY_BUCKET, path);
+      preview.hidden = false;
+    } else {
+      preview.removeAttribute('src');
+      preview.hidden = true;
     }
-    const preview = $('dispensaryPhotoPreview');
-    if (src) preview.src = src;
-    else preview.removeAttribute('src');
-    preview.hidden = !src;
   }
 
   function resetDispensaryForm(review = null) {
@@ -1152,7 +1338,7 @@ async function ensureDispensary(name,location) {
       if (review.notes) card.append(makeNode('p', '', review.notes));
       if (review.photo_path) {
         const image = makeNode('img', 'strain-review-thumb');
-        image.src = db.storage.from(DISPENSARY_BUCKET).getPublicUrl(review.photo_path).data.publicUrl;
+        setPublicImage(image, DISPENSARY_BUCKET, review.photo_path);
         image.loading = 'lazy';
         image.alt = 'Photo from ' + review.name;
         card.append(image);
@@ -1175,7 +1361,7 @@ async function ensureDispensary(name,location) {
             remove.disabled = false;
             return;
           }
-          if (review.photo_path) void db.storage.from(DISPENSARY_BUCKET).remove([review.photo_path]);
+          void removeUnreferencedImage('dispensary_reviews', 'photo_path', DISPENSARY_BUCKET, review.photo_path);
           if (editingDispensary?.id === review.id) resetDispensaryForm();
           void loadDispensaryReviews(true);
           void loadDispensaryReviews();
@@ -1223,18 +1409,21 @@ async function ensureDispensary(name,location) {
       if (file) uploaded = await uploadPhoto(DISPENSARY_BUCKET, file, memberId);
       row.photo_path = uploaded || (dispensaryFields.removePhoto.checked ? null : target?.photo_path || null);
       const table = db.from('dispensary_reviews');
-      const query = target ? table.update(row).eq('id', target.id).eq('user_id', memberId) : table.insert(row);
-      const { error } = await query.select('id').single();
-      if (error) throw error;
+      const query = target
+        ? matchImageReference(table.update(row).eq('id', target.id).eq('user_id', memberId), 'photo_path', target.photo_path)
+        : table.insert(row);
+      await saveImageReference({
+        table:'dispensary_reviews', field:'photo_path', bucket:DISPENSARY_BUCKET, uploaded,
+        columns:'id', write:query.select('id').single()
+      });
       if (target?.photo_path && target.photo_path !== row.photo_path) {
-        void db.storage.from(DISPENSARY_BUCKET).remove([target.photo_path]);
+        void removeUnreferencedImage('dispensary_reviews', 'photo_path', DISPENSARY_BUCKET, target.photo_path);
       }
       resetDispensaryForm();
       setMessage('dispensaryMessage', 'Dispensary rating saved.');
       void loadDispensaryReviews();
       void loadDispensaryCatalogue();
     } catch (error) {
-      if (uploaded) void db.storage.from(DISPENSARY_BUCKET).remove([uploaded]);
       setMessage('dispensaryMessage', error.code === '23505'
         ? 'You already reviewed this location. Edit your review in My account.'
         : error.message || 'Could not save your rating.', true);
@@ -1246,7 +1435,13 @@ async function ensureDispensary(name,location) {
   }
 
   $('dispensarySearch').addEventListener('input',renderDispensaryCatalogue);
-  buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES);
+  buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES, [
+    "How did the shop look and feel inside?",
+    "How easy was it to get there, get in, and find your way around?",
+    "Were the staff welcoming and helpful?",
+    "How was the selection? Was it easy to find what you wanted?",
+    "How was the visit as a whole? Would you go back?"
+  ]);
   document.querySelectorAll('[data-open-dispensary]').forEach(button => button.addEventListener('click', () => {
     page('dispensary');
     void loadDispensaryReviews();

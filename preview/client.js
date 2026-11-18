@@ -8,6 +8,50 @@
   const clone=value=>JSON.parse(JSON.stringify(value));
   const read=()=>{try{return JSON.parse(localStorage.getItem(key))||clone(COMMUNITY_DEMO_SEED);}catch{return clone(COMMUNITY_DEMO_SEED);}};
   const save=data=>localStorage.setItem(key,JSON.stringify(data));
+  const photoBlobs = new Map();
+  const photoUrls = new Map();
+  const photoDb = new Promise((resolve, reject) => {
+    const opening = indexedDB.open(key + '-photos', 1);
+    opening.onupgradeneeded = () => opening.result.createObjectStore('photos');
+    opening.onsuccess = () => resolve(opening.result);
+    opening.onerror = () => reject(opening.error);
+    opening.onblocked = () => reject(new Error('Another tab is blocking demo photo storage.'));
+  });
+  async function photoTransaction(mode, operation) {
+    const database = await photoDb;
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction('photos', mode);
+      operation(transaction.objectStore('photos'));
+      transaction.oncomplete = resolve;
+      transaction.onabort = () => reject(transaction.error);
+    });
+  }
+  const loadedPhotos = photoTransaction('readonly', store => {
+    const cursor = store.openCursor();
+    cursor.onsuccess = () => {
+      if (!cursor.result) return;
+      photoBlobs.set(cursor.result.key, cursor.result.value);
+      cursor.result.continue();
+    };
+  }).catch(() => {});
+  function forgetPhoto(photoKey) {
+    if (photoUrls.has(photoKey)) URL.revokeObjectURL(photoUrls.get(photoKey));
+    photoUrls.delete(photoKey);
+    photoBlobs.delete(photoKey);
+  }
+  function photoUrl(bucket, path) {
+    const photoKey = bucket + '/' + path;
+    if (photoBlobs.has(photoKey) && !photoUrls.has(photoKey)) {
+      photoUrls.set(photoKey, URL.createObjectURL(photoBlobs.get(photoKey)));
+    }
+    return photoUrls.get(photoKey) || read().photos?.[path];
+  }
+  const photoFailure = failure => ({
+    data:null, error:{message:failure?.name === 'QuotaExceededError'
+      ? 'Demo image storage is full. Try a smaller image or reset the demo.'
+      : 'Demo image storage is unavailable. Check your browser settings and try again.'}
+  });
+  const ownsPhoto = path => Boolean(actor && path.split('/')[0] === actor);
   let actor=localStorage.getItem(actorKey)||'';
   const user=()=>actor?{id:actor,email:actor===users[0]?'demo-a@example.test':'demo-b@example.test',created_at:'2026-01-01T00:00:00Z',user_metadata:{}}:null;
   const error=message=>({data:null,error:{message}});
@@ -38,6 +82,7 @@
     constructor(table){this.table=table;this.filters=[];this.operation='read';this.max=Infinity;this.orders=[];}
     select(columns,options={}){this.columns=columns;this.options=options;return this;}
     range(from,to){this.start=from;this.max=to+1;return this;}
+    is(field,value){this.filters.push(row=>normalized(row)[field]==null);return this;}
     eq(field,value){this.filters.push(row=>String(normalized(row)[field])===String(value));return this;}
     order(field,{ascending=true}={}){this.orders.push([field,ascending]);return this;}
     limit(n){this.max=n;return this;}
@@ -46,7 +91,7 @@
     insert(value){this.operation='insert';this.value=value;return this;}
     update(value){this.operation='update';this.value=value;return this;}
     delete(){this.operation='delete';return this;}
-    then(resolve,reject){return Promise.resolve().then(()=>this.run()).then(resolve,reject);}
+    then(resolve,reject){return loadedPhotos.then(()=>this.run()).then(resolve,reject);}
     run(){
       const state=read();let rows=state[this.table]||[];
       if(this.table==='strain_community_stats')rows=[...aggregate(state.strain_reviews,'strain_id',categories.strain_reviews),
@@ -110,11 +155,38 @@
     signInWithPassword:async()=>({error:{message:'Use the demo reviewer selector above. Do not enter real credentials.'}}),
     signUp:async()=>error('Real signups are disabled. Use the demo reviewer selector.'),
     resetPasswordForEmail:async()=>error('Email is disabled in this preview.'),updateUser:async()=>error('Credential changes are disabled in this preview.')
-  },storage:{from:()=>({
-    upload:async(path,file)=>{const data=read();data.photos||={};data.photos[path]=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.readAsDataURL(file);});save(data);return {data:{path},error:null};},
-    getPublicUrl:path=>({data:{publicUrl:read().photos?.[path]||'images/rated420-logo.png'}}),
-    remove:async paths=>{const data=read();for(const path of paths)if(data.photos)delete data.photos[path];save(data);return {error:null};},
-    createSignedUrl:async path=>({data:{signedUrl:read().photos?.[path]||'images/rated420-logo.png'}})
+  },storage:{from:bucket=>({
+    upload:async(path,file)=>{
+      if (!ownsPhoto(path)) return error('This demo image belongs to another account.');
+      try {
+        await loadedPhotos;
+        const photoKey=bucket+'/'+path;
+        await photoTransaction('readwrite', store=>store.add(file,photoKey));
+        photoBlobs.set(photoKey,file);
+        return {data:{path},error:null};
+      } catch(failure) { return photoFailure(failure); }
+    },
+    getPublicUrl:path=>({data:{publicUrl:bucket==='member-avatars' ? '' : photoUrl(bucket,path) || ''}}),
+    remove:async paths=>{
+      if (!paths.every(ownsPhoto)) return error('This demo image belongs to another account.');
+      try {
+        await loadedPhotos;
+        await photoTransaction('readwrite', store=>{for (const path of paths) store.delete(bucket+'/'+path);});
+        const data=read();
+        for (const path of paths) {
+          forgetPhoto(bucket+'/'+path);
+          if (data.photos) delete data.photos[path];
+        }
+        if (data.photos) save(data);
+        return {data:[],error:null};
+      } catch(failure) { return photoFailure(failure); }
+    },
+    createSignedUrl:async path=>{
+      if (bucket==='member-avatars' && !ownsPhoto(path)) return error('This demo image belongs to another account.');
+      await loadedPhotos;
+      const signedUrl=photoUrl(bucket,path);
+      return signedUrl ? {data:{signedUrl},error:null} : error('Demo image is unavailable.');
+    }
   })}})};
   const nativeFetch=window.fetch.bind(window);
   window.fetch=(input,init)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);return url.hostname==='rated420-demo.invalid'||url.hostname.endsWith('.supabase.co')?Promise.resolve(Response.json({ready:false,success:false},{status:503})):nativeFetch(input,init);};
@@ -123,7 +195,15 @@
   const select=document.createElement('select');select.id='demoReviewer';select.style.cssText='padding:8px;background:#111711;color:#eff7e8;max-width:100%';
   for(const [value,text] of [['','Logged-out visitor'],[users[0],'Reviewer A'],[users[1],'Reviewer B']]){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
   select.value=actor;select.addEventListener('change',()=>{actor=select.value;localStorage.setItem(actorKey,actor);emit(actor?'SIGNED_IN':'SIGNED_OUT');});label.append(select);banner.append(label);
-  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset demo data';reset.style.cssText='padding:8px;background:#c7ea86;color:#111711';reset.addEventListener('click',()=>{localStorage.removeItem(key);location.reload();});banner.append(reset);
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset demo data';reset.style.cssText='padding:8px;background:#c7ea86;color:#111711';reset.addEventListener('click',async()=>{
+    try {
+      await photoTransaction('readwrite', store=>store.clear());
+      localStorage.removeItem(key);
+      location.reload();
+    } catch {
+      reset.textContent='Could not reset demo images. Try again.';
+    }
+  });banner.append(reset);
   const note=document.createElement('span');note.textContent='Scores and edits persist only in this browser. No real emails or accounts.';banner.append(note);
   document.getElementById('siteShell').prepend(banner);
 })();

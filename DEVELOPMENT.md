@@ -22,7 +22,23 @@ Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Verce
 - Development builds default to synthetic data. Run `node scripts/build.mjs` and serve only `dist/` with a local static server. The generated HTML uses a mock SDK, blocks browser connections and form submissions, and permits scripts only from the same origin. The build removes the real backend endpoint and public key from the demo runtime and rejects leftover hosted Supabase references before emitting output. Use mock providers and a network-isolated PostgreSQL container for tests.
 - Only a Vercel production build explicitly associated with `main` emits the production static assets. Development and preview builds use synthetic data even if a non-main branch is mistakenly given a production target. The branch rules in `vercel.json` allow Git deployment from main only for commits that contain this configuration.
 - The owner confirmed that **rated420-staging** tracks `main` for Production and has a **Custom** Ignored Build Step in **Settings → Build and Deployment**. The rule is `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. It allows the normal main production build and cancels other automatic builds that reach this step. Canceled attempts can count toward deployment quotas. Before changing this setup, verify current repository links and Production branch tracking in Vercel.
-- Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
+- Follow [AGENTS.md](AGENTS.md) and the incremental release procedure below. Keep development and verification on synthetic fixtures and off the production-connected staging aliases.
+
+## Image handling and local verification
+
+Synthetic preview images use IndexedDB in the current browser. Existing data-URL fixtures remain readable. Clearing demo data clears both stores. A quota or browser-access error gives a recoverable message. Preview reviews and images still stay in that browser. The hosted Build 9 preview is an earlier, fixed build.
+
+Live image writes keep unique paths and the existing bucket policies. The client checks the previous reference when updating a saved review or profile. If a write returns an uncertain outcome, it reads back the new reference before deciding whether the save succeeded. A confirmed database rejection can trigger cleanup after a reference check. An unresolved outcome retains the upload for follow-up. Cleanup errors are reported, and catalogue refresh errors cannot trigger cleanup of a committed image. Private avatar URLs are renewed once after an image-load failure. No schema or bucket change is required for the image handling update.
+
+Use `tests/storage.browser.cjs` with the synthetic build to cover near-limit and rejected files, reload, quota failure, replacement, removal, signed avatar fallback, and injected failures before and after a save. For real API verification, run `tests/storage-api.integration.cjs` inside a network-isolated local Supabase Storage API fixture on port 5500. The fixture uses PostgreSQL 17.6 and Storage API 1.89.12 (linux/amd64 manifest `sha256:4a71028f91060c8d2e86d7426faa6841947d63f4ee97f9683d058d3ec367fb6c`). Initialize the Storage schema with the service migrations, the standard local Supabase roles and schema grants, and the Storage bucket and policy statements from migrations 20261116002045 and 20261116004719 **in the fixture only**. Bind the API to loopback, use the synthetic JWT secret in the test, and use the file backend. The test covers MIME and size, public retrieval, private signing and expiry, cross-account denial, and deletion for all three buckets. The browser suite injects client failures separately from the API fixture.
+
+The client-to-Storage and database operations are separate requests. A lost upload response or unresolved save can leave an unreferenced image. Reconcile these separately before considering any cleanup. This fixture does not exercise hosted Auth, CDN caches, or production backups.
+
+## Build 9: rating slider guidance
+
+Each strain-format slider and dispensary slider has a short prompt directly beneath it. The strain prompts follow the rating form’s product type when a reviewer changes the selection or edits a saved rating. Category labels, slider ranges, totals, averages, and the community review disclosure are unchanged.
+
+For manual review, build with `node scripts/build.mjs` and serve `dist/` on localhost. Use the synthetic reviewer selector to try the rating forms, switch product types, and expand Community Reviews.
 
 ## Build 8: individual community reviews
 
@@ -64,11 +80,38 @@ node scripts/build.mjs
 node tests/community.browser.cjs
 node tests/auth.browser.cjs
 node tests/contact.browser.cjs
+node tests/storage.browser.cjs
 ```
 
 Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. The production-mode build above only writes local static assets.
 
 Record the tested head, target tip, and results in the PR. After integration, verify the merged tree against the tested tree and tag the verified development milestone. The Git checkpoint preserves source and migrations. The production backup and approval gates still apply.
+
+## Independent GitHub Actions verification
+
+[Cumulative regression](.github/workflows/regression.yml) runs on the standard public-repository `ubuntu-24.04` runner for pull requests into `development`. Pushes to `development`, `codex/ci-regression`, and `codex/release-candidate/**` also run CI on the exact pushed commit. The job asserts that checkout matches the event SHA and logs the commit and tree. Rerun when a candidate head or target changes.
+
+The three jobs check free disk before setup, then run static and browser regressions, PostgreSQL and synthetic GPG recovery regressions, and the real local Supabase Storage API fixture. The PostgreSQL fixtures use disposable containers with no network, ports, or host binds. The Storage API shares the isolated database container’s loopback. GitHub-authored actions are pinned to full commit SHAs, checkout discards credentials, and jobs use read-only repository permissions. CI uses synthetic fixtures with no deployment steps, hosted database connections, or production credentials or archives.
+
+Before approving integration, verify all three jobs passed on the current candidate. After an authorized merge, compare the merged and tested trees and keep the verified Git checkpoint. The CI recovery test covers synthetic fixtures. Production backup recovery, migration review, preview authorization, and release approval remain separate.
+
+## Incremental integration and release
+
+Keep a feature freeze. Cut each release from the current live baseline with just the next approved functional change and its dependencies. Use the verified development history to identify each change. Keep earlier releases and their regression coverage in the candidate. CI and synthetic fixtures can be reviewed in development without publishing a website.
+
+| Order | Release scope | Schema and rollback |
+| --- | --- | --- |
+| 1 | Build 7 community averages and stable dispensary IDs | After recovery and approval, apply and verify `20261117191511_community_listing_averages.sql` before releasing the dependent frontend. Follow the [PR #7 database procedure](docs/pr7-release-plan.md), including legacy-client compatibility and transaction/ledger checks. Before migration commit, abort through the verified runner on failure. After commit, preserve the expanded schema and use the prior frontend only with explicit rollback approval. |
+| 2 | Build 8 individual community reviews and profile opt-in | Requires the Build 7 schema, including the restricted reader role and private helper schema. Apply and verify `20261118120000_community_review_display.sql` before releasing its frontend. Verify that existing profiles default to private, opted-out users and uploaded avatar paths stay private, and Build 7 still works against the expanded schema. Before migration commit, use the same transaction stop rule. After commit, retain schema and data. If members have opted in, keep a way to withdraw consent when planning any frontend rollback, since the older UI lacks that control. Stop on a privacy incident and seek explicit approval for containment of the public projection. |
+| 3 | Build 9 slider guidance | Frontend only. Verify all ten product formats, dispensary prompts, accessible descriptions, retained score values and the existing disclosure. With explicit rollback approval, return to the verified Build 8 frontend. |
+| 4 | Storage recovery improvements | Frontend only. Keep bucket permissions, database references and object paths intact. Verify save/readback and cleanup fault handling, signed avatar renewal and the isolated Storage HTTP suite. With explicit rollback approval, return to the last compatible frontend while retaining database references and Storage objects. Investigate any ambiguous save or missing object before retry or cleanup. IndexedDB is synthetic-preview-only. |
+
+For each step:
+
+1. Record the intended diff, current target tip, exact candidate commit/tree, pending migration hashes, preceding safe frontend deployment, and compatible schema. Verify the cumulative development suite before and after integration. For a staged production cut, run the full cumulative suite applicable to the released feature set and the compatibility checks for that cut. Require independent GitHub Actions evidence tied to the exact candidate, with isolated desktop/mobile, permissions, storage and data-integrity checks. Do not transfer production data to CI.
+2. Record the exact tested heads and trees. Use the PR run to verify its combined tree and the development push run to verify the resulting integration commit. Stage a reviewed cut under `codex/release-candidate/<stage>` with the test workflow, fixture code, and cumulative tests appropriate to that cut. Check its no-deploy rules before pushing and use its push run for exact-commit evidence. Obtain separate authorization for any hosted preview.
+3. Confirm production backup and recovery under the [owner-run procedure](docs/backup-recovery.md), repeat read-only preflight and present the candidate, tests, hashes, risks, rollback target and proposed smoke tests for explicit approval. For migrations, verify the schema, ledger, permissions and data preservation before any merge that would deploy the frontend. Check transactional runner and bounded timeouts. Stop on unexpected errors, drift, integrity or privacy findings.
+4. After an approved release, confirm the live commit and aliases and run read-only desktop/mobile smoke checks for the changed and previously released features. Use existing public content and only separately authorized owner sessions. Do not create or change accounts, reviews, uploads or contact submissions as smoke tests. Check migration history and relevant service error totals without exposing records. Record the successful baseline before the next step. A frontend rollback never authorizes removal of committed schema or restoration of an old snapshot.
 
 ## Data and security map
 
@@ -93,4 +136,4 @@ Fresh sessions: read [the self-contained handover](docs/CODEX_HANDOVER.md), then
 - The aggregate helper is SECURITY DEFINER in a non-exposed schema, owned by a read-only NOLOGIN/NOBYPASSRLS role; public results contain no user IDs. Confirm hosted exposure/privileges before release.
 - Contact email receipt was manually confirmed, but one message retains delivery_unconfirmed tracking. Do not resend solely from that flag. Tracking reconciliation is separate future work.
 - Real Turnstile may require a human browser. Do not disable it or regenerate keys to bypass an automated-test failure.
-- Priorities: owner review of PR #7 and SQL; verify recovery/hosted configuration gates; controlled release and read-only validation after approval; separately plan authorized write tests, pagination/load verification and contact tracking improvements. No unrelated features or paid infrastructure are approved.
+- The current release freeze keeps work on integration, recovery readiness, and the incremental release checks above. Pagination, load testing, and contact tracking remain separate follow-up work.

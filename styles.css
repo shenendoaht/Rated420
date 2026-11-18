@@ -93,6 +93,7 @@ nav a[aria-current=page] {color:var(--lime)}
 .rating-heading span {color:#e4ecde}
 .rating-heading output {color:#e0f8b0;font-weight:700}
 .rating-row {border-bottom-color:#536650}
+.rating-row .rating-guidance {margin:4px 0 0;color:#d0d9cd;font-size:13px;line-height:1.45}
 input[type=range] {accent-color:#d5f58a;min-height:36px;cursor:pointer}
 .meter {background:#53634f;height:10px}
 .fine {font-size:14px;line-height:1.65;color:#d0d9cd}
