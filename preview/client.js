@@ -97,7 +97,7 @@
     createSignedUrl:async path=>({data:{signedUrl:read().photos?.[path]||'images/rated420-logo.png'}})
   })}})};
   const nativeFetch=window.fetch.bind(window);
-  window.fetch=(input,init)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);return url.hostname.endsWith('.supabase.co')?Promise.resolve(Response.json({ready:false,success:false},{status:503})):nativeFetch(input,init);};
+  window.fetch=(input,init)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);return url.hostname==='rated420-demo.invalid'||url.hostname.endsWith('.supabase.co')?Promise.resolve(Response.json({ready:false,success:false},{status:503})):nativeFetch(input,init);};
   const banner=document.createElement('aside');banner.setAttribute('aria-label','Synthetic data preview');banner.style.cssText='padding:14px;background:#253925;color:#eff7e8;position:relative;z-index:10;font:14px sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
   const label=document.createElement('label');label.textContent='SYNTHETIC DATA PREVIEW · No production access. Demo reviewer: ';
   const select=document.createElement('select');select.id='demoReviewer';select.style.cssText='padding:8px;background:#111711;color:#eff7e8;max-width:100%';

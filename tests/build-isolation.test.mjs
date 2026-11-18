@@ -12,11 +12,13 @@ for(const name of ['scripts','preview','index.html','app.js','styles.css','conta
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');
 const cases=[
- ['production ignores local-demo flags',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'codex/community-averages',RATED420_LOCAL_DEMO:'1'},false],
+ ['production main excludes demo even with a legacy demo flag',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'main',RATED420_LOCAL_DEMO:'1'},false],
  ['feature preview uses isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/community-averages'},true],
- ['unrelated preview is unaffected',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/unrelated'},false],
- ['default build excludes demo',{},false],
- ['explicit local demo is isolated',{RATED420_LOCAL_DEMO:'1'},true]
+ ['other feature previews also use isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/unrelated'},true],
+ ['default local build uses isolated data',{},true],
+ ['development is isolated even with a production target',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'development'},true],
+ ['production target without a Git ref uses isolated data',{VERCEL_ENV:'production'},true],
+ ['preview of main uses isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'main'},true]
 ];
 for(const [name,variables,demo] of cases)test(name,()=>{
  const env={...process.env};for(const key of ['VERCEL_ENV','VERCEL_GIT_COMMIT_REF','RATED420_LOCAL_DEMO'])delete env[key];Object.assign(env,variables);
@@ -26,16 +28,30 @@ for(const [name,variables,demo] of cases)test(name,()=>{
  assert.equal(html.includes('src="community-demo.js"'),demo);
  for(const file of ['.env','private.sql','private.db','tests','preview','scripts'])assert(!existsSync(path.join(output,file)),file+' must not be published');
  assert(!readdirSync(output,{recursive:true}).some(file=>file.endsWith('.sql')));
- for(const file of ['app.js','styles.css','contact.js'])assert.equal(readFileSync(path.join(output,file),'utf8'),readFileSync(path.join(root,file),'utf8'));
+ assert.equal(readFileSync(path.join(output,'styles.css'),'utf8'),readFileSync(path.join(root,'styles.css'),'utf8'));
  if(demo){
-  assert(html.includes("connect-src 'self'; form-action 'self'"));
+  assert(html.includes("connect-src 'none'; form-action 'none'; script-src 'self'"));
   assert(!html.includes('supabase-js@'));
+  for(const file of ['index.html','app.js','contact.js','community-demo.js']){
+   const content=readFileSync(path.join(output,file),'utf8');
+   assert.doesNotMatch(content,/ymluyoqkmzxomjokjmkj|https?:\/\/[^\s"'<>]*\.supabase\.co\b|sb_publishable_/i);
+  }
   assert(!/action="https:\/\/[^\"]*supabase/.test(html));
   assert(readFileSync(path.join(output,'community-demo.js'),'utf8').includes('SYNTHETIC DATA PREVIEW'));
  }else{
-  assert.equal(html,readFileSync(path.join(root,'index.html'),'utf8'));
+  for(const file of ['index.html','app.js','contact.js']){
+   assert.equal(readFileSync(path.join(output,file),'utf8'),readFileSync(path.join(root,file),'utf8'));
+  }
   assert(html.includes('supabase-js@2.117.1'));
   for(const file of ['app.js','styles.css','contact.js','index.html'])assert(!readFileSync(path.join(output,file),'utf8').includes('Demo Citrus'));
  }
+});
+test('a hosted backend reference aborts the build and removes stale output',()=>{
+ const app=path.join(root,'app.js');
+ writeFileSync(app,readFileSync(app,'utf8')+"\nconst unexpectedBackend = 'https://fixture.supabase.co';\n");
+ const env={...process.env,VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'development'};
+ assert.throws(()=>execFileSync(process.execPath,[path.join(root,'scripts/build.mjs')],{env,stdio:'pipe'}),
+  error=>error.status===1 && error.stderr.toString().includes('hosted Supabase reference in app.js'));
+ assert(!existsSync(path.join(root,'dist')));
 });
 after(()=>rmSync(root,{recursive:true,force:true}));

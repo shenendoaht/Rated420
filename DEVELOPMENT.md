@@ -16,6 +16,14 @@ Last verified: November 17, 2026. Refetch GitHub/Vercel/Supabase status before r
 
 Production baseline: **483b6d16d45f12d2c8aae1f056348e7f2aa80f24** (PR #6), Vercel READY. Accounts/profiles, strain/dispensary review forms, photo uploads and Contact Us are live. The homepage CTA reflects authentication; strain review display defaults to All formats with empty-format recovery.
 
+## Branches and deployment isolation
+
+- `main` is the production release branch. `development` starts from main and contains the verified PR #7 history. Create future development feature branches from development and target their PRs there. Preserve `codex/community-averages` and draft PR #7 as the existing release review record.
+- Development builds default to synthetic data. Run `node scripts/build.mjs` and serve only `dist/` with a local static server. The generated HTML uses a mock SDK, blocks browser connections and form submissions, and permits scripts only from the same origin. The build removes the real backend endpoint and public key from the demo runtime and rejects leftover hosted Supabase references before emitting output. Use mock providers and a network-isolated PostgreSQL container for tests.
+- Only a Vercel production build explicitly associated with `main` emits the production static assets. Development and preview builds use synthetic data even if a non-main branch is mistakenly given a production target. The branch rules in `vercel.json` allow Git deployment from main only for commits that contain this configuration.
+- Before pushing development or future feature branches, verify branch exclusions in both connected Vercel projects, **rated420-staging** and **gooooooo**. In each project's **Settings → Environments**, inspect the Production branch mapping without editing it. In **Settings → Build and Deployment → Ignored Build Step**, use **Custom** with `if [ "$VERCEL_ENV" = production ] && [ "$VERCEL_GIT_COMMIT_REF" = main ]; then exit 1; else exit 0; fi`. This permits the normal main production build and cancels other automatic builds on projects configured to release from main. If a project has another intentionally configured production branch or an existing custom command, stop and review that setting before replacing it. Canceled builds can count toward deployment quotas.
+- Follow **Branch → Build → Test → Preview → Approve → Release**. Never use the production-connected staging aliases for development. Before any release, verify real backup recovery, repeat read-only preflight, and obtain explicit approval for the exact commit, migration hash and sequence in [the release plan](docs/pr7-release-plan.md). The database verification gate precedes any approved merge to main.
+
 ## PR #7: recovery gate open; production approval required
 
 Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated420/pull/7. Runtime implementation 1c3788b; verification milestone f17d15c; controlled-release preparation adds transaction/legacy-client checks (23 backend/build checks total). Later preparation commits add docs/tests and owner-run backup tooling only; app runtime and proposed SQL remain unchanged. Fetch the latest PR head for approval rather than relying on these abbreviated references.
@@ -25,7 +33,7 @@ Branch codex/community-averages; draft PR https://github.com/shenendoaht/Rated42
 - Five categories remain out of 84; totals out of 420. PostgreSQL numeric averages retain precision; round display only. All currently public review rows are treated as published; no moderation workflow is added.
 - Display “Avg out of 1 user review” / plural, or “Not yet rated” and “Be the first to rate.” Views recalculate on reads; saves/deletions, navigation/focus/visibility and a 30-second visible-page timer refresh the UI.
 - Build: node scripts/build.mjs via vercel.json outputs dist/; never executes SQL. Production excludes test/demo/SQL sources.
-- This feature branch's Vercel preview uses labelled synthetic data, a mock SDK, localStorage and production-access restrictions. Its toolbar offers two demo reviewers/visitor. Demo persistence is browser-local, not cross-device. Other preview branches retain their prior backend behavior; inspect their mappings before any write test.
+- The already deployed PR #7 preview uses labelled synthetic data, a mock SDK, localStorage and production-access restrictions. Its toolbar offers two demo reviewers/visitor. Demo persistence is browser-local, not cross-device. The development branch build rules above apply only to commits that contain them.
 
 ## Database status
 
@@ -43,7 +51,7 @@ Protocol: **Branch → Build → Test → Preview → Approve → Release.**
 
 ```sh
 node --test tests/community-db.test.mjs tests/contact-handler.test.mjs tests/build-isolation.test.mjs
-RATED420_LOCAL_DEMO=1 node scripts/build.mjs
+node scripts/build.mjs
 node tests/community.browser.cjs
 node tests/auth.browser.cjs
 node tests/contact.browser.cjs
@@ -51,7 +59,7 @@ node --check app.js
 git diff --check
 ```
 
-Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. Build production locally with VERCEL_ENV=production node scripts/build.mjs; this does not deploy.
+Use the existing rated420-averages-pg container or provision the local container as documented in the verification report. Set PLAYWRIGHT_BROWSERS_PATH only for a nondefault browser cache. Build production locally with VERCEL_ENV=production VERCEL_GIT_COMMIT_REF=main node scripts/build.mjs; this does not deploy.
 
 4. Verify exact-head previews/build logs, describe limitations in the PR, and obtain explicit migration/merge/live-deployment approval. Apply only the approved new migration, then deploy the approved frontend after database checks. See the release plan for stop gates and rollback.
 
