@@ -50,6 +50,21 @@ create table rated420_hq.audit (
   details jsonb not null default '{}',
   at timestamptz not null default now()
 );
+-- Keep older poll RPC callers compatible while auditing their staff decisions.
+create function rated420_hq.audit_poll() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+  if auth.uid() is not null then
+    insert into rated420_hq.audit(actor,action,subject) values
+      (auth.uid(),case when tg_op='INSERT' then 'poll_publish' else 'poll_close' end,new.id::text);
+  end if;
+  return new;
+end;
+$$;
+revoke all on function rated420_hq.audit_poll() from public, anon, authenticated;
+create trigger build02_audit_poll after insert or update of closed on rated420_build.polls
+for each row execute function rated420_hq.audit_poll();
+
 create table rated420_hq.library (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in ('episode','merch')),
@@ -99,33 +114,33 @@ revoke insert(name,created_by) on public.strains from authenticated;
 revoke insert(name,location) on public.dispensaries from authenticated;
 
 create view rated420_hq.catalog as
-select 'strain'::text kind,s.id::text id,s.name,''::text location,''::text description,s.created_at,
+select 'strain'::text kind,s.id::text id,s.name,''::text location,coalesce((select x.description from rated420_hq.submissions x where x.kind='strain' and x.listing=s.id::text and x.created_new),'') description,s.created_at,
   c.avg_total average,coalesce(c.review_count,0) count
 from public.strains s left join public.strain_community_stats c on c.strain_id=s.id and c.product_type is null
 union all
-select 'dispensary',d.id::text,d.name,d.location,'',d.created_at,c.avg_total,coalesce(c.review_count,0)
+select 'dispensary',d.id::text,d.name,d.location,coalesce((select x.description from rated420_hq.submissions x where x.kind='dispensary' and x.listing=d.id::text and x.created_new),''),d.created_at,c.avg_total,coalesce(c.review_count,0)
 from public.dispensaries d left join public.dispensary_community_stats c on c.dispensary_id=d.id
 union all
 select i.kind,i.id,i.name,'',i.description,(select min(created_at) from rated420_hq.submissions s where s.kind=i.kind and s.listing=i.id and s.created_new),avg(r.total),count(r.actor)
 from rated420_build.items i left join rated420_build.reviews r on r.item=i.id group by i.id;
 
 create view rated420_hq.activity as
-select r.user_id actor,'review'::text category,r.created_at at from public.strain_reviews r
+select r.user_id actor,'review'::text category,r.created_at at,'strain:'||r.strain_id||':'||r.product_type unit from public.strain_reviews r
 where not exists(select 1 from rated420_hq.archive a where a.kind='strain' and a.listing=r.strain_id::text)
 union all
-select r.user_id,'review',r.created_at from public.dispensary_reviews r
+select r.user_id,'review',r.created_at,'dispensary:'||r.dispensary_id from public.dispensary_reviews r
 where not exists(select 1 from rated420_hq.archive a where a.kind='dispensary' and a.listing=r.dispensary_id::text)
 union all
-select r.actor,'review',r.activity_at from rated420_build.reviews r
+select r.actor,'review',r.activity_at,'item:'||r.item from rated420_build.reviews r
 where not exists(select 1 from rated420_hq.archive a join rated420_build.items i on i.id=a.listing and i.kind=a.kind where i.id=r.item)
 union all
-select actor,'catalog',decided_at from rated420_hq.submissions s where created_new and status='Approved'
+select actor,'catalog',decided_at,s.kind||':'||s.listing from rated420_hq.submissions s where created_new and status='Approved'
 and not exists(select 1 from rated420_hq.archive a where a.kind=s.kind and a.listing=s.listing)
 union all
-select actor,'vote',activity_at from rated420_build.votes;
+select actor,'vote',activity_at,poll::text from rated420_build.votes;
 
 create view rated420_hq.recognition as
-select actor, count(*) filter(where category='review') reviews,
+select actor, count(distinct unit) filter(where category='review') reviews,
   count(*) filter(where category='catalog') contributions,
   count(*) filter(where category='vote') polls
 from rated420_hq.activity a
@@ -172,6 +187,7 @@ begin
     where p.show_review_identity and lower(p.username)=lower(payload->>'username');
   elsif viewer is null then raise exception 'Sign in to continue' using errcode='42501';
   elsif operation='submit' then
+    if item_kind='strain' and length(item_name)>100 then raise exception 'Strain name is limited to 100 characters'; end if;
     if payload->>'photo' is not null and (
        split_part(payload->>'photo','/',1)<>viewer::text or
        not exists(select 1 from storage.objects where bucket_id='catalog-submissions' and name=payload->>'photo'))
@@ -203,6 +219,8 @@ begin
     if decision is null or decision not in ('Approved','Rejected','Needs Revision') then raise exception 'Choose a moderation decision'; end if;
     item_name:=coalesce(item_name,entry.name);
     item_location:=coalesce(trim(payload->>'location'),entry.location);
+    if item_name is null or length(item_name) not between 2 and 120 or
+       (entry.kind='strain' and length(item_name)>100) then raise exception 'Invalid listing name'; end if;
     if decision='Approved' then
       perform pg_advisory_xact_lock(hashtextextended(entry.kind||':'||rated420_hq.key(item_name)||':'||rated420_hq.key(item_location),0));
       if nullif(payload->>'listing','') is not null then
@@ -257,7 +275,7 @@ begin
       returning to_jsonb(id) into output;
     insert into rated420_hq.audit(actor,action,subject) values(viewer,'library_save',output#>>'{}');
   elsif operation='staff_role' and is_admin then
-    if item_id::uuid=viewer then raise exception 'Administrators cannot change their own role'; end if;
+    if exists(select 1 from rated420_hq.administrators where actor=item_id::uuid) then raise exception 'Administrator access is operator-managed'; end if;
     if decision='staff' then insert into rated420_build.staff values(item_id::uuid) on conflict do nothing;
     elsif decision='member' then delete from rated420_build.staff where actor=item_id::uuid;
     else raise exception 'Only member and staff are assignable here'; end if;

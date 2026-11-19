@@ -155,7 +155,7 @@
           <input id="rated420-strain-search" type="search" autocomplete="off" maxlength="100" placeholder="Try Lemon Creamsicle, Blue Dream…">
         </span>
       </label>
-      <button class="directory-use-button" id="rated420-strain-use-search" type="button" disabled>Use this name <span aria-hidden="true">↘</span></button>
+      <button class="directory-use-button" id="rated420-strain-use-search" type="button" disabled>Select a matching strain <span aria-hidden="true">↘</span></button>
     </div>
     <div class="directory-browse">
       <div class="strain-browse-label"><span>EXPLORE STRAINS</span><span id="rated420-strain-count"></span></div>
@@ -263,7 +263,7 @@
       <span class="directory-search-control"><input id="dispensarySearch" type="search" placeholder="Search name or location" autocomplete="off"></span>
     </label>
     <p id="dispensaryCatalogueMessage" role="status" aria-live="polite"></p>
-    <div id="dispensaryOptions" class="strain-options" aria-label="Dispensary catalogue"></div>
+    <a href="#contribute" class="subtle-link">Suggest a dispensary ↗</a><div id="dispensaryOptions" class="strain-options" aria-label="Dispensary catalogue"></div>
     <section id="dispensaryCommunitySummary" class="strain-community-summary" aria-live="polite" hidden></section>
   </section>
   <div class="review-layout">
@@ -304,7 +304,7 @@
             <input type="file" id="avatarFile" accept="image/jpeg,image/png,image/webp">
           </fieldset><label for="profileUsername">Username</label><input id="profileUsername" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="your_username"><p class="field-tip">Letters, numbers, underscores. Leave blank to set later.</p><label for="profileDisplayName">Display name (optional)</label><input id="profileDisplayName" type="text" minlength="2" maxlength="60" placeholder="What should we call you?"><label class="review-identity-option"><input id="profileReviewIdentity" type="checkbox"> Show my username and preset avatar on community reviews</label><p class="field-tip">Uploaded profile photos stay private.</p><button class="btn btn-primary form-submit" type="submit">Save profile</button></form></div>
         </div>
-        <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR LOCAL COLLECTION · NOW IN THE CLOUD</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
+        <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR REVIEWS</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
 <section class="member-reviews"><h2>My favorites</h2><div id="buildFavorites"></div></section>
 <section class="member-reviews" id="myDispensaryReviews"><h2>My dispensary reviews.</h2><div id="myDispensaryReviewList" aria-live="polite"></div><button class="btn btn-primary" type="button" data-open-dispensary>Rate a dispensary ↗</button></section>
 <div class="build-actions"><a class="btn btn-outline" href="#contribute">My submissions ↗</a><a id="publicProfileLink" class="btn btn-outline" href="#profile" hidden>Public profile ↗</a></div>

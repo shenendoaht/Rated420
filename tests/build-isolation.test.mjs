@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const source=fileURLToPath(new URL('..',import.meta.url));
 const root=mkdtempSync(path.join(tmpdir(),'rated420-build-test-'));
-for(const name of ['scripts','preview','index.html','app.js','styles.css','contact.js','build01.js','build01.css','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
+for(const name of ['scripts','preview','index.html','app.js','styles.css','build01.js','build01.css','build02.js','build02.css','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
 // Synthetic canaries, not credentials or real records.
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');
@@ -32,18 +32,19 @@ for(const [name,variables,demo] of cases)test(name,()=>{
  if(demo){
   assert(html.includes("connect-src 'none'; form-action 'none'; script-src 'self'"));
   assert(!html.includes('supabase-js@'));
-  for(const file of ['index.html','app.js','contact.js','community-demo.js']){
+  assert(!existsSync(path.join(output,'contact.js')));
+  for(const file of ['index.html','app.js','community-demo.js']){
    const content=readFileSync(path.join(output,file),'utf8');
    assert.doesNotMatch(content,/ymluyoqkmzxomjokjmkj|https?:\/\/[^\s"'<>]*\.supabase\.co\b|sb_publishable_/i);
   }
   assert(!/action="https:\/\/[^\"]*supabase/.test(html));
   assert(readFileSync(path.join(output,'community-demo.js'),'utf8').includes('SYNTHETIC DATA PREVIEW'));
  }else{
-  for(const file of ['index.html','app.js','contact.js']){
+  for(const file of ['index.html','app.js']){
    assert.equal(readFileSync(path.join(output,file),'utf8'),readFileSync(path.join(root,file),'utf8'));
   }
   assert(html.includes('supabase-js@2.117.1'));
-  for(const file of ['app.js','styles.css','contact.js','index.html'])assert(!readFileSync(path.join(output,file),'utf8').includes('Demo Citrus'));
+  for(const file of ['app.js','styles.css','index.html'])assert(!readFileSync(path.join(output,file),'utf8').includes('Demo Citrus'));
  }
 });
 test('explicit Build 01 staging build removes production addresses and rejects the production target',()=>{
@@ -52,9 +53,9 @@ test('explicit Build 01 staging build removes production addresses and rejects t
   RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test_fixture'};
  const script=path.join(root,'scripts/build.mjs');
  execFileSync(process.execPath,[script],{env,stdio:'pipe'});
- for(const file of ['app.js','contact.js','index.html']){
+ for(const file of ['app.js','index.html']){
   const content=readFileSync(path.join(root,'dist',file),'utf8');
-  assert(content.includes(env.RATED420_STAGING_SUPABASE_URL));
+  if(file==='app.js')assert(content.includes(env.RATED420_STAGING_SUPABASE_URL));
   assert.doesNotMatch(content,/ymluyoqkmzxomjokjmkj/);
  }
  assert(!existsSync(path.join(root,'dist','community-demo.js')));

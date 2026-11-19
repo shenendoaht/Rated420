@@ -592,9 +592,9 @@ function appendCommunityScore(node, stats) {
     }
     if (!filtered.length) list.append(makeNode('p','strain-empty','No matching strains. Suggest a new listing for staff review.'));
     const exact = knownStrains.some(s => nameKey(s.name) === query);
-    const validNew = cleanStrainName($('rated420-strain-search').value).length >= 2;
+    const validNew = exact;
     $('rated420-strain-use-search').disabled = !validNew;
-    $('rated420-strain-use-search').firstChild.textContent = exact ? 'Select this name ' : 'Use this name ';
+    $('rated420-strain-use-search').firstChild.textContent = exact ? 'Select this name ' : 'Select a matching strain ';
   }
 
   function selectStrain(strain) {

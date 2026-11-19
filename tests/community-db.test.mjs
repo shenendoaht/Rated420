@@ -153,6 +153,63 @@ function registerDatabaseTests() {
     asUser(u1,'update public.member_profiles set show_review_identity=false');
     assert.deepEqual(feed(),[[100,null,null],[200,null,null],[405,null,null]]);
   });
+  test('Build 02 upgrade preserves history and enforces moderation, staff access and recognition',()=>{
+    const staff='aaaa0000-0000-4000-8000-000000000003', admin='aaaa0000-0000-4000-8000-000000000002';
+    const snapshot=()=>row(`select
+      (select count(*) from public.strains) strains,
+      (select jsonb_agg(to_jsonb(s) order by s.dispensary_id) from public.dispensary_community_stats s) dispensary_stats,
+      (select jsonb_agg(to_jsonb(r) order by r.id) from public.dispensary_reviews r) dispensary_reviews,
+      (select sum(total) from rated420_build.reviews) points,
+      (select count(*) from rated420_build.favorites) favorites,
+      (select count(*) from rated420_build.votes) votes`);
+    const before=snapshot();
+    sql(`create schema storage; create table storage.buckets(id text primary key,name text,public bool,file_size_limit bigint,allowed_mime_types text[]);
+      create table storage.objects(bucket_id text,name text);alter table storage.objects enable row level security;
+      create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1,'/') $$;
+      insert into auth.users values('${staff}'),('${admin}');`);
+    const migration=readFileSync(path.join(projectRoot,'supabase/migrations/20261119190000_build02.sql'),'utf8');
+    sql(migration);
+    assert.deepEqual(snapshot(),before);
+    const seed=readFileSync(path.join(projectRoot,'preview/build02-content.sql'),'utf8');
+    sql(seed);sql(seed);
+    assert.equal(sql('select count(*) from rated420_hq.library'),'6');
+    sql(`insert into rated420_build.staff values('${staff}'),('${admin}');
+      insert into rated420_hq.administrators values('${admin}');`);
+    const rpc=(who,op,payload={})=>JSON.parse((who?asUser(who,`select coalesce(public.rated420_build02('${op}',$json$${JSON.stringify(payload)}$json$),'null');`):
+      sql(`set role anon;select public.rated420_build02('${op}',$json$${JSON.stringify(payload)}$json$);`)).split('\n').at(-1));
+    assert.throws(()=>rpc(null,'queue'),/Sign in/);
+    assert.throws(()=>rpc(u2,'analytics'),/HQ access/);
+    assert.throws(()=>asUser(u2,'select * from rated420_hq.submissions'),/permission denied/);
+    assert.throws(()=>asUser(u2,"insert into public.strains(name) values('Unapproved')"),/permission denied/);
+    assert.throws(()=>rpc(staff,'staff_role',{id:u2,status:'staff'}),/unavailable/);
+    const draft={kind:'strain',name:'Fixture Discovery',description:'Synthetic listing'};
+    const id=rpc(u2,'submit',draft);
+    assert.equal(rpc(u1,'mine').length,0);
+    assert.equal(rpc(u2,'mine')[0].status,'Pending');
+    assert(!rpc(null,'catalog').some(r=>r.name===draft.name));
+    assert.throws(()=>rpc(u1,'submit',{...draft,name:' fixture  discovery '}),/duplicate/);
+    assert.throws(()=>rpc(u2,'moderate',{id,status:'Approved'}),/HQ access/);
+    rpc(staff,'moderate',{id,status:'Needs Revision',note:'Clarify the description'});
+    rpc(u2,'submit',{...draft,id,description:'Revised fixture'});
+    const listing=rpc(staff,'moderate',{id,status:'Approved'});
+    assert.equal(rpc(staff,'moderate',{id,status:'Approved'}),listing);
+    assert.equal(rpc(null,'catalog').filter(r=>r.name===draft.name).length,1);
+    const reject=rpc(u2,'submit',{kind:'brand',name:'Rejected fixture'});
+    rpc(staff,'moderate',{id:reject,status:'Rejected'});
+    assert.equal(rpc(staff,'analytics').rankings.find(r=>r.username==='fixture_private').contributions,1);
+    rpc(staff,'catalog_edit',{id:listing,kind:'strain',name:draft.name,archived:true});
+    assert(!rpc(null,'catalog').some(r=>r.id===listing&&r.kind==='strain'));
+    rpc(admin,'staff_role',{id:u2,status:'staff'});
+    assert.equal(rpc(u2,'role'),'staff');
+    rpc(admin,'staff_role',{id:u2,status:'member'});
+    assert.equal(rpc(u2,'role'),'member');
+    assert.equal(sql('select count(*) from rated420_hq.audit'),'6');
+    sql(`insert into rated420_hq.test_accounts values('${u2}');`);
+    assert(!rpc(staff,'analytics').rankings.some(r=>r.username==='fixture_private'));
+    const poll='33333333-3333-4333-8333-333333333333';
+    rpc(staff,'library_save',{kind:'episode',title:'Fixture recap',published:true,poll});
+    assert.equal(rpc(null,'library',{kind:'episode'}).find(r=>r.title==='Fixture recap').recap.options[0].votes,1);
+  });
   after(()=>{execFileSync('docker',['exec',container,'dropdb','-U','postgres',db]);execFileSync('docker',['exec',container,'psql','-U','postgres','-c','drop role rated420_community_reader;']);});
 }
 registerDatabaseTests();

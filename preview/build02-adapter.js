@@ -26,7 +26,7 @@ function runBuild02Fixture(operation,payload,state,actor,users,profile,aggregate
   const same=(row,kind,name,location)=>row.kind===kind&&key(row.name)===key(name)&&key(row.location)===key(location);
   function key(v){return String(v??'').trim().toLowerCase().replace(/\s+/g,' ');}
   function validate(k,n,l,d){
-    if(!['strain','dispensary','brand','accessory'].includes(k)||n.length<2||n.length>120||d.length>1500||
+    if(!['strain','dispensary','brand','accessory'].includes(k)||n.length<2||n.length>(k==='strain'?100:120)||d.length>1500||
       (k==='dispensary'?(l.length<2||l.length>120):Boolean(l)))throw Error('Enter a valid listing name, location and supporting details.');
   }
   function source(k){return k==='strain'?state.strains:k==='dispensary'?state.dispensaries:b.items;}
@@ -35,15 +35,15 @@ function runBuild02Fixture(operation,payload,state,actor,users,profile,aggregate
     return {...row,recap:p?{question:p.question,options:p.options}:null};
   }
   const acts=[
-    ...state.strain_reviews.filter(v=>!hidden({kind:'strain',id:v.strain_id})).map(v=>[v.user_id,'reviews',v.created_at]),
-    ...state.dispensary_reviews.filter(v=>!hidden({kind:'dispensary',id:v.dispensary_id})).map(v=>[v.user_id,'reviews',v.created_at]),
-    ...b.reviews.filter(v=>!rows.some(r=>r.id===v.id&&hidden(r))).map(v=>[v.actor,'reviews',v.activity_at]),
+    ...state.strain_reviews.filter(v=>!hidden({kind:'strain',id:v.strain_id})).map(v=>[v.user_id,'reviews',v.created_at,'strain:'+v.strain_id+':'+v.product_type]),
+    ...state.dispensary_reviews.filter(v=>!hidden({kind:'dispensary',id:v.dispensary_id})).map(v=>[v.user_id,'reviews',v.created_at,'dispensary:'+v.dispensary_id]),
+    ...b.reviews.filter(v=>!rows.some(r=>r.id===v.id&&hidden(r))).map(v=>[v.actor,'reviews',v.activity_at,'item:'+v.id]),
     ...h.submissions.filter(v=>v.created_new&&!hidden({kind:v.kind,id:v.listing})).map(v=>[v.actor,'contributions',v.decided_at]),
     ...b.polls.flatMap(p=>Object.keys(p.votes).map(v=>[v,'polls',p.voteDates?.[v]]))
   ];
   const rankings=users.map(u=>{
     const count=k=>acts.filter(a=>a[0]===u&&a[1]===k).length;
-    const reviews=count('reviews'),contributions=count('contributions'),polls=count('polls');
+    const reviews=new Set(acts.filter(a=>a[0]===u&&a[1]==='reviews').map(a=>a[3])).size,contributions=count('contributions'),polls=count('polls');
     return {username:profile(state,u).username,reviews,contributions,polls,score:reviews+3*contributions+polls};
   });
   if(operation==='role')return role;
