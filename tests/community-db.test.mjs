@@ -154,7 +154,7 @@ function registerDatabaseTests() {
     assert.deepEqual(feed(),[[100,null,null],[200,null,null],[405,null,null]]);
   });
   test('Build 02 upgrade preserves history and enforces moderation, staff access and recognition',()=>{
-    const staff='aaaa0000-0000-4000-8000-000000000003', admin='aaaa0000-0000-4000-8000-000000000002';
+    const staff='aaaa0000-0000-4000-8000-000000000003', admin='aaaa0000-0000-4000-8000-000000000002', regular='aaaa0000-0000-4000-8000-000000000004';
     const snapshot=()=>row(`select
       (select count(*) from public.strains) strains,
       (select jsonb_agg(to_jsonb(s) order by s.dispensary_id) from public.dispensary_community_stats s) dispensary_stats,
@@ -166,7 +166,7 @@ function registerDatabaseTests() {
     sql(`create schema storage; create table storage.buckets(id text primary key,name text,public bool,file_size_limit bigint,allowed_mime_types text[]);
       create table storage.objects(bucket_id text,name text);alter table storage.objects enable row level security;
       create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1,'/') $$;
-      insert into auth.users values('${staff}'),('${admin}');`);
+      insert into auth.users values('${staff}'),('${admin}'),('${regular}');`);
     const migration=readFileSync(path.join(projectRoot,'supabase/migrations/20261119190000_build02.sql'),'utf8');
     sql(migration);
     assert.deepEqual(snapshot(),before);
@@ -181,8 +181,19 @@ function registerDatabaseTests() {
     assert.throws(()=>rpc(u2,'analytics'),/HQ access/);
     assert.throws(()=>asUser(u2,'select * from rated420_hq.submissions'),/permission denied/);
     assert.throws(()=>asUser(u2,"insert into public.strains(name) values('Unapproved')"),/permission denied/);
+    sql('grant usage on schema storage to authenticated;grant select,insert on storage.objects to authenticated;');
+    const photo=u2+'/11111111-1111-4111-8111-111111111111.png';
+    asUser(u2,`insert into storage.objects values('catalog-submissions','${photo}')`);
+    assert.equal(asUser(regular,"select count(*) from storage.objects where bucket_id='catalog-submissions'").split('\n').at(-1),'0');
+    assert.equal(asUser(u2,"select count(*) from storage.objects where bucket_id='catalog-submissions'").split('\n').at(-1),'1');
+    assert.equal(asUser(staff,"select count(*) from storage.objects where bucket_id='catalog-submissions'").split('\n').at(-1),'1');
+    assert.equal(rpc(null,'profile',{username:'fixture_private'}),null);
+    assert.throws(()=>asUser(u2,"insert into storage.objects values('catalog-submissions','foreign-owner/photo.png')"),/row-level security/);
+    assert.throws(()=>strain(u2,'Out of range','Flower',85),/constraint/);
+    assert.throws(()=>asUser(u2,"insert into public.dispensary_reviews(name,location,aesthetic,accessibility,staff,menu,overall) values('Fixture Shop','Test City',85,50,50,50,50)"),/constraint/);
+    assert.throws(()=>asUser(u2,`select public.rated420_build01('review','{"id":"puffco","scores":[0,85,0,0,0]}')`),/constraint/);
     assert.throws(()=>rpc(staff,'staff_role',{id:u2,status:'staff'}),/unavailable/);
-    const draft={kind:'strain',name:'Fixture Discovery',description:'Synthetic listing'};
+    const draft={kind:'strain',name:'Fixture Discovery',description:'Synthetic listing',photo};
     const id=rpc(u2,'submit',draft);
     assert.equal(rpc(u1,'mine').length,0);
     assert.equal(rpc(u2,'mine')[0].status,'Pending');

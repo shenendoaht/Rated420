@@ -293,7 +293,7 @@ begin
       'participants',(select count(distinct actor) from rated420_hq.activity a where category='vote' and not exists(select 1 from rated420_hq.test_accounts t where t.actor=a.actor)),
       'unknownVoteDates',(select count(*) from rated420_hq.activity a where category='vote' and at is null and not exists(select 1 from rated420_hq.test_accounts t where t.actor=a.actor)),
       'unknownReviewDates',(select count(*) from rated420_hq.activity a where category='review' and at is null and not exists(select 1 from rated420_hq.test_accounts t where t.actor=a.actor)),
-      'trend',(select coalesce(jsonb_agg(to_jsonb(d) order by day),'[]') from (select (at at time zone 'UTC')::date day,count(*) votes from rated420_hq.activity a where category='vote' and at>=since and not exists(select 1 from rated420_hq.test_accounts t where t.actor=a.actor) group by 1) d),
+      'trend',(select coalesce(jsonb_agg(to_jsonb(d) order by day),'[]') from (select (at at time zone 'UTC')::date as day,count(*) votes from rated420_hq.activity a where category='vote' and at>=since and not exists(select 1 from rated420_hq.test_accounts t where t.actor=a.actor) group by 1) d),
       'rankings',(select coalesce(jsonb_agg(to_jsonb(z) order by score desc, username),'[]') from (
         select p.username,r.reviews,r.contributions,r.polls,r.reviews+3*r.contributions+r.polls score
         from rated420_hq.recognition r join public.member_profiles p on p.id=r.actor where p.username is not null

@@ -39,7 +39,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     } else if (type!=='textarea') input.type=type;
     if (type==='text'||type==='textarea'||type==='url') input.maxLength=max;
     if (type==='file') input.accept='image/png,image/jpeg,image/webp';
-    if (type!=='file') input.value=value ?? '';
+    if (type!=='file') input.value=options && !options.some(([key])=>key===value) ? options[0][0] : value ?? '';
     input.required=required;
     box.append(input);
     form.append(box);
