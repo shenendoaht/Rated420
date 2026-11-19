@@ -32,7 +32,8 @@ if (!production) {
   files.set('contact.js', files.get('contact.js').replace(productionOrigin, 'https://rated420-demo.invalid'));
   const seed = await readFile(path.join(root, 'preview/seed.json'), 'utf8');
   const client = await readFile(path.join(root, 'preview/client.js'), 'utf8');
-  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + client);
+  const adapter = await readFile(path.join(root, 'preview/build01-adapter.js'), 'utf8');
+  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + adapter + '\n' + client);
 
   for (const [file, content] of files) {
     if (/ymluyoqkmzxomjokjmkj|(?:https?:)?\/\/[^\s"'<>]*\.supabase\.(?:co|in|net)\b|sb_(?:publishable|secret)_/i.test(content)) {

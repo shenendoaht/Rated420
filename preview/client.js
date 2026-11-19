@@ -148,7 +148,16 @@
     }
   }
   const emit=event=>callbacks.forEach(cb=>cb(event));
-  window.supabase={createClient:()=>({from:table=>new Query(table),auth:{
+  window.supabase={createClient:()=>({from:table=>new Query(table),
+    rpc:async(name,{operation,payload})=>{
+      if(name!=='rated420_build01')return error('Unknown fixture operation.');
+      try {
+        const state=read();
+        const data=runBuild01Fixture(operation,payload,state,actor,users,demoProfile);
+        if(['favorite','review','vote','publish','close'].includes(operation))save(state);
+        return {data,error:null};
+      } catch(failure) { return error(failure.message); }
+    },auth:{
     getUser:async()=>({data:{user:user()},error:null}),
     onAuthStateChange:cb=>{callbacks.push(cb);return {data:{subscription:{unsubscribe(){}}}};},
     signOut:async()=>{actor='';localStorage.removeItem(actorKey);emit('SIGNED_OUT');return {error:null};},
