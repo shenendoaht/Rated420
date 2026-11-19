@@ -198,7 +198,7 @@ function registerDatabaseTests() {
     assert.equal(rpc(u1,'mine').length,0);
     assert.equal(rpc(u2,'mine')[0].status,'Pending');
     assert(!rpc(null,'catalog').some(r=>r.name===draft.name));
-    assert.throws(()=>rpc(u1,'submit',{...draft,name:' fixture  discovery '}),/duplicate/);
+    assert.throws(()=>rpc(u1,'submit',{...draft,photo:null,name:' fixture  discovery '}),/duplicate/);
     assert.throws(()=>rpc(u2,'moderate',{id,status:'Approved'}),/HQ access/);
     rpc(staff,'moderate',{id,status:'Needs Revision',note:'Clarify the description'});
     rpc(u2,'submit',{...draft,id,description:'Revised fixture'});
