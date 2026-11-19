@@ -4,14 +4,14 @@
 
 | Resource | Evidence |
 | --- | --- |
-| GitHub | `shenendoaht/Rated420`, default `main` at `483b6d16d45f12d2c8aae1f056348e7f2aa80f24`; `development` at `1fc350b0ef94f0bf3fab61903fef1c89fe7ba4e6` |
+| GitHub | `shenendoaht/Rated420`, repository ID `1459410238`, default `main` at `483b6d16d45f12d2c8aae1f056348e7f2aa80f24`; `development` at `1fc350b0ef94f0bf3fab61903fef1c89fe7ba4e6` |
 | Branch | `rebuild/build-01` in a separate worktree, based on the verified development SHA. Use `git rev-parse HEAD` to identify the checked-out candidate. |
 | Vercel production | `shenendoahts-projects` (`team_8KJM9zcWrJGvRkEVCib0QCEN`), project `prj_C8zzhVqxWD63IhEFulADeDMAYAto`, deployment `dpl_HENB6pUySfADX7NT8XuZbzQFZDiW` READY at the main SHA above |
 | Domains | `rated420ny.com` and `rated420-staging.vercel.app` are assigned to the production project. `www.rated420ny.com` redirects to the apex. |
 | Supabase | Production ref `ymluyoqkmzxomjokjmkj`. Ledger has five applied migrations ending `20261117064837`. Buckets `strain-review-photos`, `dispensary-review-photos`, `member-avatars`. |
 | Recovery | Checked-in owner-run tooling and synthetic restore tests. No production recovery archive or verified restore was available to this worktree. |
 
-The live homepage HTML SHA-256 matched `main` (`4eb80bebdbdb43892502a117d5e77381f7a102600e9c409857be739efac76695`). The public experience includes age confirmation, a rotating brand carousel, strain and dispensary reviews, contact, and account entry. Development adds unique-reviewer averages, the opted-in strain review disclosure, format guidance and upload recovery. Its two proposed migrations are absent from the live ledger. Build 01 continues from those development features.
+The served app.js, styles.css, and contact.js matched main byte for byte. The live homepage HTML SHA-256 matched `main` (`4eb80bebdbdb43892502a117d5e77381f7a102600e9c409857be739efac76695`). The public experience includes age confirmation, a rotating brand carousel, strain and dispensary reviews, contact, and account entry. Development adds unique-reviewer averages, the opted-in strain review disclosure, format guidance and upload recovery. Its two proposed migrations are absent from the live ledger. Build 01 continues from those development features.
 
 Production read-only inventory showed 19 strain catalog records, two individual strain reviews (635 total points), no dispensary reviews, one Auth account, one profile, and one object in the strain review bucket. The two strain reviews cover two listings and two normalized brand names, with two eligible contributions and one photo reference. The live schema has no dedicated brands, accessories, dispensary listing table, or favorites. Production stores review totals on review records. The candidate computes community averages and counts from those rows. Production uses separate terms and data access pathways for account records, profile fields, and public reviews.
 
@@ -40,7 +40,7 @@ Original tracked media remains intact. Socials and assets are versioned as befor
 
 ### Catalog providers
 
-First-party editorial catalogue and member reviews are the source of truth. Weedmaps has developer onboarding and keyed menu integrations. Confirm store, product, brand and strain coverage, terms, caching and cost before any use. Leafly provides strain and dispensary discovery, but no authorized API or redistribution agreement was verified for Rated420. New York OCM's [dispensary verification list](https://cannabis.ny.gov/verification) is an option for manually checking licensed dispensaries. Evaluate permitted reuse and coverage of locations before importing. It does not cover needed brand and strain records. No third-party records are seeded.
+First-party editorial catalogue and member reviews are the source of truth. Weedmaps documents keyed partner access to retailer menus, a Brand Catalog and a Taxonomy API. Its Menu API targets a partner's menus, so directory-wide dispensary coverage, bulk strain exports, commercial terms, caching permission and pricing remain unverified. Leafly provides public strain and dispensary discovery. No authorized API with the required brand, strain and dispensary export coverage, pricing or redistribution terms was verified for Rated420. New York OCM's [dispensary verification list](https://cannabis.ny.gov/verification) is an option for manually checking licensed dispensaries. Evaluate permitted reuse and coverage of locations before importing. It does not cover needed brand and strain records. No third-party records are seeded.
 
 - [Weedmaps developer onboarding](https://developer.weedmaps.com/docs/onboarding-process)
 - [Leafly terms](https://www.leafly.com/info/terms-of-use)

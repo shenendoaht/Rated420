@@ -190,11 +190,16 @@ async function runCommunityBrowserTests() {
       assert.equal(await page.getByRole('button',{name:'Vote',exact:true}).count(),0);
       await page.getByRole('button',{name:'Close voting'}).click();
       await page.getByText('Voting closed',{exact:true}).waitFor();
+      await page.getByLabel('Question',{exact:true}).fill('Which format should the hosts cover?');
+      await page.getByLabel('First option',{exact:true}).fill('Flower');
+      await page.getByLabel('Second option',{exact:true}).fill('Edibles');
+      await page.getByRole('button',{name:'Publish poll',exact:true}).click();
+      await page.getByRole('heading',{name:'Which format should the hosts cover?',exact:true}).waitFor();
       assert.equal(await page.getByRole('link',{name:'Watch on YouTube ↗'}).getAttribute('href'),'https://www.youtube.com/@rated420ny');
       assert.equal(await page.getByRole('link',{name:'Follow on Instagram ↗'}).getAttribute('href'),'https://www.instagram.com/rated420.ny');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       assert.deepEqual(errors,[]);assert.deepEqual(backend,[]);
-      console.log(JSON.stringify({width,result:'PASS',checks:['zero/one/multiple users','equal weighting','rounding','categories','formats','format-specific slider guidance and labels','individual counts and scores','disclosure and paging','private identity fallback','repeat save','edits/deletions','photo and refresh persistence','second account','zero score','no production connections']}));
+      console.log(JSON.stringify({width,result:'PASS',checks:['zero/one/multiple users','equal weighting','rounding','categories','formats','format-specific slider guidance and labels','individual counts and scores','disclosure and paging','private identity fallback','repeat save','edits/deletions','photo and refresh persistence','second account','zero score','exact average after two-account edit','brand and accessory scorecards','favorites','Vault vote and staff controls','social links','no production connections']}));
       await context.close();
     }
   } finally {await browser.close();}

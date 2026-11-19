@@ -65,8 +65,11 @@ function registerDatabaseTests() {
     assert.throws(()=>rpc(u2,'close',{id:poll}),/Action unavailable/);
     sql(`insert into rated420_build.staff values('${u1}');`);
     rpc(u1,'close',{id:poll});
+    assert.throws(()=>rpc(u2,'publish',{question:'Unauthorized?',options:['A','B']}),/Action unavailable/);
+    rpc(u1,'publish',{question:'A new question?',options:['A','B']});
+    assert(rpc(u2,'polls').polls.some(poll=>poll.question==='A new question?'));
     assert.throws(()=>rpc(u1,'vote',{id:poll,option:2}),/Voting is closed/);
-    assert.equal(rpc(u2,'polls').polls[0].options[0].votes,1);
+    assert.equal(rpc(u2,'polls').polls.find(row=>row.id===poll).options[0].votes,1);
     asUser(u1,'delete from public.strain_reviews;');
   });
   test('zero reviews and legacy dispensary backfill preserve data',()=>{
