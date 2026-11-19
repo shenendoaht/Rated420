@@ -88,3 +88,17 @@ Apply migrations independently of app deployment. For app rollback, revert stagi
 The connected production projects are excluded. There is no verified existing isolated pair. The proposed target is a new private Vercel project `rated420-build01` in the verified team and a dedicated Supabase project `rated420-build01` with fresh Auth and buckets. Project IDs and URLs can be recorded only after creation or identification of an existing approved pair. Confirm costs, protections, contact provider keys and test inbox before configuration.
 
 Proposed actions are to push `rebuild/build-01` for review (branch config disables Git deployment), provision or attach the approved private pair, apply migrations and synthetic fixtures to the isolated database, and manually deploy the exact candidate SHA. Use two staging test accounts and a staging mail destination. Production promotion, DNS, production backup transfer and production data changes are outside this approval.
+
+## Local verification record
+
+| Checkpoint | Commit |
+| --- | --- |
+| Baseline | `1fc350b0ef94f0bf3fab61903fef1c89fe7ba4e6` |
+| Redesign and application workflows | `5f6d9bdcb4cb7d7152fb0e339affe89a28901456` |
+| Synthetic test adapter | `19a9059388a69211c553fee5ab5991aa805adf17` |
+| Isolated build and contact configuration, route compatibility and migration checks | `9e363334f17b52c4183ddf198bf2def9c24252a7` |
+| Staff publish regressions and contrast corrections | `2aba9efe95a5203b2dd97fad59fff1ba40a3b546` |
+
+Verified locally with 30 Node checks and eight Python synthetic recovery checks. Browser regressions passed at 1280px and 390px for catalogue and scorecards, authentication, and browser storage. Contact also passed at 320px with test transports. Two strain accounts scored 305 and 0. The item displayed 152.5 with two eligible reviews. After changing the first score to 350, it displayed 175 with the same count. The disclosures showed both individual totals, handles and avatars. PostgreSQL checks verified that members cannot overwrite one another’s data. They also covered access to the private Build 01 tables, scores above 84, duplicate ballots, and poll administration restrictions.
+
+The Storage HTTP fixture could not start because Docker ran out of disk while extracting its pinned image. Hosted Auth, Storage, contact delivery, the YouTube destination, and production-data recovery remain open. The candidate SHA is the full output of `git rev-parse rebuild/build-01`. Use that SHA for the clean build and any later approval or hosted testing.
