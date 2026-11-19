@@ -1,7 +1,4 @@
-/* Rated420 NY — Build 02 | real Supabase Auth + private member profiles
- * Browser-only, framework-free, no secret/server keys.
- * This is a clean implementation; it does not import any previous site logic.
- */
+/* Rated420 browser application. Authorization and score constraints live in Supabase. */
 (() => {
   'use strict';
 
@@ -34,6 +31,7 @@
     try { sessionStorage.setItem(AGE_SESSION_KEY, 'yes'); } catch (_) { /* session-only fallback */ }
     $('ageGate').hidden = true;
     $('siteShell').removeAttribute('inert');
+    if (location.hash === '#contact') openContact();
     if (!authStarted) initializeAuth();
     if (new URLSearchParams(location.search).has('error_description')) {
       showAuth('login');
@@ -72,7 +70,10 @@
 
   function page(name) {
     currentPage = name;
-    if (name !== 'build' && /^#(?:brands|accessories|vault)(?:\/|$)/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+    const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact' };
+    const route = location.hash.slice(1).split('/')[0];
+    const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
+    if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
     $('buildPage').hidden = name !== 'build';
     $('homePage').hidden = name !== 'home';
     $('authPage').hidden = name !== 'auth';
@@ -723,6 +724,9 @@ function appendCommunityScore(node, stats) {
     head.append(makeNode('strong','strain-avg-total', summary ? `${Math.round(Number(summary.avg_total))} / 420` : 'Not yet rated'));
     card.append(head);
     card.append(makeNode('p','', communityReviewLabel(summary)));
+    if (summary && !Number.isInteger(Number(summary.avg_total))) {
+      card.append(makeNode('p', 'precise-average', 'Average: ' + Number(summary.avg_total).toLocaleString(undefined, { maximumFractionDigits: 4 }) + ' / 420'));
+    }
     if (summary) {
       const bars = makeNode('div','strain-avg-categories');
       for (const [field,label] of STRAIN_CATEGORIES) {
@@ -733,7 +737,11 @@ function appendCommunityScore(node, stats) {
       card.append(bars);
     }
     card.append(communityReviewDisclosure(selectedStrain.id, formatFilter, Boolean(keepReviewsOpen)));
-    void build01.favoriteButton(card, 'strain', selectedStrain.id, selectedStrain.name);
+    const actions = makeNode('div', 'build-actions');
+    actions.append(makeNode('a', '', 'Link to strain'));
+    actions.firstChild.href = '#strains/' + selectedStrain.id;
+    card.append(actions);
+    void build01.favoriteButton(actions, 'strain', selectedStrain.id, selectedStrain.name);
     const feed = makeNode('div','recent-strain-reviews');
     card.append(feed);
     try {
@@ -1224,16 +1232,17 @@ function renderDispensaryCatalogue() {
     button.type = 'button';
     button.setAttribute('aria-pressed',String(Number(listing.id) === selectedDispensaryId));
     appendCommunityScore(button,dispensaryStats.find(s => Number(s.dispensary_id) === Number(listing.id)));
-    button.addEventListener('click', () => {
-      selectedDispensaryId = Number(listing.id);
-      dispensaryFields.namedItem('name').value = listing.name;
-      dispensaryFields.location.value = listing.location;
-      renderDispensaryCatalogue();
-      renderDispensarySummary();
-    });
+    button.addEventListener('click', () => selectDispensary(listing));
     box.append(button);
   }
   if (!listings.length) box.append(makeNode('p','strain-empty', search ? 'No matching dispensaries.' : 'No dispensaries listed yet. Add one with your first review.'));
+}
+function selectDispensary(listing) {
+  selectedDispensaryId = Number(listing.id);
+  dispensaryFields.namedItem('name').value = listing.name;
+  dispensaryFields.location.value = listing.location;
+  renderDispensaryCatalogue();
+  renderDispensarySummary();
 }
 function renderDispensarySummary() {
   const box = $('dispensaryCommunitySummary');
@@ -1253,10 +1262,12 @@ function renderDispensarySummary() {
     }
     box.append(categories);
   }
-  if (listing) {
-    build01.favoriteButton(box, 'dispensary', listing.id, listing.name);
-    build01.dispensaryReviews(box, listing.id);
-  }
+  const actions = makeNode('div', 'build-actions');
+  actions.append(makeNode('a', '', 'Link to dispensary'));
+  actions.firstChild.href = '#dispensaries/' + listing.id;
+  box.append(actions);
+  void build01.favoriteButton(actions, 'dispensary', listing.id, listing.name);
+  build01.dispensaryReviews(box, listing.id);
 }
 async function ensureDispensary(name,location) {
   const selected = dispensaryListings.find(d => Number(d.id) === selectedDispensaryId);
@@ -1472,20 +1483,51 @@ function refreshCommunityScores() {
 
   const build01 = window.createBuild01({
     db: () => db, user: () => user, login: () => showAuth('login'), page, toast,
-    openFavorite(kind, id, name) {
+    avatarImage,
+    async openFavorite(kind, id) {
       if (kind === 'strain') {
         openStrains('catalogue');
-        const button = Array.from($('rated420-strain-options').querySelectorAll('button')).find(node => node.textContent.includes(name));
-        if (button) button.click();
+        await loadStrainCatalogue();
+        const item = knownStrains.find(row => String(row.id) === String(id));
+        if (item && currentPage === 'strain') selectStrain(item);
       } else {
-        document.querySelector('[data-open-dispensary]').click();
-        $('dispensarySearch').value = name;
-        renderDispensaryCatalogue();
+        page('dispensary');
+        await loadDispensaryCatalogue();
+        const item = dispensaryListings.find(row => String(row.id) === String(id));
+        if (item && currentPage === 'dispensary') selectDispensary(item);
       }
     }
   });
-  window.addEventListener('rated420:session-ready', () => build01.route());
-  window.addEventListener('hashchange', () => build01.route());
+  async function routeHash() {
+    const hash = location.hash;
+    const [route, id] = hash.slice(1).split('/');
+    if (route === 'contact') {
+      openContact();
+    } else if (route === 'strains' && db) {
+      page('strain');
+      await loadStrainCatalogue();
+      if (id && hash === location.hash) {
+        const item = knownStrains.find(row => String(row.id) === id);
+        if (item) selectStrain(item);
+      }
+    } else if (route === 'dispensaries' && db) {
+      page('dispensary');
+      await loadDispensaryCatalogue();
+      if (id && hash === location.hash) {
+        const item = dispensaryListings.find(row => String(row.id) === id);
+        if (item) selectDispensary(item);
+      }
+    } else {
+      await build01.route();
+    }
+  }
+  function openContact() {
+    page('contact');
+    $('contactTitle').focus({ preventScroll: true });
+    window.dispatchEvent(new Event('rated420:contact-open'));
+  }
+  window.addEventListener('rated420:session-ready', () => void routeHash());
+  window.addEventListener('hashchange', () => { if (isAgeAccepted()) void routeHash(); });
   document.querySelectorAll('[data-build-page]').forEach(link => link.addEventListener('click', event => {
     event.preventDefault();
     if (location.hash === link.hash) build01.route();
@@ -1497,9 +1539,7 @@ function refreshCommunityScores() {
   $('navLogin').addEventListener('click', () => showAuth('login'));
   document.querySelectorAll('[data-open-contact]').forEach(link => link.addEventListener('click', event => {
     event.preventDefault();
-    page('contact');
-    $('contactTitle').focus({ preventScroll: true });
-    window.dispatchEvent(new Event('rated420:contact-open'));
+    openContact();
   }));
   [$('navJoin'), $('bottomJoin')].forEach(btn => btn.addEventListener('click', () => showAuth('signup')));
   $('heroJoin').addEventListener('click', () => user ? openStrains('review') : showAuth('signup'));

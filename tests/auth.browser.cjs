@@ -42,6 +42,7 @@ const session=()=>({access_token:token,refresh_token:'fixture-refresh-not-a-cred
      else if(u.pathname==='/rest/v1/member_profiles' && req.method()==='GET') body={id:fixtureUser.id,username:'fixture_member',display_name:'Fixture',created_at:fixtureUser.created_at,updated_at:fixtureUser.created_at,avatar_choice:null,avatar_path:null};
      else if(u.pathname==='/rest/v1/strains' && req.method()==='GET') body=[{id:1,name:'Blue Dream',created_at:fixtureUser.created_at}];
      else if(['/rest/v1/strain_community_stats','/rest/v1/strain_reviews','/rest/v1/dispensary_reviews'].includes(u.pathname) && req.method()==='GET') body=[];
+     else if(u.pathname==='/rest/v1/rpc/rated420_build01' && req.method()==='POST') body=[];
      else throw Error('Unexpected mocked backend request: '+req.method()+' '+u.pathname);
      return route.fulfill({status:200,contentType:'application/json',headers,body:JSON.stringify(body)});
     }

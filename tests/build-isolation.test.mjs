@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const source=fileURLToPath(new URL('..',import.meta.url));
 const root=mkdtempSync(path.join(tmpdir(),'rated420-build-test-'));
-for(const name of ['scripts','preview','index.html','app.js','styles.css','contact.js','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
+for(const name of ['scripts','preview','index.html','app.js','styles.css','contact.js','build01.js','build01.css','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
 // Synthetic canaries, not credentials or real records.
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');
@@ -45,6 +45,22 @@ for(const [name,variables,demo] of cases)test(name,()=>{
   assert(html.includes('supabase-js@2.117.1'));
   for(const file of ['app.js','styles.css','contact.js','index.html'])assert(!readFileSync(path.join(output,file),'utf8').includes('Demo Citrus'));
  }
+});
+test('explicit Build 01 staging build removes production addresses and rejects the production target',()=>{
+ const env={...process.env,VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'rebuild/build-01',RATED420_BUILD01_STAGING:'1',
+  RATED420_STAGING_SUPABASE_URL:'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
+  RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test_fixture'};
+ const script=path.join(root,'scripts/build.mjs');
+ execFileSync(process.execPath,[script],{env,stdio:'pipe'});
+ for(const file of ['app.js','contact.js','index.html']){
+  const content=readFileSync(path.join(root,'dist',file),'utf8');
+  assert(content.includes(env.RATED420_STAGING_SUPABASE_URL));
+  assert.doesNotMatch(content,/ymluyoqkmzxomjokjmkj/);
+ }
+ assert(!existsSync(path.join(root,'dist','community-demo.js')));
+ assert.throws(()=>execFileSync(process.execPath,[script],{env:{...env,
+  RATED420_STAGING_SUPABASE_URL:'https://ymluyoqkmzxomjokjmkj.supabase.co'},stdio:'pipe'}),/requires a separate Supabase project/);
+ assert(!existsSync(path.join(root,'dist')));
 });
 test('a hosted backend reference aborts the build and removes stale output',()=>{
  const app=path.join(root,'app.js');

@@ -7,6 +7,9 @@ const output = path.join(root, 'dist');
 const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
 const textFiles = ['index.html', 'app.js', 'styles.css', 'contact.js', 'build01.css', 'build01.js'];
+const staging = process.env.RATED420_BUILD01_STAGING === '1';
+const stagingOrigin = process.env.RATED420_STAGING_SUPABASE_URL;
+const stagingKey = process.env.RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY;
 const productionOrigin = 'https://ymluyoqkmzxomjokjmkj.supabase.co';
 
 await rm(output, { recursive: true, force: true });
@@ -14,7 +17,17 @@ const files = new Map(await Promise.all(textFiles.map(async file => [
   file, await readFile(path.join(root, file), 'utf8')
 ])));
 
-if (!production) {
+if (staging) {
+  if (production || !/^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(stagingOrigin || '') ||
+      stagingOrigin === productionOrigin || !/^sb_publishable_[a-zA-Z0-9_-]+$/.test(stagingKey || '') ||
+      files.get('app.js').includes(stagingKey)) {
+    throw new Error('Build 01 staging requires a separate Supabase project and publishable key.');
+  }
+  for (const [file, content] of files) {
+    files.set(file, content.replaceAll(productionOrigin, stagingOrigin)
+      .replace(/sb_publishable_[a-zA-Z0-9_-]+/g, stagingKey));
+  }
+} else if (!production) {
   const html = files.get('index.html')
     .replace(/<script async src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js[^>]+><\/script>/, '<script src="community-demo.js"></script>')
     .replace('<meta charset="utf-8">', `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'; script-src 'self'; object-src 'none'; base-uri 'none'">`)
@@ -47,6 +60,6 @@ for (const file of ['rated420-logo.png', 'images']) {
   await cp(path.join(root, file), path.join(output, file), { recursive: true });
 }
 await Promise.all([...files].map(([file, content]) => writeFile(path.join(output, file), content)));
-console.log(production
+console.log(staging ? 'Built for isolated Build 01 staging.' : production
   ? 'Built production static assets (no database commands).'
   : 'Built isolated synthetic-data preview (no production backend access).');

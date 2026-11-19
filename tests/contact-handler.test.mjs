@@ -6,7 +6,7 @@ const id = '11111111-1111-4111-8111-111111111111';
 const emailId = '22222222-2222-4222-8222-222222222222';
 const origin = 'https://rated420ny.com';
 const payload = () => ({request_id:id,full_name:'Fixture Member',email:'fixture@example.test',category:'general',company:'',subject:'Fixture inquiry',message:'This is a synthetic contact message.',company_fax:'',turnstile_token:'fixture-token'});
-const fixtureEnv = {SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fixture-server-credential',RESEND_API_KEY:'fixture-email-credential',TURNSTILE_SECRET_KEY:'fixture-challenge-credential',TURNSTILE_SITE_KEY:'fixture-public-key'};
+const fixtureEnv = {SUPABASE_URL:'https://ymluyoqkmzxomjokjmkj.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fixture-server-credential',RESEND_API_KEY:'fixture-email-credential',TURNSTILE_SECRET_KEY:'fixture-challenge-credential',TURNSTILE_SITE_KEY:'fixture-public-key'};
 
 function setup(options = {}) {
   const calls = []; const patches = [];
@@ -77,7 +77,7 @@ test('success verifies captcha, stores private copy, then sends notification and
 
 test('missing configuration, foreign origins, malformed or oversized bodies never reach providers or storage',async()=>{
   for(const [req,options,status] of [
-    [request(),{env:{}},503],[request(payload(),{origin:'https://untrusted.example'}),{},403],
+    [request(),{env:{SUPABASE_URL:fixtureEnv.SUPABASE_URL}},503],[request(payload(),{origin:'https://untrusted.example'}),{},403],
     [request({...payload(),company_fax:'bot'}),{},400],[request({...payload(),message:'x'.repeat(40000)}),{},413],
     [request(payload(),{headers:{'content-type':'text/plain'}}),{},415]
   ]){const fixture=setup(options);assert.equal((await fixture.handler(req)).status,status);assert.equal(fixture.calls.length,0);}
@@ -123,4 +123,18 @@ test('public configuration exposes only a public site key; preflight uses exact 
   assert.deepEqual(await config.json(),{ready:true,site_key:'fixture-public-key'});
   assert.equal((await handler(request(null,{method:'OPTIONS'}))).status,204);
   assert.equal((await handler(request(null,{method:'OPTIONS',origin:'https://untrusted.example'}))).status,403);
+});
+
+test('isolated contact uses only its configured sender, recipient, and origin',async()=>{
+  const staging='https://candidate.example.test';
+  const env={...fixtureEnv,SUPABASE_URL:'https://fixture.supabase.co',
+    CONTACT_STAGING_ORIGIN:staging,CONTACT_STAGING_INBOX:'sink@example.test',
+    CONTACT_STAGING_SENDER:'Rated420 test <sender@example.test>'};
+  const {handler,calls}=setup({env,challenge:{success:true,action:'contact',hostname:'candidate.example.test'}});
+  assert.equal((await handler(request())).status,403);
+  assert.equal((await handler(request(payload(),{origin:staging}))).status,201);
+  const email=JSON.parse(calls.find(call=>call.url==='https://api.resend.com/emails').init.body);
+  assert.deepEqual(email.to,['sink@example.test']);
+  assert.equal(email.from,env.CONTACT_STAGING_SENDER);
+  assert(!calls.some(call=>call.url.startsWith(fixtureEnv.SUPABASE_URL)));
 });

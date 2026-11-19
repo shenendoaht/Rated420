@@ -41,3 +41,17 @@ a.build-card:hover { border-color: var(--violet); }
   .build-vault { grid-template-columns: 1fr; }
   .hero-picture { border-radius: 36% 36% 3px 3px; }
 }
+.home-catalogue { padding-block: clamp(2rem, 5vw, 5rem); }
+.home-catalogue h2 { font: 700 clamp(2rem, 6vw, 4.75rem)/1 "Space Grotesk", sans-serif; letter-spacing: -.065em; margin: 0 0 .5em; }
+.home-catalogue .build-card { min-height: 8rem; display: grid; align-content: space-between; gap: 1rem; }
+.home-catalogue .build-card > strong { font-size: 1.35rem; line-height: 1; display: flex; justify-content: space-between; color: var(--violet); }
+.home-catalogue .build-card > span { color: #d1c3d4; }
+.home-catalogue .build-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.hero h1 { white-space: normal; }
+.hero-picture.home-carousel { border-color: #d3a8f477; }
+.precise-average { color: var(--violet); }
+@media (max-width: 760px) {
+  .home-catalogue .build-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { grid-template-columns: minmax(0, 1fr); }
+}

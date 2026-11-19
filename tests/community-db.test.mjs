@@ -33,6 +33,42 @@ function registerDatabaseTests() {
     sql('begin;\n'+migration+'\ncommit;');
     sql(readFileSync(path.join(projectRoot,'supabase/migrations/20261118120000_community_review_display.sql'),'utf8'));
   });
+  test('Build 01 imports brands safely and isolates scores, favorites, and poll administration',()=>{
+    const migration=readFileSync(path.join(projectRoot,'supabase/migrations/20261119170000_build01.sql'),'utf8');
+    const seed=readFileSync(path.join(projectRoot,'preview/build01-seed.sql'),'utf8');
+    const imports=readFileSync(path.join(projectRoot,'scripts/import-build01-brands.sql'),'utf8');
+    const poll='33333333-3333-4333-8333-333333333333';
+    const rpc=(user,operation,payload={})=>JSON.parse(asUser(user,
+      `select public.rated420_build01('${operation}','${JSON.stringify(payload)}');`).split('\n').at(-1));
+    strain(u1,'Fixture Imported Brand','Flower',60);
+    const beforeImport=row('select id, user_id, total, flavor, photo_path from public.strain_reviews');
+    sql(migration);
+    sql(seed); sql(seed); sql(imports); sql(imports);
+    assert.deepEqual(row('select id, user_id, total, flavor, photo_path from public.strain_reviews'),beforeImport);
+    assert.equal(sql("select count(*) from rated420_build.items where name='Fixture Imported Brand'"),'1');
+    assert.equal(sql("select count(*) from rated420_build.items where kind='accessory'"),'2');
+    const id='demo-brand';
+    rpc(u1,'review',{id,scores:[60,60,60,60,60],notes:'A'});
+    rpc(u2,'review',{id,scores:[80,80,80,80,80],notes:'B'});
+    rpc(u1,'review',{id,scores:[65,65,65,65,65],notes:'A updated'});
+    const item=rpc(u2,'item',{id,kind:'brand'});
+    assert.deepEqual([item.average,item.count,item.own.notes],[362.5,2,'B']);
+    assert.deepEqual(item.reviews.map(r=>r.total),[400,325]);
+    assert(item.reviews.every(r=>!('actor' in r) && !('email' in r)));
+    assert.throws(()=>rpc(u2,'review',{id,scores:[85,0,0,0,0]}),/constraint/);
+    assert.throws(()=>asUser(u2,'select * from rated420_build.reviews'),/permission denied/);
+    rpc(u1,'favorite',{id,kind:'brand',active:true});
+    assert.equal(rpc(u1,'favorites').length,1);
+    assert.equal(rpc(u2,'favorites').length,0);
+    rpc(u2,'vote',{id:poll,option:1});
+    assert.throws(()=>rpc(u2,'vote',{id:poll,option:2}),/already voted/);
+    assert.throws(()=>rpc(u2,'close',{id:poll}),/Action unavailable/);
+    sql(`insert into rated420_build.staff values('${u1}');`);
+    rpc(u1,'close',{id:poll});
+    assert.throws(()=>rpc(u1,'vote',{id:poll,option:2}),/Voting is closed/);
+    assert.equal(rpc(u2,'polls').polls[0].options[0].votes,1);
+    asUser(u1,'delete from public.strain_reviews;');
+  });
   test('zero reviews and legacy dispensary backfill preserve data',()=>{
     assert.equal(sql('select count(*) from public.strain_community_stats'),'0');
     assert.deepEqual(row('select name,location,notes,dispensary_id is not null as linked from public.dispensary_reviews'),{name:'Fixture Shop',location:'Test City',notes:'Preserve legacy notes',linked:true});

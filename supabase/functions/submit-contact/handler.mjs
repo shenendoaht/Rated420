@@ -77,7 +77,13 @@ export function notificationBody(row) {
 
 export function createHandler({env, fetch: http = globalThis.fetch}) {
   const timedFetch = (url,init = {}) => http(url,{...init,signal:AbortSignal.timeout(6000)});
-  const configured = () => ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','RESEND_API_KEY','TURNSTILE_SECRET_KEY'].every(k => !!env(k));
+  const stagingOrigin = env('CONTACT_STAGING_ORIGIN');
+  const stagingInbox = env('CONTACT_STAGING_INBOX');
+  const stagingSender = env('CONTACT_STAGING_SENDER');
+  const usesProductionDatabase = env('SUPABASE_URL')?.replace(/\/$/, '') === 'https://ymluyoqkmzxomjokjmkj.supabase.co';
+  const origins = usesProductionDatabase ? ORIGINS : new Set(stagingOrigin ? [stagingOrigin] : []);
+  const configured = () => (usesProductionDatabase || Boolean(stagingOrigin && stagingInbox && stagingSender))
+    && ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','RESEND_API_KEY','TURNSTILE_SECRET_KEY'].every(k => !!env(k));
   async function database(path, init = {}) {
     const response = await timedFetch(`${env('SUPABASE_URL')}/rest/v1/${path}`, {
       ...init, headers: { apikey:env('SUPABASE_SERVICE_ROLE_KEY'), Authorization:`Bearer ${env('SUPABASE_SERVICE_ROLE_KEY')}`,
@@ -93,7 +99,10 @@ export function createHandler({env, fetch: http = globalThis.fetch}) {
     try {
       const response = await timedFetch('https://api.resend.com/emails', {
         method:'POST',headers:{Authorization:`Bearer ${env('RESEND_API_KEY')}`,'Content-Type':'application/json','Idempotency-Key':`rated420-contact/${id}`},
-        body:JSON.stringify(notificationBody(row))
+        body:JSON.stringify({
+          ...notificationBody(row),
+          ...(usesProductionDatabase ? {} : { from:stagingSender, to:[stagingInbox] })
+        })
       });
       if (!response.ok) { await patch(id,{notification_status:'failed',notification_error:`provider_http_${response.status}`}); return; }
       const result = await response.json();
@@ -133,7 +142,7 @@ export function createHandler({env, fetch: http = globalThis.fetch}) {
   }
   return async req => {
     const origin = req.headers.get('origin');
-    const allowed = ORIGINS.has(origin);
+    const allowed = origins.has(origin);
     const headers = {'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin'};
     if (allowed) Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'POST, GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'});
     const json = (body,status = 200) => new Response(JSON.stringify(body),{status,headers});

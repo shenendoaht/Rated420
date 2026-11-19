@@ -1,5 +1,5 @@
 /* Shared presentation for the Build 01 catalogue and Vault routes. */
-window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite }) {
+window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, avatarImage }) {
   const root = document.getElementById('buildContent');
   const title = document.getElementById('buildTitle');
   const categories = {
@@ -47,20 +47,13 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
       const item = node('li');
       const avatar = node('img');
       avatar.alt = '';
-      avatar.src = row.avatar_choice ? avatarData(row.avatar_choice) : 'images/rated420-logo.png';
+      avatar.src = row.avatar_choice ? avatarImage(Number(row.avatar_choice)) : 'images/rated420-logo.png';
       item.append(avatar, node('span', row.username ? '@' + row.username : 'Rated420 member'), node('strong', `${row.total} / 420`));
       list.append(item);
     }
     if (rows.length) details.append(list);
     else details.append(node('p', 'No community reviews yet.'));
     parent.append(details);
-  }
-
-  function avatarData(choice) {
-    const colors = ['#4e386b','#315648','#753d5f','#3a4478','#63502f','#714148'];
-    const i = Number(choice) - 1;
-    const color = colors[i] || colors[0];
-    return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="' + color + '"/><circle cx="50" cy="36" r="15" fill="#f1eae0"/><path d="M20 86a30 30 0 0 1 60 0" fill="#f1eae0"/></svg>');
   }
 
   function status(parent) {
@@ -195,9 +188,9 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
         const rows = await call('dispensary_reviews', { id: String(id) });
         const container = node('div');
         disclosure(container, rows);
-        details.replaceWith(container.firstElementChild);
-        container.remove();
-        parent.querySelector('details:last-of-type').open = true;
+        const replacement = container.firstElementChild;
+        replacement.open = true;
+        details.replaceWith(replacement);
       } catch (error) { details.append(node('p', error.message || 'Could not load reviews.')); }
     });
     parent.append(details);
@@ -300,7 +293,7 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
   async function route() {
     const hash = location.hash;
     const [path, id] = hash.slice(1).split('/');
-    const kind = routes[path];
+    const kind = Object.hasOwn(routes, path) ? routes[path] : null;
     if (!kind || !db()) return;
     page('build');
     title.textContent = { brand: 'Brands', accessory: 'Accessories', vault: 'The Vault' }[kind];

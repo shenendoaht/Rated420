@@ -30,7 +30,7 @@ const root=path.resolve(__dirname,'..');
     window.turnstile={render:(selector,options)=>{window.fixtureChallenge=options;options.callback('fixture-token');return 'fixture-widget';},reset:()=>{window.fixtureResetCount=(window.fixtureResetCount||0)+1;window.fixtureChallenge.callback('fixture-fresh-token');}};
    });
    await page.goto('https://rated420.test/');await page.locator('#ageYes').click();
-   await page.locator('[data-open-contact]').click();
+   await page.locator('.footer-contact').click();
    assert(await page.locator('#contactPage').isVisible());
    assert.equal(await page.locator('#contactCategory option').count(),7);
    assert(await page.locator('#contactBusiness').isHidden());
@@ -93,7 +93,7 @@ const root=path.resolve(__dirname,'..');
     const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp'};
     return route.fulfill({status:200,contentType:mime[path.extname(file)]||'text/plain',body:fs.readFileSync(file)});
    });
-   await page.goto('https://rated420.test/');await page.locator('#ageYes').click();await page.locator('[data-open-contact]').click();
+   await page.goto('https://rated420.test/');await page.locator('#ageYes').click();await page.locator('.footer-contact').click();
    assert.equal(await page.locator('#contactForm').getAttribute('method'),'post');
    if(noScript)assert.equal(await page.locator('#contactSubmit').isEnabled(),false);
    else{
