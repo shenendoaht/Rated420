@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const output = path.join(root, 'dist');
 const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
-const textFiles = ['index.html', 'app.js', 'styles.css', 'contact.js'];
+const textFiles = ['index.html', 'app.js', 'styles.css', 'contact.js', 'build01.css', 'build01.js'];
 const productionOrigin = 'https://ymluyoqkmzxomjokjmkj.supabase.co';
 
 await rm(output, { recursive: true, force: true });

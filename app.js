@@ -72,6 +72,8 @@
 
   function page(name) {
     currentPage = name;
+    if (name !== 'build' && /^#(?:brands|accessories|vault)(?:\/|$)/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+    $('buildPage').hidden = name !== 'build';
     $('homePage').hidden = name !== 'home';
     $('authPage').hidden = name !== 'auth';
     $('accountPage').hidden = name !== 'account';
@@ -82,6 +84,7 @@
       void loadMyStrainReviews();
       void loadDispensaryReviews(true);
       fillAvatar();
+      void build01.favorites();
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -236,6 +239,7 @@
       });
       await refreshUser(false);
       void loadStrainCatalogue();
+      window.dispatchEvent(new Event('rated420:session-ready'));
     } catch (e) {
       console.warn('Could not initialize Supabase:', e?.message || e);
       toast('Unable to connect to accounts at the moment. The landing page still works.');
@@ -729,6 +733,7 @@ function appendCommunityScore(node, stats) {
       card.append(bars);
     }
     card.append(communityReviewDisclosure(selectedStrain.id, formatFilter, Boolean(keepReviewsOpen)));
+    void build01.favoriteButton(card, 'strain', selectedStrain.id, selectedStrain.name);
     const feed = makeNode('div','recent-strain-reviews');
     card.append(feed);
     try {
@@ -1248,6 +1253,10 @@ function renderDispensarySummary() {
     }
     box.append(categories);
   }
+  if (listing) {
+    build01.favoriteButton(box, 'dispensary', listing.id, listing.name);
+    build01.dispensaryReviews(box, listing.id);
+  }
 }
 async function ensureDispensary(name,location) {
   const selected = dispensaryListings.find(d => Number(d.id) === selectedDispensaryId);
@@ -1461,6 +1470,27 @@ function refreshCommunityScores() {
   document.addEventListener('visibilitychange',refreshCommunityScores);
   window.setInterval(refreshCommunityScores,30000);
 
+  const build01 = window.createBuild01({
+    db: () => db, user: () => user, login: () => showAuth('login'), page, toast,
+    openFavorite(kind, id, name) {
+      if (kind === 'strain') {
+        openStrains('catalogue');
+        const button = Array.from($('rated420-strain-options').querySelectorAll('button')).find(node => node.textContent.includes(name));
+        if (button) button.click();
+      } else {
+        document.querySelector('[data-open-dispensary]').click();
+        $('dispensarySearch').value = name;
+        renderDispensaryCatalogue();
+      }
+    }
+  });
+  window.addEventListener('rated420:session-ready', () => build01.route());
+  window.addEventListener('hashchange', () => build01.route());
+  document.querySelectorAll('[data-build-page]').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    if (location.hash === link.hash) build01.route();
+    else location.hash = link.hash;
+  }));
   // Navigation and forms
   $('ageYes').addEventListener('click', acceptAge);
   $('ageNo').addEventListener('click', denyAge);

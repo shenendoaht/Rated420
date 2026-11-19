@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="images/rated420-logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="build01.css">
 </head>
 <body>
   <a class="skip-link" href="#siteMain">Skip to content</a>
@@ -49,9 +50,12 @@
             <div class="nav-catalogue-links">
               <a href="#strains" data-open-strains="catalogue">Strains</a>
               <button type="button" data-open-dispensary>Dispensaries</button>
+              <a href="#brands" data-build-page="brand">Brands</a>
+              <a href="#accessories" data-build-page="accessory">Accessories</a>
             </div>
           </details>
-          <a href="#how-it-works" data-section>How It Works</a>
+          <a href="#vault" data-build-page="vault">The Vault</a>
+          <a href="#contact" data-open-contact>Contact</a>
         </nav>
         <div class="header-actions">
           <button type="button" class="nav-strains" id="navStrains" data-open-strains="review">Rate a Strain</button>
@@ -66,10 +70,10 @@
       <div id="homePage">
         <section class="hero page-width" id="home">
           <div class="hero-copy">
-            <div class="eyebrow"><span class="status-pip"></span> THE COMMUNITY HAS A SCORE</div>
+            <div class="eyebrow"><span class="status-pip"></span> NEW YORK CANNABIS CULTURE</div>
             <h1>Your experience.<br><em>Out of 420.</em></h1>
             <p class="hero-subtitle">Name it. Rate it. <strong>Make it 420.</strong></p>
-            <p class="hero-text">A home for honest, independent cannabis experiences. Every voice counts. Every point matters. And the scale goes all the way to 420.</p>
+            <p class="hero-text">Explore what New York is rating, then add your own score. Five categories, 84 points each.</p>
             <div class="hero-buttons">
               <button type="button" class="btn btn-outline btn-large" data-open-strains="catalogue">Explore strains ↗</button>
           <button class="btn btn-primary btn-large" id="heroJoin" type="button">Join Rated420 <span aria-hidden="true">↗</span></button>
@@ -116,6 +120,10 @@
       </div>
 
       
+<section id="buildPage" class="page-width build-page" hidden aria-labelledby="buildTitle">
+  <h1 id="buildTitle" tabindex="-1"></h1>
+  <div id="buildContent"></div>
+</section>
 <section id="strainPage" class="strain-page page-width" hidden aria-labelledby="strainPageTitle">
   <span class="eyebrow">THE STRAIN RATING</span>
   <h1 id="strainPageTitle">Rate a strain.</h1>
@@ -285,6 +293,7 @@
           </fieldset><label for="profileUsername">Username</label><input id="profileUsername" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="your_username"><p class="field-tip">Letters, numbers, underscores. Leave blank to set later.</p><label for="profileDisplayName">Display name (optional)</label><input id="profileDisplayName" type="text" minlength="2" maxlength="60" placeholder="What should we call you?"><label class="review-identity-option"><input id="profileReviewIdentity" type="checkbox"> Show my username and preset avatar on community reviews</label><p class="field-tip">Uploaded profile photos stay private.</p><button class="btn btn-primary form-submit" type="submit">Save profile</button></form></div>
         </div>
         <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR LOCAL COLLECTION · NOW IN THE CLOUD</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
+<section class="member-reviews"><h2>My favorites</h2><div id="buildFavorites"></div></section>
 <section class="member-reviews" id="myDispensaryReviews"><h2>My dispensary reviews.</h2><div id="myDispensaryReviewList" aria-live="polite"></div><button class="btn btn-primary" type="button" data-open-dispensary>Rate a dispensary ↗</button></section>
 <div class="next-card"><span class="eyebrow">WHAT COMES NEXT</span><div><h3>Your voice goes further soon.</h3><p>Strain reviews now save to your account. Polls and HQ are next.</p></div><span class="next-arrow" aria-hidden="true">↗</span></div>
       </section>
@@ -374,6 +383,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
+  <script src="build01.js"></script>
   <script src="app.js"></script>
   <script src="contact.js"></script>
 </body>
