@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111711">
-  <meta name="contact-turnstile-site-key" content="">
   <meta name="description" content="Rated420 NY — community-powered cannabis reviews, rated out of 420. For adults 21 and older.">
   <title>Rated420 NY | Your experience. Out of 420.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +12,7 @@
   <link rel="icon" href="images/rated420-logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="build01.css">
+  <link rel="stylesheet" href="build02.css">
 </head>
 <body>
   <a class="skip-link" href="#siteMain">Skip to content</a>
@@ -48,6 +48,7 @@
           <details class="nav-catalogue" id="navCatalogue">
             <summary>Catalogue</summary>
             <div class="nav-catalogue-links">
+              <a href="#discover">Browse all</a>
               <a href="#strains" data-open-strains="catalogue">Strains</a>
               <button type="button" data-open-dispensary>Dispensaries</button>
               <a href="#brands" data-build-page="brand">Brands</a>
@@ -55,7 +56,8 @@
             </div>
           </details>
           <a href="#vault" data-build-page="vault">The Vault</a>
-          <a href="#contact" data-open-contact>Contact</a>
+          <a href="#shop">The Shop</a>
+          <a href="#hq">Rated420 HQ</a>
         </nav>
         <div class="header-actions">
           <button type="button" class="nav-strains" id="navStrains" data-open-strains="review">Rate a Strain</button>
@@ -67,6 +69,7 @@
     </header>
 
     <main id="siteMain">
+      <section id="hqPage" class="page-width build-page hq-page" aria-labelledby="hqTitle" hidden><h1 id="hqTitle" tabindex="-1"></h1><div id="hqContent"></div></section>
       <div id="homePage">
         <section class="hero page-width" id="home">
           <div class="hero-copy">
@@ -117,13 +120,13 @@
 
         <section class="standard-band" id="coming-soon">
           <div class="page-width standard-inner">
-            <div class="standard-copy"><p class="eyebrow">THE RATED420 STANDARD</p><h2>Not five stars.<br><em>Four hundred twenty.</em></h2><p>Accounts and strain ratings are now connected to the real database. Dispensary scorecards, weekly polls, and Rated420 HQ will follow as separate modules.</p><div class="progress-pills"><span class="is-live"><span class="status-pip"></span> Accounts: live</span><span>Strain reviews: live</span><span>Polls: later</span></div></div>
+            <div class="standard-copy"><p class="eyebrow">THE RATED420 STANDARD</p><h2>Not five stars.<br><em>Four hundred twenty.</em></h2><p>Score strains, brands, dispensaries and gear. Suggest a listing or join a conversation in The Vault.</p></div>
             <div class="scale-visual" aria-label="Five equal segments of 84 points making a total of 420"><div class="scale-top"><span>HOW THE MATH WORKS</span><strong>5 × 84 = 420</strong></div><div class="scale-bars" aria-hidden="true"><span style="--bar:64%"></span><span style="--bar:82%"></span><span style="--bar:72%"></span><span style="--bar:95%"></span><span style="--bar:100%"></span></div><div class="scale-bottom"><span>FIVE CATEGORIES</span><span>ONE TOTAL</span></div><p>Illustrative scorecard graphic · Real strain ratings now live</p></div>
           </div>
         </section>
 
         <section class="join-section page-width" id="join">
-          <div><p class="eyebrow">YOU’RE EARLY. THAT’S A GOOD THING.</p><h2>Come grow<br><em>with us.</em></h2><p>Create your Rated420 account and claim your community username as we build the platform.</p></div>
+          <div><p class="eyebrow">JOIN THE COMMUNITY</p><h2>Come grow<br><em>with us.</em></h2><p>Create an account to review listings, vote in The Vault and save favorites.</p></div>
           <button class="btn btn-dark btn-large" id="bottomJoin" type="button">Create your account <span aria-hidden="true">↗</span></button>
         </section>
       </div>
@@ -290,7 +293,7 @@
   </section>
 </section>
       <section class="account-page page-width" id="accountPage" hidden aria-labelledby="accountTitle">
-        <div class="account-heading"><div><p class="eyebrow">MEMBER SPACE / 001</p><h1 id="accountTitle">You’re in. <em>Welcome.</em></h1><p>Real account. Real database. We’re building the rest one piece at a time.</p></div><button type="button" class="btn btn-outline" id="accountSignOut">Sign out</button></div>
+        <div class="account-heading"><div><p class="eyebrow">MEMBER SPACE / 001</p><h1 id="accountTitle">You’re in. <em>Welcome.</em></h1><p>Manage your profile, favorites and reviews.</p></div><button type="button" class="btn btn-outline" id="accountSignOut">Sign out</button></div>
         <div class="account-grid"><div class="member-card"><img id="memberAvatar" class="member-avatar is-logo" src="rated420-logo.png" alt="Your profile picture"><p class="eyebrow">YOUR RATED420 IDENTITY</p><h2 id="memberHandle">Member</h2><p id="memberEmail" class="member-email"></p><p class="member-since" id="memberSince"></p><span class="member-active"><span class="status-pip"></span> MEMBER ACCOUNT ACTIVE</span></div>
           <div class="profile-card"><h2>My profile</h2><p>Choose how your account appears while your ratings grow.</p><div class="auth-message" id="profileMessage" role="status" aria-live="polite" hidden></div><form id="profileForm" novalidate>
           <fieldset class="avatar-picker"><legend>Profile picture</legend>
@@ -304,8 +307,8 @@
         <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR LOCAL COLLECTION · NOW IN THE CLOUD</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
 <section class="member-reviews"><h2>My favorites</h2><div id="buildFavorites"></div></section>
 <section class="member-reviews" id="myDispensaryReviews"><h2>My dispensary reviews.</h2><div id="myDispensaryReviewList" aria-live="polite"></div><button class="btn btn-primary" type="button" data-open-dispensary>Rate a dispensary ↗</button></section>
-<div class="next-card"><span class="eyebrow">WHAT COMES NEXT</span><div><h3>Your voice goes further soon.</h3><p>Strain reviews now save to your account. Polls and HQ are next.</p></div><span class="next-arrow" aria-hidden="true">↗</span></div>
-      </section>
+<div class="build-actions"><a class="btn btn-outline" href="#contribute">My submissions ↗</a><a id="publicProfileLink" class="btn btn-outline" href="#profile" hidden>Public profile ↗</a></div>
+</section>
       <section class="contact-page page-width" id="contactPage" hidden aria-labelledby="contactTitle">
         <button class="text-back" type="button" data-go-home>← Back to home</button>
         <div class="contact-heading">
@@ -313,55 +316,9 @@
           <h1 id="contactTitle" tabindex="-1">Let’s <em>talk.</em></h1>
           <p>Questions, fresh ideas, a correction, or an invitation? Get in touch with Rated420 NY. There’s a place for your perspective here.</p>
         </div>
-        <div class="contact-layout">
-          <aside class="contact-aside" aria-label="About contacting Rated420">
-            <span class="eyebrow">A DIRECT LINE TO RATED420</span>
-            <h2>Good conversations.<br><em>Growing together.</em></h2>
-            <p>We welcome our community and the people building the cannabis industry—from your next suggestion to a chance to meet, film, or collaborate.</p>
-            <p>For catalogue corrections, include the strain or dispensary name and what needs updating. For invitations, tell us where, when, and what you have in mind.</p>
-            <div class="contact-privacy"><strong>Your message stays private.</strong><p>Submissions are for the Rated420 team, never public reviews. Please don’t include passwords, payment details, or sensitive medical information.</p></div>
-          </aside>
-          <div class="contact-panel">
-            <form id="contactForm" method="post" action="https://ymluyoqkmzxomjokjmkj.supabase.co/functions/v1/submit-contact">
-              <p class="contact-required">All fields are required unless marked optional.</p>
-              <div class="contact-fields">
-                <label for="contactName">Full Name<input id="contactName" name="full_name" autocomplete="name" required minlength="2" maxlength="120"></label>
-                <label for="contactEmail">Email Address<input id="contactEmail" name="email" type="email" autocomplete="email" required maxlength="254"></label>
-              </div>
-              <label for="contactCategory">Inquiry Category<select id="contactCategory" name="category" required>
-                <option value="">Select a category</option>
-                <option value="general">General Questions &amp; Comments</option>
-                <option value="feedback">Suggestions &amp; Feedback</option>
-                <option value="correction">Strain &amp; Dispensary Catalogue Corrections</option>
-                <option value="filming">Filming &amp; Interview Invitations</option>
-                <option value="partnership">Business Partnerships &amp; Collaborations</option>
-                <option value="other">Other</option>
-              </select></label>
-              <label for="contactCompany">Company / Organization <span>(optional)</span><input id="contactCompany" name="company" autocomplete="organization" maxlength="160"></label>
-              <fieldset class="contact-business" id="contactBusiness" hidden disabled>
-                <legend>A little more about your invitation or business <span>(optional)</span></legend>
-                <label for="contactLocation">Company Location<input id="contactLocation" name="company_location" autocomplete="address-level2" maxlength="200" placeholder="City, state / region, country"></label>
-                <label for="contactWebsite">Website<input id="contactWebsite" name="website" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://"></label>
-                <label for="contactTelephone">Telephone Number<input id="contactTelephone" name="telephone" type="tel" autocomplete="tel" maxlength="40"></label>
-              </fieldset>
-              <label for="contactSubject">Subject<input id="contactSubject" name="subject" required minlength="2" maxlength="160"></label>
-              <label for="contactMessage">Message<textarea id="contactMessage" name="message" required minlength="10" maxlength="5000" rows="7" aria-describedby="contactMessageHelp"></textarea></label>
-              <p class="field-tip" id="contactMessageHelp">10–5,000 characters. Give us the details that will help our team respond.</p>
-              <div class="contact-trap" aria-hidden="true"><label for="contactCompanyFax">Leave this field empty<input id="contactCompanyFax" name="company_fax" tabindex="-1" autocomplete="off"></label></div>
-              <div id="contactChallenge" class="contact-challenge" aria-label="Spam protection"></div>
-              <div class="auth-message" id="contactFormStatus" role="status" aria-live="polite" tabindex="-1" hidden></div>
-              <button class="btn btn-primary btn-large" id="contactSubmit" type="submit" disabled>Send message <span aria-hidden="true">↗</span></button>
-              <noscript><p class="contact-note">Please enable JavaScript to use the secure contact form.</p></noscript>
-              <p class="contact-note">By sending, you agree that Rated420 may use these details to review and respond to your inquiry. This form is not for emergencies.</p>
-            </form>
-            <section class="contact-success" id="contactSuccess" aria-labelledby="contactSuccessTitle" hidden>
-              <span class="eyebrow">MESSAGE RECEIVED · RATED420 NY</span>
-              <h2 id="contactSuccessTitle" tabindex="-1">Your voice.<br><em>Heard.</em></h2>
-              <p>Thanks for reaching out. Your message has been received by Rated420, and our team will review it.</p>
-              <p id="contactReference" class="contact-reference" hidden></p>
-              <div class="contact-success-actions"><button class="btn btn-primary" type="button" data-go-home>Back to Rated420 ↗</button><button class="btn btn-outline" id="contactAgain" type="button">Send another message</button></div>
-            </section>
-          </div>
+        <div class="build-card"><h2>Email Rated420 NY</h2>
+          <p>For questions, corrections, and podcast invitations, email our team.</p>
+          <p><a class="btn btn-primary" href="mailto:rated420.ny@gmail.com">rated420.ny@gmail.com</a></p>
         </div>
       </section>
     </main>
@@ -393,7 +350,7 @@
   <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
   <script src="build01.js"></script>
+  <script src="build02.js"></script>
   <script src="app.js"></script>
-  <script src="contact.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* Shared presentation for the Build 01 catalogue and Vault routes. */
-window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, avatarImage }) {
+window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, avatarImage, decorate }) {
   const root = document.getElementById('buildContent');
   const title = document.getElementById('buildTitle');
   const categories = {
@@ -49,6 +49,7 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
       avatar.alt = '';
       avatar.src = row.avatar_choice ? avatarImage(Number(row.avatar_choice)) : 'images/rated420-logo.png';
       item.append(avatar, node('span', row.username ? '@' + row.username : 'Rated420 member'), node('strong', `${row.total} / 420`));
+      decorate(item.querySelector('span'),row.username);
       list.append(item);
     }
     if (rows.length) details.append(list);
@@ -257,6 +258,7 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
   }
 
   function renderVault(parent, data) {
+    parent.append(link('Episodes and poll recaps ↗','#episodes','btn btn-outline'));
     const intro = node('div', undefined, 'build-vault');
     const copy = node('div');
     copy.append(node('p', 'The Rated420 podcast. Cast your vote and see what New York wants the hosts to talk about next.', 'build-lede'));
@@ -300,7 +302,11 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
     title.focus({ preventScroll: true });
     root.textContent = 'Loading…';
     try {
-      const data = await call(kind === 'vault' ? 'polls' : id ? 'item' : 'catalog', { kind, id });
+      const result = kind !== 'vault' && !id
+        ? await db().rpc('rated420_build02',{operation:'catalog',payload:{kind}})
+        : {data:await call(kind==='vault'?'polls':'item',{kind,id})};
+      if(result.error) throw result.error;
+      const data=result.data;
       if (location.hash !== hash) return;
       root.replaceChildren();
       if (kind === 'vault') renderVault(root, data);

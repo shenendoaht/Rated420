@@ -3,7 +3,7 @@
   'use strict';
   const key='rated420-community-demo-v1';
   const actorKey=key+'-actor';
-  const users=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'];
+  const users=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','aaaa0000-0000-4000-8000-000000000002','aaaa0000-0000-4000-8000-000000000003','aaaa0000-0000-4000-8000-000000000004'];
   const callbacks=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
   const read=()=>{try{return JSON.parse(localStorage.getItem(key))||clone(COMMUNITY_DEMO_SEED);}catch{return clone(COMMUNITY_DEMO_SEED);}};
@@ -53,7 +53,7 @@
   });
   const ownsPhoto = path => Boolean(actor && path.split('/')[0] === actor);
   let actor=localStorage.getItem(actorKey)||'';
-  const user=()=>actor?{id:actor,email:actor===users[0]?'demo-a@example.test':'demo-b@example.test',created_at:'2026-01-01T00:00:00Z',user_metadata:{}}:null;
+  const user=()=>actor?{id:actor,email:'demo-'+(users.indexOf(actor)+1)+'@example.test',created_at:'2026-01-01T00:00:00Z',user_metadata:{}}:null;
   const error=message=>({data:null,error:{message}});
   const categories={strain_reviews:['aesthetic','aroma','flavor','effects','overall'],dispensary_reviews:['aesthetic','accessibility','staff','menu','overall']};
   function aggregate(rows,idField,fields,format=null) {
@@ -73,7 +73,7 @@
       ...Object.fromEntries(['total',...fields].map(f=>['avg_'+f,values.reduce((sum,row)=>sum+row[f],0)/values.length]))}));
   }
   const demoProfile = (state, id) => ({
-    id, username: id === users[0] ? 'demo_a' : 'demo_b', display_name: 'Demo reviewer',
+    id, username: ['demo_a','demo_b','demo_admin','demo_staff','demo_member'][users.indexOf(id)] || 'demo_member', display_name: 'Demo reviewer',
     created_at: '2026-01-01T00:00:00Z', avatar_choice: id === users[0] ? 2 : 3,
     show_review_identity: true, ...state.demoProfiles?.[id]
   });
@@ -150,9 +150,16 @@
   const emit=event=>callbacks.forEach(cb=>cb(event));
   window.supabase={createClient:()=>({from:table=>new Query(table),
     rpc:async(name,{operation,payload})=>{
-      if(name!=='rated420_build01')return error('Unknown fixture operation.');
+      if(!['rated420_build01','rated420_build02'].includes(name))return error('Unknown fixture operation.');
       try {
         const state=read();
+        if(name==='rated420_build02'){
+          await loadedPhotos;
+          if(payload.photo && !photoBlobs.has('catalog-submissions/'+payload.photo))return error('Upload your supporting image first.');
+          const data=runBuild02Fixture(operation,payload,state,actor,users,demoProfile,aggregate);
+          if(['submit','moderate','catalog_edit','library_save','staff_role'].includes(operation))save(state);
+          return {data,error:null};
+        }
         const data=runBuild01Fixture(operation,payload,state,actor,users,demoProfile);
         if(['favorite','review','vote','publish','close'].includes(operation))save(state);
         return {data,error:null};
@@ -191,6 +198,9 @@
       } catch(failure) { return photoFailure(failure); }
     },
     createSignedUrl:async path=>{
+      if (bucket==='catalog-submissions' && !ownsPhoto(path) && !(
+        (read().build02?.roles ?? {[users[0]]:'staff',[users[2]]:'administrator',[users[3]]:'staff'})[actor] &&
+        (read().build02?.roles ?? {})[actor]!=='member'))return error('This submission photo is private.');
       if (bucket==='member-avatars' && !ownsPhoto(path)) return error('This demo image belongs to another account.');
       await loadedPhotos;
       const signedUrl=photoUrl(bucket,path);
@@ -200,9 +210,9 @@
   const nativeFetch=window.fetch.bind(window);
   window.fetch=(input,init)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);return url.hostname==='rated420-demo.invalid'||url.hostname.endsWith('.supabase.co')?Promise.resolve(Response.json({ready:false,success:false},{status:503})):nativeFetch(input,init);};
   const banner=document.createElement('aside');banner.setAttribute('aria-label','Synthetic data preview');banner.style.cssText='padding:14px;background:#253925;color:#eff7e8;position:relative;z-index:10;font:14px sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
-  const label=document.createElement('label');label.textContent='SYNTHETIC DATA PREVIEW · No production access. Demo reviewer: ';
+  const label=document.createElement('label');label.textContent='SYNTHETIC DATA PREVIEW · Simulated roles and records. Demo reviewer: ';
   const select=document.createElement('select');select.id='demoReviewer';select.style.cssText='padding:8px;background:#111711;color:#eff7e8;max-width:100%';
-  for(const [value,text] of [['','Logged-out visitor'],[users[0],'Reviewer A'],[users[1],'Reviewer B']]){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+  for(const [value,text] of [['','Logged-out visitor'],[users[0],'Reviewer A'],[users[1],'Reviewer B'],[users[4],'Regular member'],[users[3],'Staff member'],[users[2],'Administrator']]){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
   select.value=actor;select.addEventListener('change',()=>{actor=select.value;localStorage.setItem(actorKey,actor);emit(actor?'SIGNED_IN':'SIGNED_OUT');});label.append(select);banner.append(label);
   const reset=document.createElement('button');reset.type='button';reset.textContent='Reset demo data';reset.style.cssText='padding:8px;background:#c7ea86;color:#111711';reset.addEventListener('click',async()=>{
     try {

@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const output = path.join(root, 'dist');
 const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
-const textFiles = ['index.html', 'app.js', 'styles.css', 'contact.js', 'build01.css', 'build01.js'];
+const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js'];
 const staging = process.env.RATED420_BUILD01_STAGING === '1';
 const stagingOrigin = process.env.RATED420_STAGING_SUPABASE_URL;
 const stagingKey = process.env.RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY;
@@ -42,11 +42,11 @@ if (staging) {
   files.set('app.js', files.get('app.js')
     .replace(productionOrigin, 'https://rated420-demo.invalid')
     .replace(/const SUPABASE_PUBLISHABLE_KEY = '[^']+';/, "const SUPABASE_PUBLISHABLE_KEY = 'synthetic';"));
-  files.set('contact.js', files.get('contact.js').replace(productionOrigin, 'https://rated420-demo.invalid'));
   const seed = await readFile(path.join(root, 'preview/seed.json'), 'utf8');
   const client = await readFile(path.join(root, 'preview/client.js'), 'utf8');
   const adapter = await readFile(path.join(root, 'preview/build01-adapter.js'), 'utf8');
-  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + adapter + '\n' + client);
+  const hqAdapter = await readFile(path.join(root, 'preview/build02-adapter.js'), 'utf8');
+  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + adapter + '\n' + hqAdapter + '\n' + client);
 
   for (const [file, content] of files) {
     if (/ymluyoqkmzxomjokjmkj|(?:https?:)?\/\/[^\s"'<>]*\.supabase\.(?:co|in|net)\b|sb_(?:publishable|secret)_/i.test(content)) {

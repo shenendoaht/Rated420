@@ -10,7 +10,8 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
     polls: [{ id: 'demo-poll', question: 'What should The Vault cover next?', closed: false, options: ['New York growers', 'Dispensary design'], votes: {} }]
   };
   const { id, kind } = payload;
-  const staff = actor === users[0];
+  const role=state.build02?.roles[actor];
+  const staff = role ? role !== 'member' : [users[0],users[2],users[3]].includes(actor);
   const ownFavorites = () => fixtures.favorites.filter(row => row.actor === actor);
   const identity = (id, total) => {
     const { username, avatar_choice, show_review_identity } = profile(state, id);
@@ -57,14 +58,16 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
         scores.some(value => !Number.isInteger(value) || value < 0 || value > 84) || notes.length > 1200) {
       throw new Error('Check your five scores and notes.');
     }
+    const previous=fixtures.reviews.find(row=>row.actor===actor&&row.id===id);
     fixtures.reviews = fixtures.reviews.filter(row => row.actor !== actor || row.id !== id);
-    fixtures.reviews.push({ id, actor, scores, notes: notes.trim(), total: scores.reduce((a, b) => a + b, 0) });
+    fixtures.reviews.push({ id, actor, scores, notes: notes.trim(), activity_at:previous?.activity_at??new Date().toISOString(), total: scores.reduce((a, b) => a + b, 0) });
   } else if (operation === 'vote') {
     const poll = fixtures.polls.find(poll => poll.id === id);
     if (!poll || poll.closed) throw new Error('Voting is closed.');
     if (poll.votes[actor]) throw new Error('You have already voted.');
     if (![1, 2].includes(payload.option)) throw new Error('Choose a poll option.');
     poll.votes[actor] = payload.option;
+    (poll.voteDates??={})[actor]=new Date().toISOString();
   } else if (operation === 'publish' && staff) {
     const question = payload.question.trim();
     const options = payload.options.map(value => value.trim());

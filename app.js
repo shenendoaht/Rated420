@@ -70,10 +70,11 @@
 
   function page(name) {
     currentPage = name;
-    const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact' };
+    const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq' };
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
+    $('hqPage').hidden = name !== 'hq';
     $('buildPage').hidden = name !== 'build';
     $('homePage').hidden = name !== 'home';
     $('authPage').hidden = name !== 'auth';
@@ -185,6 +186,8 @@
     $('profileUsername').value = profile?.username || '';
     $('profileDisplayName').value = profile?.display_name || '';
     $('profileReviewIdentity').checked = Boolean(profile?.show_review_identity);
+    $('publicProfileLink').hidden = !profile?.show_review_identity || !profile.username;
+    $('publicProfileLink').href = '#profile/' + encodeURIComponent(profile?.username || '');
   }
 
   async function refreshUser(goToAccount = false) {
@@ -587,7 +590,7 @@ function appendCommunityScore(node, stats) {
       button.addEventListener('click', () => selectStrain(strain));
       list.append(button);
     }
-    if (!filtered.length) list.append(makeNode('p','strain-empty','Not in the catalogue yet. Use this name to add your review.'));
+    if (!filtered.length) list.append(makeNode('p','strain-empty','No matching strains. Suggest a new listing for staff review.'));
     const exact = knownStrains.some(s => nameKey(s.name) === query);
     const validNew = cleanStrainName($('rated420-strain-search').value).length >= 2;
     $('rated420-strain-use-search').disabled = !validNew;
@@ -671,6 +674,7 @@ function appendCommunityScore(node, stats) {
           item.append(image, makeNode('span', '', review.username ? '@' + review.username : 'Community member'),
             makeNode('strong', '', `${review.total} / 420`));
           list.append(item);
+          build02.decorate(item.querySelector('span'), review.username);
         }
         offset += data.length;
         loaded = true;
@@ -924,16 +928,7 @@ function appendCommunityScore(node, stats) {
   async function ensureStrain(name) {
     let strain = knownStrains.find(s => nameKey(s.name) === nameKey(name));
     if (strain) return strain;
-    const {data,error} = await db.from('strains').insert({name,created_by:user.id})
-      .select('id,name,created_at').single();
-    if (!error) return data;
-    if (error.code !== '23505') throw error;
-    // Another member may have submitted this same strain moments before us.
-    const {data:latest,error:lookupError} = await db.from('strains').select('id,name,created_at').limit(1000);
-    if (lookupError) throw lookupError;
-    strain = latest.find(s => nameKey(s.name) === nameKey(name));
-    if (!strain) throw new Error('This strain has just been added by someone else. Refresh and try again.');
-    return strain;
+    throw new Error('Suggest this strain from Contribute a listing before reviewing it.');
   }
 
   async function saveStrainReview(event) {
@@ -1235,7 +1230,7 @@ function renderDispensaryCatalogue() {
     button.addEventListener('click', () => selectDispensary(listing));
     box.append(button);
   }
-  if (!listings.length) box.append(makeNode('p','strain-empty', search ? 'No matching dispensaries.' : 'No dispensaries listed yet. Add one with your first review.'));
+  if (!listings.length) box.append(makeNode('p','strain-empty', search ? 'No matching dispensaries.' : 'No dispensaries listed yet. Suggest a listing for staff review.'));
 }
 function selectDispensary(listing) {
   selectedDispensaryId = Number(listing.id);
@@ -1276,13 +1271,7 @@ async function ensureDispensary(name,location) {
     .eq('name_key',name.toLowerCase()).eq('location_key',location.toLowerCase()).maybeSingle();
   if (error) throw error;
   if (data) return data;
-  const added = await db.from('dispensaries').insert({name,location}).select('id,name,location').single();
-  if (!added.error) return added.data;
-  if (added.error.code !== '23505') throw added.error;
-  const retried = await db.from('dispensaries').select('id,name,location')
-    .eq('name_key',name.toLowerCase()).eq('location_key',location.toLowerCase()).single();
-  if (retried.error) throw retried.error;
-  return retried.data;
+  throw new Error('Suggest this dispensary from Contribute a listing before reviewing it.');
 }
   function updateDispensaryPreview() {
     if (dispensaryPreviewUrl) URL.revokeObjectURL(dispensaryPreviewUrl);
@@ -1482,6 +1471,7 @@ function refreshCommunityScores() {
   window.setInterval(refreshCommunityScores,30000);
 
   const build01 = window.createBuild01({
+    decorate: (n,name)=>build02.decorate(n,name),
     db: () => db, user: () => user, login: () => showAuth('login'), page, toast,
     avatarImage,
     async openFavorite(kind, id) {
@@ -1498,6 +1488,7 @@ function refreshCommunityScores() {
       }
     }
   });
+  const build02 = window.createBuild02({client:()=>db,member:()=>user,page,login:()=>showAuth(),avatarImage});
   async function routeHash() {
     const hash = location.hash;
     const [route, id] = hash.slice(1).split('/');
@@ -1517,14 +1508,14 @@ function refreshCommunityScores() {
         const item = dispensaryListings.find(row => String(row.id) === id);
         if (item) selectDispensary(item);
       }
-    } else {
+    } else if (!await build02.route()) {
       await build01.route();
     }
   }
   function openContact() {
     page('contact');
     $('contactTitle').focus({ preventScroll: true });
-    window.dispatchEvent(new Event('rated420:contact-open'));
+
   }
   window.addEventListener('rated420:session-ready', () => void routeHash());
   window.addEventListener('hashchange', () => { if (isAgeAccepted()) void routeHash(); });
