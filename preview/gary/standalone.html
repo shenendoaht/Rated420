@@ -12,6 +12,10 @@
   <script defer src="profile-examples.js"></script>
   <script defer src="hq-workspace-store.js"></script>
   <script defer src="hq-workspace-ui.js"></script>
+  <link rel="stylesheet" href="expansion-layout.css">
+  <script defer src="expansion-fixtures.js"></script>
+  <script defer src="expansion-store.js"></script>
+  <script defer src="expansion-ui.js"></script>
   <script defer src="rated420-hq-preview.js"></script>
 </head>
 <body class="gary-standalone">
@@ -22,12 +26,17 @@
   <div class="profile-preview-shell">
     <nav class="profile-preview-nav profile-actions" aria-label="Rated420 HQ preview">
       <a href="#hq">Founder workspace</a>
+      <a href="#hq/finance">Financial Command Center</a>
+      <a href="#hq/territory">Territory Explorer</a>
+      <a href="#community/stash">The Stash</a>
+      <a href="#community/reviews">Community review preview</a>
       <a href="#profiles/populated">Populated profile</a>
       <a href="#profiles/missing">Missing avatar</a>
       <a href="#profiles/edit">Owner edit example</a>
     </nav>
   </div>
   <main id="founder-workspace"></main>
+  <main id="expansion-view" class="profile-preview-shell" hidden></main>
   <main id="profile-examples" class="profile-preview-shell" hidden></main>
   <noscript>This offline demo needs JavaScript enabled.</noscript>
 </body>

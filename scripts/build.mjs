@@ -43,10 +43,13 @@ if (staging) {
     for (const [source, target] of [['store.js','gary-store.js'],['ui.js','gary-ui.js'],['gary.css','gary.css'],['synthetic-media-kit.txt','synthetic-media-kit.txt']]) {
       files.set(target, await readFile(path.join(root, 'preview/gary', source), 'utf8'));
     }
+    for (const name of ['fixtures.js','store.js','ui.js','layout.css']) {
+      files.set('expansion-'+name, await readFile(path.join(root,'preview/expansion',name),'utf8'));
+    }
     files.set('index.html', html.replace(/^  <link[^>]+https:\/\/fonts\.(?:googleapis|gstatic)\.com[^>]*>\n/gm, '')
-      .replace('<link rel="stylesheet" href="build02.css">','<link rel="stylesheet" href="build02.css">\n  <link rel="stylesheet" href="gary-fonts/fonts.css">\n  <link rel="stylesheet" href="gary.css">')
+      .replace('<link rel="stylesheet" href="build02.css">','<link rel="stylesheet" href="build02.css">\n  <link rel="stylesheet" href="gary-fonts/fonts.css">\n  <link rel="stylesheet" href="gary.css">\n  <link rel="stylesheet" href="expansion-layout.css">')
       .replace('<script src="build02.js"></script>',
-      '<script src="gary-store.js"></script><script src="gary-ui.js"></script><script src="build02.js"></script>'));
+      '<script src="gary-store.js"></script><script src="gary-ui.js"></script><script src="expansion-fixtures.js"></script><script src="expansion-store.js"></script><script src="expansion-ui.js"></script><script src="build02.js"></script>'));
   } else {
     files.set('index.html', html);
   }

@@ -12,7 +12,10 @@ const assets = [
   ['profile-layout.css', 'profile-layout.css'],
   ['preview/profiles/profile-examples.js', 'profile-examples.js'],
   ['preview/profiles/images', 'images'],
-  ['docs/rated420-hq-preview.md', 'README.md'],
+  ['docs/rated420-hq-preview.md', 'HQ-WORKSPACE.md'],
+  ['docs/hq-community-expansion.md','README.md'],
+  ['docs/hq-expansion-verification.txt','VERIFICATION.txt'],
+  ...['layout.css','fixtures.js','store.js','ui.js'].map(name=>['preview/expansion/'+name,'expansion-'+name]),
   ...Object.entries({
     'standalone.html': 'index.html',
     'standalone.js': 'rated420-hq-preview.js',

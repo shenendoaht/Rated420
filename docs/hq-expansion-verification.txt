@@ -1,0 +1,26 @@
+Rated420 HQ & Community Expansion verification
+Browser: Chrome for Testing 116.0.5845.96 on Linux.
+
+Standalone expansion: 320, 820 and 1366 px. Verified transaction creation,
+editing, deletion, persistence, projection and CRM association. Verified
+territory region navigation, CRM profile, business CRUD and search. Verified
+Stash CRUD, score edits, persistence, reset, consent gating and private-note
+exclusion from the public preview. Browser requests were restricted to loopback
+and the test required zero off-origin attempts, page errors or missing assets
+(excluding the optional browser favicon).
+
+Integrated synthetic app: verified staff-only access to expansion HQ routes
+and isolated journals for two synthetic member identities. Existing community,
+Build 02 discovery and moderation, account image storage, and contact browser
+regressions passed at desktop and phone widths. Build and contact unit suites
+passed 20 checks, including exclusion of expansion files from hosted builds.
+
+Packaged regression: profile and avatar examples at 320, 390, 820 and 1366 px.
+Founder workflows at 390, 820 and 1366 px. Launcher and manual Perl fallback
+exercised on Linux. macOS Finder behavior and live Auth, Supabase, providers,
+and deployments were outside this verification.
+
+Reproduce with the freshly unpacked launcher and the following browser suites:
+tests/hq-expansion.browser.cjs, tests/profile-avatar.browser.cjs, and
+tests/rated420-hq.browser.cjs. The integrated fixture needs the local build
+flag RATED420_GARY_PREVIEW=1 and Node with Playwright configured.

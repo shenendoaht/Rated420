@@ -322,10 +322,21 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       const back=el('a','Back to Rated420 HQ');
       back.href='#hq';
       parent.append(back);
-      window.mountGaryPreview(parent,{initial,assertAccess:async()=>{
+      const assertAccess=async()=>{
         if(member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
           throw Error('Sign in as authorized staff to change this workspace.');
-      }});
+      };
+      if(window.mountRatedExpansion){
+        const controls=el('nav',undefined,'build-actions');
+        for(const [hash,label] of [['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
+          const link=el('a',label,'btn btn-outline');link.href=hash;controls.append(link);
+        }
+        parent.append(controls);
+        if(initial==='finance'||initial==='territory'){
+          window.mountRatedExpansion(parent,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read()});return;
+        }
+      }
+      window.mountGaryPreview(parent,{initial,assertAccess});
     };
     if(role!=='administrator'&&activeTab==='Access')activeTab='Submissions';
     const current=activeTab;

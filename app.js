@@ -70,7 +70,8 @@
 
   function page(name) {
     currentPage = name;
-    const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq' };
+    if (name !== 'account') document.getElementById('accountStash')?.replaceChildren();
+    const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq', 'demo-reviews':'hq' };
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
@@ -87,8 +88,28 @@
       void loadDispensaryReviews(true);
       fillAvatar();
       void build01.favorites();
+      if (window.mountRatedExpansion) openAccountStash();
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function openAccountStash() {
+    const host = $('accountStash');
+    const identity = user?.id;
+    host.replaceChildren();
+    if (!identity) return;
+    const button = makeNode('button','btn btn-outline','Open The Stash');
+    button.type = 'button';
+    const content = makeNode('div');
+    button.addEventListener('click', () => {
+      if (content.childElementCount) { content.replaceChildren(); return; }
+      window.mountRatedExpansion(content,'stash',{actor:identity,guard:async()=>{
+        if (user?.id !== identity || currentPage !== 'account') throw Error('Sign in to access your journal.');
+      }});
+    });
+    const publicLink = makeNode('a','btn btn-outline','Community review preview');
+    publicLink.href='#demo-reviews';
+    host.append(button,publicLink,content);
   }
 
   function home() { page('home'); }
@@ -1497,7 +1518,12 @@ function refreshCommunityScores() {
   async function routeHash() {
     const hash = location.hash;
     const [route, id] = hash.slice(1).split('/');
-    if (route === 'contact') {
+    if (route === 'demo-reviews' && window.mountRatedExpansion) {
+      page('hq');
+      $('hqTitle').textContent='Community';
+      $('hqContent').replaceChildren();
+      window.mountRatedExpansion($('hqContent'),'public');
+    } else if (route === 'contact') {
       openContact();
     } else if (route === 'strains' && db) {
       page('strain');
