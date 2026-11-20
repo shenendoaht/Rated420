@@ -47,8 +47,13 @@
     }
     region.addEventListener('change',update);update();
     section.append(el('p','OCM source version '+data.snapshot.version+' · updated '+date(data.snapshot.rowsUpdatedAt)+' · retrieved '+data.snapshot.retrievedOn),
-      tools,metrics,el('p','Source-verified records: '+data.official.length+' statewide'+(includeImports?' · Unverified local imports: '+data.records().length:'')+'.'),
-      el('h4','Records by license classification'),classes,el('h4','Issuance cohorts from this snapshot'),years,
+      tools,metrics,el('p','Source-verified records: '+data.official.length+' statewide'+(includeImports?' · Unverified local imports: '+data.records().length:'')+'.'));
+    if(window.Rated420UX){
+      const breakdown=el('details',null,'ref-filter-disclosure');
+      breakdown.append(el('summary','License classifications and issuance cohorts'),el('h4','Records by license classification'),classes,el('h4','Issuance cohorts from this snapshot'),years,
+        el('p','Cohorts count dated records in the current snapshot. They do not measure historical net market growth. Missing dates and geography remain unknown.'));
+      section.append(breakdown);
+    }else section.append(el('h4','Records by license classification'),classes,el('h4','Issuance cohorts from this snapshot'),years,
       el('p','Cohorts count dated records in the current snapshot. They do not measure historical net market growth. Missing dates and geography remain unknown.'));
     parent.append(section);
   }
@@ -90,12 +95,32 @@
     const tools=el('div',null,'exp-controls');
     const filterRows=hq?[...base,...data.records()]:base;
     const search=field(tools,'Search official licenses',null,'search');
-    const region=field(tools,'Official region',[['','All reported regions'],...distinct(filterRows,'region'),['__unknown','Not reported']]);
-    const category=field(tools,'Official license classification',[['','All classifications'],...distinct(filterRows,'category')]);
-    const status=field(tools,'Official license status',[['','All statuses'],...distinct(filterRows,'licenseStatus')]);
-    const verified=field(tools,'Verification',[['official','Source verified'],['unverified','Unverified local imports']]);
+    let refinements=tools;
+    if(window.Rated420UX){
+      const disclosure=el('details',null,'ref-filter-disclosure');
+      refinements=el('div',null,'exp-controls');
+      disclosure.append(el('summary','Advanced filters'),refinements);
+      disclosure.open=matchMedia('(min-width: 761px)').matches;
+      const help=el('details',null,'ref-filter-disclosure');
+      help.append(el('summary','About status and verification'),el('p','License status is reported by New York. Source verified means the record can be traced to the state snapshot. Outreach and community ratings are separate.'));
+      card.append(tools,disclosure,help);
+      const density=field(tools,'Record layout',[['cards','Cards'],['compact','Compact']]);
+      const pref='rated420-ux-license-layout';
+      try{density.value=localStorage.getItem(pref)==='compact'?'compact':'cards';}catch{}
+      const setDensity=()=>{
+        card.dataset.density=density.value;
+        try{localStorage.setItem(pref,density.value);}catch{}
+      };
+      density.addEventListener('change',setDensity);
+      card.dataset.density=density.value;
+    }
+
+    const region=field(refinements,'Official region',[['','All reported regions'],...distinct(filterRows,'region'),['__unknown','Not reported']]);
+    const category=field(refinements,'Official license classification',[['','All classifications'],...distinct(filterRows,'category')]);
+    const status=field(refinements,'Official license status',[['','All statuses'],...distinct(filterRows,'licenseStatus')]);
+    const verified=field(refinements,'Verification',[['official','Source verified'],['unverified','Unverified local imports']]);
     if(!hq)verified.options[1].remove();
-    const outreach=hq?field(tools,'Outreach status',[['','All outreach statuses'],...(hq().stages??[]),['none','No CRM opportunity']]):null;
+    const outreach=hq?field(refinements,'Outreach status',[['','All outreach statuses'],...(hq().stages??[]),['none','No CRM opportunity']]):null;
     const summary=el('p');summary.setAttribute('aria-live','polite');
     const grid=el('div',null,'build-grid');const pager=el('div',null,'build-actions');
     let page=0;
@@ -112,6 +137,20 @@
       grid.replaceChildren();
       for(const row of selected.slice(page*12,page*12+12)){
         const entry=el('article',null,'build-card');
+        if(row.verified&&window.Rated420UX){
+          const record=el('details',null,'build-card ref-license-record');
+          const overview=el('summary');
+          const label=el('span',row.dba||row.name||'Business name not reported');
+          const flag=el('span',row.licenseStatus||'Status not reported','ref-license-status');flag.dataset.active=String(row.licenseStatus==='Active');
+          overview.append(label,flag);
+          const brief=el('p',[row.category,row.city||row.county||row.region,'Official public'].filter(Boolean).join(' · '));
+          record.append(overview,brief);
+          const details=el('div');record.append(details);
+          const fill=()=>{if(!details.childElementCount)businessDetails(details,row,{directoryLink:true,hq,create});};
+          record.addEventListener('toggle',()=>{if(record.open)fill();});
+          if(q&&selected.length===1){record.open=true;fill();}
+          grid.append(record);continue;
+        }
         if(row.verified)businessDetails(entry,row,{directoryLink:true,hq,create});
         else entry.append(el('h3',row.name),el('p','Unverified · '+row.kind+' · '+row.category+' · '+(row.licenseStatus||'Status not supplied')),
           el('p','Source: '+sources.find(s=>s.id===row.source)?.name+' · Record '+row.sourceId+' · Imported '+row.at.slice(0,10)));
@@ -122,7 +161,9 @@
       if(page<max)pager.append(action('Next page',()=>{page++;render();}));
     }
     tools.addEventListener('input',()=>{page=0;render();});
-    card.append(tools,summary,grid,pager);parent.append(card);render();
+    if(refinements!==tools)refinements.addEventListener('input',()=>{page=0;render();});
+    if(!tools.isConnected&&tools.parentNode!==card)card.append(tools);
+    card.append(summary,grid,pager);parent.append(card);render();
   }
   function mount(parent,{guard,writable,hq,create}){
     const root=el('section',null,'expansion ri-center');

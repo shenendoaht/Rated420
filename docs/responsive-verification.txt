@@ -1,0 +1,22 @@
+Rated420 responsive verification
+Chrome for Testing 116.0.5845.96 on Linux. Automated viewport checks at
+320, 375, 390, 430, 768, 820, 1024, 1366, 1440 and 1920 px.
+820 × 430 and 1024 × 600 are short landscape viewport cases.
+Physical mobile devices, Finder launch, and a full WCAG audit were not tested.
+
+Browser coverage:
+- Homepage, discovery, account/profile, Stash, strain and dispensary
+  scorecards, business, founder, finance, territory, intelligence, expanded
+  license record and import mapping were checked for unintended page overflow.
+- Keyboard menu open and Escape focus restoration, current destination,
+  slider increments, sidebar desktop persistence, license pagination and
+  provenance disclosure.
+- Existing account, review scoring, Stash consent, moderation, reset, data
+  imports, CRM prospect, and hosted sandbox behaviors via the core suites.
+- Same-origin replacement of the prior build preserved exact demo storage
+  values and rendered a pre-existing CRM organization and import history.
+
+See DATA-VERIFICATION.txt and DATA-INTELLIGENCE.md for data coverage and method.
+The comparison PDF contains real browser screenshots of the prior and refined
+sandbox-style builds at 390 and 1440 CSS pixels. Screenshots use synthetic
+sessions and the same official licensing dataset in both versions.

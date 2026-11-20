@@ -18,5 +18,7 @@ for(const [from,to] of [
   ['docs/rated420-hq-preview.md','HQ-WORKSPACE.md'],
   ['docs/hq-community-expansion.md','HQ-EXPANSION.md'],
   ['docs/data-intelligence.md','DATA-INTELLIGENCE.md'],
-  ['docs/data-intelligence-verification.txt','VERIFICATION.txt']
+  ['docs/data-intelligence-verification.txt','DATA-VERIFICATION.txt'],
+  ['docs/responsive-identity.md','VISUAL-DESIGN.md'],
+  ['docs/responsive-verification.txt','VERIFICATION.txt']
 ])await cp(path.join(root,from),path.join(target,to));

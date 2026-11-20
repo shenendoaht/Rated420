@@ -64,6 +64,7 @@
     const editor=el('dialog',undefined,{class:'gary-dialog'});
     main.append(banner,nav,notice,body,editor);
     host.append(main);
+    window.Rated420UX?.workspace(nav,body,'Founder');
 
     function go(view,id='',preset='') {
       selected=view;detail=id;filter=preset;notice.textContent='';
@@ -417,11 +418,20 @@
     }
     function render() {
       nav.replaceChildren();
-      for(const [view,name] of Object.entries(names)){
+      const controls=Object.fromEntries(Object.entries(names).map(([view,name])=>{
         const link=btn(name,()=>{calendar=false;go(view);});
         link.setAttribute('aria-pressed',String(view===selected));
-        nav.append(link);
-      }
+        return [view,link];
+      }));
+      if(window.Rated420UX){
+        window.Rated420UX.sections(nav,[
+          ['Overview',[controls.dashboard,controls.activity,controls.tasks]],
+          ['Business operations',[controls.organizations,controls.contacts,controls.opportunities]],
+          ['Outreach',[controls.threads,controls.campaigns]],
+          ['Production and resources',[controls.production,controls.documents]],
+          ['Product and data',[controls.products,controls.integrations]]
+        ]);
+      }else nav.append(...Object.values(controls));
       body.replaceChildren(el('h2',names[selected]));
       if(selected==='dashboard'){dashboard(body);return;}
       if(selected==='threads')body.append(el('p','rated420.ny@gmail.com · Local simulated mailbox'));

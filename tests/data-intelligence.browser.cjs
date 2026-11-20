@@ -31,6 +31,8 @@ async function setup(browser,width){
   const field=name=>page.getByLabel(name,{exact:true});
   const heading=name=>page.getByRole('heading',{name,exact:true});
   const switchTo=async label=>{
+    const controls=page.locator('.ref-demo-controls');
+    if(await controls.count()&&!await controls.evaluate(el=>el.open))await controls.locator('summary').click();
     await page.locator('#demoReviewer').selectOption({label});
     await page.locator('#accountPage').waitFor();
   };
@@ -38,6 +40,10 @@ async function setup(browser,width){
     assert.deepEqual(outside,[]);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
     await context.close();
   }};
+}
+async function expandFilters(page){
+  const disclosure=page.locator('.ri-directory .ref-filter-disclosure').filter({has:page.getByText('Advanced filters',{exact:true})});
+  if(await disclosure.count()&&!await disclosure.evaluate(el=>el.open))await disclosure.locator('summary').click();
 }
 (async()=>{
   const browser=await chromium.launch({executablePath:process.env.RATED_TEST_CHROME||'/usr/bin/chromium'});
@@ -66,6 +72,7 @@ async function setup(browser,width){
       await heading('Synthetic license examples').waitFor();
       await page.reload();
       await button('Datasets').click();
+      await expandFilters(page);
       await field('Verification').selectOption('unverified');
       await heading('Sample Lantern Market').waitFor();
       await button('Import').click();
@@ -83,6 +90,7 @@ async function setup(browser,width){
       await button('Commit eligible records').click();
       await heading('JSON reconciliation').waitFor();
       await button('Datasets').click();
+      await expandFilters(page);
       await field('Verification').selectOption('unverified');
       await heading('Updated Sample Lantern').waitFor();
       await button('History').click();
@@ -90,6 +98,7 @@ async function setup(browser,width){
       await button('Revert JSON reconciliation').click();
       await page.getByText(/Reverted 20/).waitFor();
       await button('Datasets').click();
+      await expandFilters(page);
       await field('Verification').selectOption('unverified');
       await heading('Sample Lantern Market').waitFor();
       await button('Sources').click();
@@ -100,6 +109,7 @@ async function setup(browser,width){
       await weed.getByText(/Last local diagnostic.*No live connection/).waitFor();
       await open('#hq/gary/territory');
       await heading('Official license locations').waitFor();
+      await expandFilters(page);
       await field('Official region').selectOption('NYC');
       await field('Official license status').selectOption('Active');
       await field('Search official licenses').fill('MM0106D');
@@ -110,6 +120,7 @@ async function setup(browser,width){
       await page.getByRole('heading',{name:/regional outreach/}).waitFor();
       await open('#hq/gary/territory');
       await field('Search official licenses').fill('MM0106D');
+      await expandFilters(page);
       await field('Outreach status').selectOption('Research');
       await page.getByText(/CRM prospect exists/).waitFor();
       assert.equal(await button('Create local CRM prospect').count(),0);
@@ -121,6 +132,8 @@ async function setup(browser,width){
       assert.equal(href,'https://data.ny.gov/resource/jskf-tt3q.json?license_number=MM0106D&location_id=LID006');
       if(remote)await page.getByText('Rated420 development sandbox',{exact:true}).waitFor();
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      const controls=page.locator('.ref-demo-controls');
+      if(await controls.count()&&!await controls.evaluate(el=>el.open))await controls.locator('summary').click();
       await Promise.all([page.waitForNavigation(),button('Reset demo data').click()]);
       assert.equal(await page.evaluate(()=>localStorage.getItem('rated420-intelligence-v1')),null);
       if(remote){

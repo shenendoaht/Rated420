@@ -335,13 +335,16 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       parent.append(back);
       if(window.mountRatedExpansion){
         const controls=el('nav',undefined,'build-actions');
+        controls.setAttribute('aria-label','Founder workspaces');
         for(const [hash,label] of [['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
           const link=el('a',label,'btn btn-outline');link.href=hash;controls.append(link);
         }
         if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.append(link);}
         parent.append(controls);
         if(initial==='finance'||initial==='territory'){
-          window.mountRatedExpansion(parent,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read(),createProspect});return;
+          const content=el('section');parent.append(content);
+          window.Rated420UX?.workspace(controls,content,'HQ workspaces');
+          window.mountRatedExpansion(content,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read(),createProspect});return;
         }
       }
       window.mountGaryPreview(parent,{initial,assertAccess});
@@ -356,14 +359,22 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       api('library',{kind:current==='Episodes'?'episode':'merch',manage:true}),api('polls',{},'rated420_build01')
     ]);
     return parent=>{
-      const nav=el('div',undefined,'build-actions');
+      const nav=el(window.Rated420UX?'nav':'div',undefined,'build-actions');
+      nav.setAttribute('aria-label','HQ administration');
+      const controls={};
       for(const tab of tabs.filter(t=>t!=='Access'||role==='administrator')){
-        const b=button(tab,()=>{activeTab=tab;void route();});b.setAttribute('aria-pressed',String(tab===current));nav.append(b);
+        const b=button(tab,()=>{activeTab=tab;void route();});b.setAttribute('aria-pressed',String(tab===current));controls[tab]=b;
       }
-      if(gary){const link=el('a','Founder workspace');link.href='#hq/gary';nav.append(link);}
-      if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';nav.append(link);}
+      if(gary){const link=el('a','Founder workspace','btn btn-outline');link.href='#hq/gary';controls.Founder=link;}
+      if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.Intelligence=link;}
+      if(window.Rated420UX){
+        const set=(title,items)=>[title,items.map(key=>controls[key]).filter(Boolean)];
+        window.Rated420UX.sections(nav,[set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom']),
+          set('Insights and access',['Analytics','Access']),set('Founder tools',['Founder','Intelligence'])]);
+      }else nav.append(...Object.values(controls));
       parent.append(nav);
       const content=el('section');parent.append(content);
+      window.Rated420UX?.workspace(nav,content,'Administration');
       if(current==='Analytics'){
         void analytics(content).catch(error=>content.append(el('p',error.message)));return;
       }

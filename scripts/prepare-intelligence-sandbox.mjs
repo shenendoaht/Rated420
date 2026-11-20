@@ -11,7 +11,7 @@ for(const name of await readdir(distribution)){
 const home=path.join(output,'index.html');
 const heading=await readFile(home,'utf8');
 const html=heading.replace('<meta charset="utf-8">','<meta charset="utf-8">\n  <meta name="robots" content="noindex, nofollow, noarchive">')
-  .replace(/<body\b[^>]*>/,match=>match+'\n  <aside class="sandbox-banner" aria-label="Development sandbox"><strong>Rated420 development sandbox</strong><span>Synthetic interactions · official NY license snapshot · changes stay in this browser</span></aside>');
+  .replace(/<body\b[^>]*>/,match=>match+'\n  <aside class="sandbox-banner" aria-label="Development sandbox"><strong>Rated420 development sandbox</strong><span>Synthetic interactions · local browser data</span></aside>');
 if(!html.includes('aria-label="Development sandbox"')||!html.includes("connect-src 'none'"))throw Error('Missing sandbox isolation controls.');
 await writeFile(home,html);
 const styles=path.join(output,'complete-layout.css');

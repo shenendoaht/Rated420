@@ -73,7 +73,13 @@
       client.from('dispensary_community_stats').select('*')
     ]);
     if(!content.isConnected)return;
-    if(id)content.append(link('Back to businesses','#businesses'));
+    if(privateView&&window.Rated420UX){
+      const nav=make('nav');nav.setAttribute('aria-label','Business tools');
+      const overview=link('Dashboard overview','#business-account');overview.setAttribute('aria-current','page');
+      nav.append(overview,link('View public business profile','#businesses/'+id),link('Suggest or track a listing','#contribute'));
+      host.insertBefore(nav,content);
+      window.Rated420UX.workspace(nav,content,'Business');
+    }else if(id)content.append(link('Back to businesses','#businesses'));
     const grid=make('div',null,'build-grid');content.append(grid);
     for(const entity of entities){
       const card=make('article',null,'build-card');
@@ -92,7 +98,10 @@
         card.append(link('Dispensary listing and reviews','#dispensaries/'+entity.listing));
         if(rating)card.append(make('p',Math.round(rating.avg_total)+' / 420 · '+rating.review_count+' dispensary reviewers'));
       }
-      if(privateView)card.append(make('h3','Business dashboard'),make('p','You represent this organization. Listing suggestions go to the moderation queue.'),link('Suggest or track a listing','#contribute'));
+      if(privateView){
+        card.append(make('h3','Business dashboard'),make('p','You represent this organization. Listing suggestions go to the moderation queue.'));
+        if(!window.Rated420UX)card.append(link('Suggest or track a listing','#contribute'));
+      }
       grid.append(card);
     }
     if(!id)intelligence?.directory(content);
