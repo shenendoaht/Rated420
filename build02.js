@@ -313,7 +313,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     finish();
   }
 
-  async function hq(founder, initial, intelligence, editorial) {
+  async function hq(founder, initial, intelligence, editorial, catalogManager) {
     const role=await api('role');
     if(!member()||role==='member')return parent=>parent.append(el('p','Rated420 HQ is available to authorized staff.'),...(!member()?[button('Log in',login)]:[]));
     const identity=member().id;
@@ -323,6 +323,10 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
         throw Error('Sign in as authorized staff to change this workspace.');
     };
     const createProspect=(id,org)=>window.GaryStore.openStore(assertAccess).dispatch('official-prospect',{record:id,org},window.GaryStore.founders[0]);
+    if(catalogManager&&window.Rated420CatalogueUI)return parent=>{
+      if(!canEnterWorkspace()){parent.append(el('p','Catalogue management is available to founders and administrators.'));return;}
+      window.Rated420CatalogueUI.manager(parent,{guard:assertAccess,actor:identity});
+    };
     if(editorial&&window.Rated420Editorial)return parent=>{
       if(!canEnterWorkspace()){parent.append(el('p','Editorial editing is available to founders and administrators.'));return;}
       const back=el('a','Back to Rated420 HQ','btn btn-outline');back.href='#hq';
@@ -346,6 +350,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
         }
         if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.append(link);}
         if(window.Rated420Editorial){const link=el('a','Editorial content','btn btn-outline');link.href='#hq/content';controls.append(link);}
+        if(window.Rated420CatalogueUI){const link=el('a','Catalogue Manager','btn btn-outline');link.href='#hq/catalogue';controls.append(link);}
         parent.append(controls);
         if(initial==='finance'||initial==='territory'){
           const content=el('section');parent.append(content);
@@ -374,9 +379,10 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       if(gary){const link=el('a','Founder workspace','btn btn-outline');link.href='#hq/gary';controls.Founder=link;}
       if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.Intelligence=link;}
       if(window.Rated420Editorial&&canEnterWorkspace()){const link=el('a','Editorial content','btn btn-outline');link.href='#hq/content';controls.Editorial=link;}
+      if(window.Rated420CatalogueUI&&canEnterWorkspace()){const link=el('a','Catalogue Manager','btn btn-outline');link.href='#hq/catalogue';controls.Manager=link;}
       if(window.Rated420UX){
         const set=(title,items)=>[title,items.map(key=>controls[key]).filter(Boolean)];
-        window.Rated420UX.sections(nav,[set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom','Editorial']),
+        window.Rated420UX.sections(nav,[set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom','Editorial','Manager']),
           set('Insights and access',['Analytics','Access']),set('Founder tools',['Founder','Intelligence'])]);
       }else nav.append(...Object.values(controls));
       parent.append(nav);
@@ -456,7 +462,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {
-      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview,id==='intelligence',id==='content'),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
+      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview,id==='intelligence',id==='content',id==='catalogue'),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
       if(token===request&&location.hash===hash){area.replaceChildren();render(area);}
     } catch(error){
       if(token===request&&location.hash===hash){area.textContent=error.message;area.append(button('Try again',route));}

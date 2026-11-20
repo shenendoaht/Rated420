@@ -13,6 +13,11 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
   if(complete&&!fixtures.items.some(item=>item.id==='org-brand')){
     fixtures.items.push({id:'org-brand',kind:'brand',name:'Field Signal',description:'Synthetic brand affiliated with Hudson Lantern Farm.'});
   }
+  if(complete)for(const row of window.Rated420CatalogueFixtures?.brands||[]){
+    if(!fixtures.items.some(item=>item.id===row.reviewId)){
+      fixtures.items.push({id:row.reviewId,kind:'brand',name:row.name,description:'Independent Rated420 brand scorecard.'});
+    }
+  }
   const { id, kind } = payload;
   const role=state.build02?.roles[actor];
   const staff = role ? role !== 'member' : complete ? Boolean(COMPLETE_ACCOUNTS.find(entry=>entry.id===actor)?.role) : [users[0],users[2],users[3]].includes(actor);

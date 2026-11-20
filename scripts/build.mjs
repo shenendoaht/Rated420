@@ -58,6 +58,7 @@ if (staging) {
     .replace(productionOrigin, 'https://rated420-demo.invalid')
     .replace(/const SUPABASE_PUBLISHABLE_KEY = '[^']+';/, "const SUPABASE_PUBLISHABLE_KEY = 'synthetic';"));
   if (complete) {
+    for(const name of ['store.js','ui.js','layout.css'])files.set('catalogue-'+name,await readFile(path.join(root,'preview/catalogue',name),'utf8'));
     for(const name of ['store.js','content.js','design.css'])files.set('editorial-'+name,await readFile(path.join(root,'preview/editorial',name),'utf8'));
     for(const [file,target] of [['design.css','refinement-design.css'],['navigation.js','refinement-navigation.js']])files.set(target,await readFile(path.join(root,'preview/refinement',file),'utf8'));
     for(const name of ['official-data.js','sources.js','store.js','ui.js','layout.css'])files.set('intelligence-'+name,await readFile(path.join(root,'preview/intelligence',name),'utf8'));
@@ -65,15 +66,15 @@ if (staging) {
       files.set(target,await readFile(path.join(root,source),'utf8'));
     }
     files.set('index.html',files.get('index.html').replace('<title>','<link rel="stylesheet" href="complete-layout.css">\n  <link rel="stylesheet" href="intelligence-layout.css">\n  <title>')
-      .replace('</head>','  <link rel="stylesheet" href="refinement-design.css">\n  <link rel="stylesheet" href="editorial-design.css">\n</head>')
+      .replace('</head>','  <link rel="stylesheet" href="refinement-design.css">\n  <link rel="stylesheet" href="editorial-design.css">\n  <link rel="stylesheet" href="catalogue-layout.css">\n</head>')
       .replace("connect-src 'none'; form-action 'none'; script-src 'self'; object-src 'none'; base-uri 'none'","default-src 'none'; connect-src 'none'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'none'")
-      .replace('<script src="app.js"></script>','<script src="intelligence-official-data.js"></script><script src="intelligence-sources.js"></script><script src="intelligence-store.js"></script><script src="intelligence-ui.js"></script><script src="profile-examples.js"></script><script src="complete-navigation.js"></script><script src="refinement-navigation.js"></script><script src="editorial-store.js"></script><script src="editorial-content.js"></script><script src="app.js"></script>'));
+      .replace('<script src="app.js"></script>','<script src="intelligence-official-data.js"></script><script src="intelligence-sources.js"></script><script src="intelligence-store.js"></script><script src="intelligence-ui.js"></script><script src="profile-examples.js"></script><script src="complete-navigation.js"></script><script src="refinement-navigation.js"></script><script src="editorial-store.js"></script><script src="editorial-content.js"></script><script src="catalogue-store.js"></script><script src="catalogue-ui.js"></script><script src="app.js"></script>'));
   }
   const seed = await readFile(path.join(root, 'preview/seed.json'), 'utf8');
   const client = await readFile(path.join(root, 'preview/client.js'), 'utf8');
   const adapter = await readFile(path.join(root, 'preview/build01-adapter.js'), 'utf8');
   const hqAdapter = await readFile(path.join(root, 'preview/build02-adapter.js'), 'utf8');
-  const dataset = complete ? await readFile(path.join(root,'preview/complete/dataset.js'),'utf8') : '';
+  const dataset = complete ? (await readFile(path.join(root,'preview/catalogue/fixtures.js'),'utf8'))+'\n'+(await readFile(path.join(root,'preview/complete/dataset.js'),'utf8')) : '';
   files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + dataset + '\n' + adapter + '\n' + hqAdapter + '\n' + client);
 
   for (const [file, content] of files) {

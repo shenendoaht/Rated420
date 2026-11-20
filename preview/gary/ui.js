@@ -336,6 +336,7 @@
       }
       parent.append(grid);
       window.Rated420IntelligenceUI?.dashboard(parent,true);
+      window.Rated420CatalogueUI?.dashboard(parent);
       const act=card(parent,'Recent activity');
       state.activity.slice(0,5).forEach(x=>act.append(el('p',x.text+' · '+x.owner)));
       act.append(btn('Open activity log',()=>go('activity')));

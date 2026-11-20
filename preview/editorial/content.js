@@ -110,9 +110,9 @@
     values.removeImage=form.elements.removeImage.checked;
     return values;
   }
-  function mountHQ(parent,guard){
+  function mountHQ(parent,guard,options={}){
     const service=store.session(guard);
-    let section='Accessories';
+    let section=options.section||'Accessories';
     const status=el('p');status.setAttribute('role','status');
     const content=el('div');
     const nav=el('nav',null,'build-actions');nav.setAttribute('aria-label','Editorial content sections');
@@ -153,7 +153,7 @@
     }
     function render(){
       nav.replaceChildren();content.replaceChildren();
-      for(const name of ['Accessories','Team and story']){
+      for(const name of options.locked?[section]:['Accessories','Team and story']){
         const tab=button(name,()=>{section=name;render();});tab.setAttribute('aria-pressed',String(name===section));nav.append(tab);
       }
       const state=store.read();

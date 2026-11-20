@@ -64,6 +64,8 @@
       el('p','Official public data · source verified · '+row.version),
       el('p','License '+row.sourceId+(row.locationId?' · Location '+row.locationId:'')+' · Issued '+(row.issued?.slice(0,10)||'not reported')+' · Expires '+(row.expires?.slice(0,10)||'not reported')),
       link('View original OCM record',data.recordUrl(row)));
+    const curated=window.Rated420Catalogue?.published().find(item=>item.licenseId===row.id);
+    if(curated)parent.append(link('View curated dispensary profile',window.Rated420CatalogueUI.path(curated)));
     if(options.directoryLink)parent.append(link('Open business profile','#businesses/'+encodeURIComponent(row.id)));
     if(options.hq){
       const state=options.hq();

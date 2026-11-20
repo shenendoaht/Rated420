@@ -16,3 +16,11 @@ const COMPLETE_REVIEW_FORMATS=['Flower','Pre-Roll','Infused Pre-Roll','Vape Cart
 COMMUNITY_DEMO_SEED.strains.push({id:104,name:'Amber Trail Flower'});
 
 Object.assign(COMMUNITY_DEMO_SEED.dispensaries[0],{name:'North Loop Dispensary',location:'Albany, NY'});
+
+for(const row of window.Rated420CatalogueFixtures?.licensed||[]){
+  const prefix=row.licenseId.slice(4).split('~');
+  // Keep review IDs distinct from source/licensing identifiers.
+  const locations={'OCM-CAURD-24-000122':'Nyack, NY','OCM-CAURD-24-000104':'Cortlandt Manor, NY',
+    'OCM-CAURD-26-000342':'Peekskill, NY','OCM-RETL-24-000157':'Haverstraw, NY','OCM-RETL-24-000060':'Haverstraw, NY'};
+  COMMUNITY_DEMO_SEED.dispensaries.push({id:row.reviewId,name:row.name,location:locations[prefix[0]]});
+}

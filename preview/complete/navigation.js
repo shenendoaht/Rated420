@@ -77,6 +77,7 @@
       const nav=make('nav');nav.setAttribute('aria-label','Business tools');
       const overview=link('Dashboard overview','#business-account');overview.setAttribute('aria-current','page');
       nav.append(overview,link('View public business profile','#businesses/'+id),link('Suggest or track a listing','#contribute'));
+      if(window.Rated420CatalogueUI)nav.append(link('Propose catalogue edits','#business-catalogue'));
       host.insertBefore(nav,content);
       window.Rated420UX.workspace(nav,content,'Business');
     }else if(id)content.append(link('Back to businesses','#businesses'));
@@ -104,6 +105,9 @@
       }
       grid.append(card);
     }
-    if(!id)intelligence?.directory(content);
+    if(!id){
+      if(window.Rated420CatalogueUI)content.append(link('Browse curated dispensary profiles','#catalogue/dispensary'));
+      intelligence?.directory(content);
+    }
   };
 })();

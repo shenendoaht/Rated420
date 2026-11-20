@@ -42,7 +42,7 @@
   const more=group('About',[about,navLink('#team','Team and company story'),shortcut('#contact')]);
   const explore=catalogue.querySelector('summary');
   explore.textContent='Explore';
-  catalogue.querySelector('.nav-catalogue-links').append(shortcut('#businesses'));
+  catalogue.querySelector('.nav-catalogue-links').append(navLink('#catalogue','Interconnected catalogue'),shortcut('#businesses'));
   nav.replaceChildren(navLink('#home','Home'),catalogue,community,media,more,navLink('#hq','Rated420 HQ'));
   shortcuts.remove();
 

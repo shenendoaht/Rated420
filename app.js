@@ -72,7 +72,7 @@
     currentPage = name;
     if (name !== 'account') document.getElementById('accountStash')?.replaceChildren();
     const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq', 'demo-reviews':'hq' };
-    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home',team:'hq'});
+    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home',team:'hq',catalogue:'hq','business-catalogue':'hq'});
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
@@ -1285,6 +1285,11 @@ function renderDispensarySummary() {
   if (!listing) return;
   const stats = dispensaryStats.find(d => Number(d.dispensary_id) === selectedDispensaryId);
   box.append(makeNode('h2','',listing.name + ' · ' + listing.location));
+  const catalogue=window.Rated420Catalogue?.published().find(row=>row.type==='dispensary'&&row.reviewId===Number(listing.id));
+  if(catalogue){
+    const profile=makeNode('a','btn btn-outline','Open curated dispensary profile');
+    profile.href=window.Rated420CatalogueUI.path(catalogue);box.append(profile);
+  }
   appendCommunityScore(box,stats);
   if (stats) {
     const categories = makeNode('div','strain-avg-categories');
@@ -1529,10 +1534,30 @@ function refreshCommunityScores() {
   const build02 = window.createBuild02({client:()=>db,member:()=>user,page,login:()=>showAuth(),avatarImage});
   async function routeHash() {
     const hash = location.hash;
-    const [route, id] = hash.slice(1).split('/');
+    const [route, id, detail] = hash.slice(1).split('/');
     if(window.RatedComplete && ['home','about'].includes(route)){
       home();
       if(route==='about')$(window.Rated420Editorial?'how-it-works':'rated420-standard').scrollIntoView();
+    } else if(['catalogue','business-catalogue'].includes(route)&&window.Rated420CatalogueUI){
+      page('hq');
+      const parent=$('hqContent'),title=$('hqTitle');parent.replaceChildren();
+      const guardedActor=window.RatedComplete.actor();
+      const memberGuard=async actor=>{
+        if(!actor||actor!==window.RatedComplete.actor()||actor!==user?.id)throw Error('Choose a signed-in demo account first.');
+      };
+      if(route==='catalogue'){
+        title.textContent='Rated420 Catalogue';
+        window.Rated420CatalogueUI.open(parent,id,detail&&decodeURIComponent(detail),{title,memberGuard});
+      }else{
+        title.textContent='Business catalogue contributions';
+        const entity=window.RatedComplete.business();
+        if(!entity)parent.append(makeNode('p','','This workspace is available to the simulated business representative.'));
+        else window.Rated420CatalogueUI.business(parent,{actor:guardedActor,entity,guard:async()=>{
+          await memberGuard(guardedActor);
+          if(window.RatedComplete.business()!==entity)throw Error('You can only propose changes for this business account.');
+        }});
+      }
+      title.focus({preventScroll:true});
     } else if(route==='team'&&window.Rated420Editorial){
       page('hq');
       const parent=$('hqContent');parent.replaceChildren();
@@ -1563,6 +1588,7 @@ function refreshCommunityScores() {
     } else if (route === 'strains' && db) {
       page('strain');
       await loadStrainCatalogue();
+      if(window.Rated420CatalogueUI){const link=$('strainPage').querySelector('.catalogue-entry-link')||makeNode('a','btn btn-outline catalogue-entry-link','Browse cultivars and finished products');link.href='#catalogue/product';$('strainPageTitle').after(link);}
       if (id && hash === location.hash) {
         const item = knownStrains.find(row => String(row.id) === id);
         if (item) selectStrain(item);

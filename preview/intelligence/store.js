@@ -82,7 +82,7 @@
     return {row};
   }
   function preview(input,format,mapping,source='manual'){
-    if(!['manual','findweedny','weedmaps','leafly','partner','rated420'].includes(source))throw Error('Select a local source.');
+    if(source==='ocm'||!window.Rated420DataSources.some(row=>row.id===source))throw Error('Select a local source.');
     const existing=records();
     const exact=new Set(existing.map(row=>row.id));
     const names=new Set([...byName,...existing.map(row=>fold(row.name))]);

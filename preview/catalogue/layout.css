@@ -1,0 +1,14 @@
+.rated-refined .catalogue-image{position:relative;display:grid;place-content:center;gap:.3rem;aspect-ratio:16/9;overflow:hidden;margin:0 0 .8rem;
+  background:linear-gradient(140deg,var(--surface-deep),var(--amethyst));border:1px solid var(--edge);border-radius:var(--radius);color:var(--text-dim);text-align:center}
+.rated-refined .catalogue-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.rated-refined .catalogue-image figcaption{position:absolute;bottom:0;inset-inline:0;background:#110c20d9;padding:.25rem;color:var(--pearl);font-size:.78rem}
+.rated-refined .catalogue-wordmark{color:var(--pearl);font-family:'Space Grotesk',system-ui,sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.15em}
+.rated-refined .catalogue-caption,.rated-refined .catalogue-meta{font-size:.8rem;color:var(--text-dim)}
+.rated-refined .catalogue-card>h2{font-size:clamp(1.2rem,2vw,1.65rem);line-height:1.2;margin:.35rem 0}
+.rated-refined .catalogue-card{display:flex;flex-direction:column;min-width:0}
+.rated-refined .catalogue-card>.btn{align-self:start;margin-top:auto}
+.rated-refined .catalogue-grid[data-layout=compact]{grid-template-columns:minmax(0,1fr)}
+.rated-refined .catalogue-grid[data-layout=compact] .catalogue-image{max-width:12rem}
+.rated-refined .catalogue-profile .catalogue-image{max-width:40rem}
+.rated-refined .catalogue-admin-preview{max-height:9rem;object-fit:contain;border-radius:var(--pill)}
+.rated-refined .build-form select[multiple]{min-height:7rem}

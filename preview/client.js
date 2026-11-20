@@ -8,7 +8,18 @@
   if(complete)users.splice(0,users.length,...COMPLETE_ACCOUNTS.map(account=>account.id));
   const callbacks=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
-  const read=()=>{try{return JSON.parse(localStorage.getItem(key))||clone(COMMUNITY_DEMO_SEED);}catch{return clone(COMMUNITY_DEMO_SEED);}};
+  const read=()=>{
+    let state;
+    try{state=JSON.parse(localStorage.getItem(key));}catch{}
+    if(!state)return clone(COMMUNITY_DEMO_SEED);
+    if(complete&&window.Rated420CatalogueFixtures){
+      const additions=window.Rated420CatalogueFixtures.licensed;
+      for(const row of COMMUNITY_DEMO_SEED.dispensaries){
+        if(additions.some(item=>item.reviewId===row.id)&&!state.dispensaries.some(item=>item.id===row.id))state.dispensaries.push({...row});
+      }
+    }
+    return state;
+  };
   const save=data=>localStorage.setItem(key,JSON.stringify(data));
   const photoBlobs = new Map();
   const photoUrls = new Map();
@@ -97,6 +108,7 @@
     products(){const state=read();return state.strains.filter(row=>!state.build02?.archive?.includes('strain:'+row.id));},
     publish(row,text,owner){
       if(!actor||actor!==owner)throw Error('Sign in as the journal owner to publish.');
+      if(account(actor)?.organization)throw Error('Business personas use catalogue proposals. Community scoring requires a reviewer persona.');
       if(row.status!=='Tried'||!COMPLETE_REVIEW_FORMATS.includes(row.format)||row.scores.length!==5||
         row.scores.some(n=>!Number.isInteger(n)||n<0||n>84)||text.length>1200)throw Error('Complete a valid strain scorecard before publishing.');
       const state=read();
@@ -156,6 +168,7 @@
       const matches=row=>this.filters.every(filter=>filter(row));
       if(this.operation!=='read'){
         if(!actor)return error('Choose a demo reviewer in the preview toolbar first.');
+        if(complete&&account(actor)?.organization&&categories[this.table])return error('Business personas cannot change community scores.');
         if(this.table==='member_profiles'&&this.operation==='update'&&rows.some(matches)){
           state.demoProfiles||={};
           state.demoProfiles[actor]={...rows[0],...this.value};
@@ -208,6 +221,7 @@
           if(['submit','moderate','catalog_edit','library_save','staff_role'].includes(operation))save(state);
           return {data,error:null};
         }
+        if(complete&&account(actor)?.organization&&operation==='review')return error('Business personas cannot change community scores.');
         const data=runBuild01Fixture(operation,payload,state,actor,users,demoProfile);
         if(['favorite','review','vote','publish','close'].includes(operation))save(state);
         return {data,error:null};
@@ -289,7 +303,7 @@
       localStorage.removeItem(key);
       if(complete){
         localStorage.removeItem(actorKey);
-        for(const name of Object.keys(localStorage))if(/^rated420-(?:expansion-v1:|gary-preview-v1$|hq-profile-examples-v1$|complete-contact-v1$|intelligence-v1$|editorial-v1$)/.test(name))localStorage.removeItem(name);
+        for(const name of Object.keys(localStorage))if(/^rated420-(?:expansion-v1:|gary-preview-v1$|hq-profile-examples-v1$|complete-contact-v1$|intelligence-v1$|editorial-v1$|catalogue-v1$)/.test(name))localStorage.removeItem(name);
         history.replaceState(null,'',location.pathname);
       }
       location.reload();

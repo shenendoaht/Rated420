@@ -208,6 +208,7 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
       reviewForm(parent, kind, data);
       return;
     }
+    if(kind==='brand'&&window.Rated420CatalogueUI)parent.append(link('Browse curated brand profiles','#catalogue/brand'));
     if(kind==='accessory'&&window.Rated420Editorial)window.Rated420Editorial.renderAccessories(parent);
     parent.append(node('p', kind === 'brand' ? 'Explore the makers behind the catalogue.' : 'Explore the gear behind the experience.', 'build-lede'));
     const grid = node('div', undefined, 'build-grid');
