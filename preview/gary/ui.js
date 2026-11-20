@@ -44,10 +44,10 @@
     parent.append(x);return x;
   }
 
-  function mount(host,{assertAccess,initial='dashboard'}={}) {
+  function mount(host,{assertAccess,initial='dashboard',initialRecord,backToTerritory}={}) {
     const store=openStore(assertAccess??(()=>{}));
     let selected=Object.hasOwn(names,initial)?initial:'dashboard';
-    let detail='', filter='', owner=founders[0], folder='Inbox', month=new Date().toISOString().slice(0,7), calendar=false;
+    let detail=initialRecord||'', filter='', query='', order='name', owner=founders[0], folder='Inbox', month=new Date().toISOString().slice(0,7), calendar=false;
     let state=store.read();
     const main=el('section',undefined,{class:'gary-hq'});
     const notice=el('p',undefined,{role:'status',class:'gary-status'});
@@ -58,7 +58,8 @@
     for(const name of founders)roles.append(el('option',name,{value:name}));
     roles.addEventListener('change',()=>{owner=roles.value;});
     who.append(roles);
-    banner.append(who,btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));}));
+    const reset=btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));});
+    reset.className='btn btn-danger';banner.append(who,reset);
     const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
@@ -66,10 +67,23 @@
     host.append(main);
     window.Rated420UX?.workspace(nav,body,'Founder');
 
+    const trail=[];
+    function focusHeading(){
+      const heading=body.querySelector('h2');
+      heading.tabIndex=-1;heading.focus({preventScroll:true});
+    }
     function go(view,id='',preset='') {
+      if(id&&(view!==selected||id!==detail))trail.push({selected,detail,filter,query,order,folder,calendar});
+      if(!id){trail.length=0;query='';order='name';}
       selected=view;detail=id;filter=preset;notice.textContent='';
       if(editor.open)editor.close();
-      render();
+      render();focusHeading();
+    }
+    function back(){
+      const prior=trail.pop();
+      if(!prior){go(selected);return;}
+      ({selected,detail,filter,query,order,folder,calendar}=prior);
+      render();focusHeading();
     }
     async function mutate(action,data,done=()=>render()) {
       try {
@@ -314,7 +328,7 @@
       }
     }
 
-    function dashboard(parent) {
+    function legacyDashboard(parent) {
       const metrics=[
         ['Organizations','organizations',state.organizations.length],
         ['Contacts','contacts',state.contacts.length],
@@ -341,6 +355,46 @@
       state.activity.slice(0,5).forEach(x=>act.append(el('p',x.text+' · '+x.owner)));
       act.append(btn('Open activity log',()=>go('activity')));
     }
+    function dashboard(parent){
+      if(!window.RatedComplete){legacyDashboard(parent);return;}
+      const today=new Date().toISOString().slice(0,10);
+      const rows=el('div',undefined,{class:'ops-board'});
+      const taskQueue=state.tasks.filter(row=>!row.done).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
+      const mail=state.threads.filter(row=>row.messages.some(message=>message.direction==='Drafts')||
+        row.messages.at(-1)?.direction==='Inbox');
+      const pipeline=state.opportunities.filter(row=>!['Completed','Declined','Archived'].includes(row.stage));
+      const production=state.production.filter(row=>['Scheduled','In production','Ready'].includes(row.status))
+        .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+      const queue=(title,view,items,description,empty)=>{
+        const panel=card(rows,title,items.length+' '+(items.length===1?'record':'records'));
+        panel.classList.add('ops-queue');
+        const list=el('ul',undefined,{class:'ops-list'});
+        for(const row of items.slice(0,4)){
+          const item=el('li');
+          const control=btn(row.name||row.subject,()=>go(view,row.id));
+          control.className='btn btn-tertiary';
+          item.append(control,el('span',description(row),{class:'ops-meta'}));list.append(item);
+        }
+        if(items.length)panel.append(list);
+        else panel.append(el('p',empty));
+        panel.append(btn('Open '+names[view],()=>go(view)));
+      };
+      queue('Follow-ups','tasks',taskQueue,row=>[row.due?(row.due<today?'Overdue · ':row.due===today?'Due today · ':'Due ')+row.due:'No due date',row.owner].join(' · '),'No open founder tasks.');
+      queue('Correspondence to review','threads',mail,row=>row.messages.some(message=>message.direction==='Drafts')?'Draft awaiting action':'Latest message received','No drafts or recent incoming threads.');
+      queue('Opportunity pipeline','opportunities',pipeline,row=>[row.stage,row.owner].filter(Boolean).join(' · '),'No open opportunities.');
+      queue('Scheduled production','production',production,row=>[row.status,row.date,row.owner].filter(Boolean).join(' · '),'No scheduled or in-progress projects.');
+      const approvals=card(rows,'Approvals and import review');
+      const catalogue=window.Rated420Catalogue?.read();
+      const pending=catalogue?.proposals.filter(row=>row.state==='Pending review').length||0;
+      approvals.append(el('a',pending+' catalogue proposals to review',{href:'#hq/catalogue/proposals',class:'btn btn-tertiary'}));
+      const intake=state.imports.flatMap(batch=>batch.records).filter(row=>!['Approved','Linked duplicate'].includes(row.status));
+      approvals.append(btn(intake.length+' demo intake rows awaiting review',()=>go('integrations')));
+      const activity=card(rows,'Recent activity');
+      for(const item of state.activity.slice(0,3))activity.append(el('p',item.text+' · '+item.owner));
+      if(!state.activity.length)activity.append(el('p','No workspace changes recorded.'));
+      activity.append(btn('Open activity log',()=>go('activity')));
+      parent.append(rows);
+    }
     function calendarView(parent,rows) {
       const controls=el('div',undefined,{class:'gary-tools'});
       const form=el('div');
@@ -364,8 +418,8 @@
 
     function list(parent) {
       const controls=el('div',undefined,{class:'gary-tools'});
-      const search=input(controls,['search','Search '+names[selected].toLowerCase(),'search'],'');
-      const sorts=input(controls,['sort','Sort','select',[['name','Name A–Z'],['reverse','Name Z–A']]],'name');
+      const search=input(controls,['search','Search '+names[selected].toLowerCase(),'search'],query);
+      const sorts=input(controls,['sort','Sort','select',[['name','Name A–Z'],['reverse','Name Z–A']]],order);
       const options={
         organizations:classifications,opportunities:[...state.stages,'Prospective'],campaigns:['Active','Draft','Paused','Completed'],
         production:['Scheduled','Concept','In production','Ready','Published'],tasks:['Open','Upcoming','Completed'],
@@ -388,8 +442,9 @@
       const count=el('p',undefined,{'aria-live':'polite'});
       parent.append(controls,count,result);
       function update() {
-        const f=filterBox?.value??'';
-        const searchValue=search.value.toLowerCase().trim();
+        filter=filterBox?.value??'';query=search.value;order=sorts.value;
+        const f=filter;
+        const searchValue=query.toLowerCase().trim();
         const matches=r=>{
           if(!f)return true;
           if(f==='Prospective')return !['Confirmed','Completed','Declined','Archived'].includes(r.stage);
@@ -425,12 +480,12 @@
         return [view,link];
       }));
       if(window.Rated420UX){
+        const link=(label,href)=>el('a',label,{href,class:'btn btn-tertiary'});
         window.Rated420UX.sections(nav,[
-          ['Overview',[controls.dashboard,controls.activity,controls.tasks]],
-          ['Business operations',[controls.organizations,controls.contacts,controls.opportunities]],
-          ['Outreach',[controls.threads,controls.campaigns]],
-          ['Production and resources',[controls.production,controls.documents]],
-          ['Product and data',[controls.products,controls.integrations]]
+          ['Today',[controls.dashboard,controls.tasks,controls.threads]],
+          ['Business',[controls.organizations,controls.contacts,controls.campaigns,controls.opportunities]],
+          ['Intelligence',[controls.products,controls.integrations,link('Territory Explorer','#hq/gary/territory'),link('Data Intelligence Center','#hq/intelligence')]],
+          ['Operations',[controls.production,controls.documents,controls.activity,link('Financial Command Center','#hq/gary/finance')]]
         ]);
       }else nav.append(...Object.values(controls));
       body.replaceChildren(el('h2',names[selected]));
@@ -438,7 +493,9 @@
       if(selected==='threads')body.append(el('p','rated420.ny@gmail.com · Local simulated mailbox'));
       const row=detail&&find(selected,detail);
       if(!row){list(body);return;}
-      body.append(btn('Back to '+names[selected],()=>go(selected)));
+      if(backToTerritory)body.append(el('a','Back to Territory Explorer',{href:'#hq/gary/territory',class:'btn btn-tertiary'}));
+      const previous=trail.at(-1);
+      body.append(btn('Back to '+names[previous?.selected||selected],back));
       if(selected==='campaigns')campaign(body,row);
       else if(selected==='threads')thread(body,row);
       else if(selected==='integrations')integration(body,row);

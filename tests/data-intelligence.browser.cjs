@@ -103,6 +103,7 @@ async function expandFilters(page){
       await heading('Sample Lantern Market').waitFor();
       await button('Sources').click();
       const weed=page.getByRole('article').filter({has:heading('Weedmaps')});
+      await weed.getByText('Provenance and controls',{exact:true}).click();
       await weed.getByLabel(/Sync mode/).selectOption('Scheduled proposal');
       await weed.getByRole('button',{name:'Save synchronization proposal'}).click();
       await weed.getByRole('button',{name:'Check local availability'}).click();
@@ -135,6 +136,7 @@ async function expandFilters(page){
       const controls=page.locator('.ref-demo-controls');
       if(await controls.count()&&!await controls.evaluate(el=>el.open))await controls.locator('summary').click();
       await Promise.all([page.waitForNavigation(),button('Reset demo data').click()]);
+      await page.locator('#homePage h1').waitFor();
       assert.equal(await page.evaluate(()=>localStorage.getItem('rated420-intelligence-v1')),null);
       if(remote){
         const fresh=await setup(browser,width);

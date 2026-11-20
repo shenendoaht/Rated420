@@ -11,7 +11,10 @@
     return a;
   }
   function button(text,fn){
-    const b=el('button',text,'btn '+(text.startsWith('Archive ')||text==='Decline proposal'?'btn-danger':'btn-outline'));b.type='button';b.addEventListener('click',fn);return b;
+    const b=el('button',text,'btn '+(text.startsWith('Archive ')||text==='Decline proposal'?'btn-danger':'btn-outline'));b.type='button';b.addEventListener('click',event=>{
+      if(b.classList.contains('btn-danger')&&!window.confirm(text+'?'))return;
+      fn(event);
+    });return b;
   }
   const path=row=>'#catalogue/'+row.type+'/'+encodeURIComponent(row.id);
   const native=row=>row.reviewId?({strain:'#strains/',dispensary:'#dispensaries/',brand:'#brands/'}[row.type]||'')+row.reviewId:'';
@@ -209,12 +212,12 @@
       const media=el('details');media.append(el('summary','Propose an authorized image'));assetFields(media,true);form.append(media);
     },async values=>{await store.propose(guard,actor,entity,values);refresh();});
   }
-  function manager(parent,{guard,actor}){
+  function manager(parent,{guard,actor,initial}){
     const service=store.manager(guard,actor);
     const status=el('p');status.setAttribute('role','status');
     const nav=el('nav',null,'build-actions');nav.setAttribute('aria-label','Catalogue manager sections');
     const content=el('div');
-    let view='Overview',selected='',type='',filter='',query='',sort='Name';
+    let view=({records:'Records',proposals:'Proposals',media:'Media'})[initial]||'Overview',selected='',type='',filter='',query='',sort='Name';
     parent.append(el('h2','Catalogue Manager'),el('p','Review linked records, rights, and business proposals before browser-local publication.'),
       link('Data Intelligence Center','#hq/intelligence'),link('Founder workspace','#hq/gary'),nav,status,content);
     const set=async(action,message)=>{

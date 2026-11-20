@@ -106,6 +106,7 @@ const origin='http://127.0.0.1:8768';
       await switchTo('Founder · Jordan');
       await go('#hq/gary');
       await heading('Overview').waitFor();
+      await openSidebar('Founder');
       await page.getByRole('link',{name:'Financial Command Center'}).click();
       await heading('Posted revenue').waitFor();
       await openSidebar('HQ workspaces');

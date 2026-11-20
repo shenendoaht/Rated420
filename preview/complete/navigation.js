@@ -13,7 +13,7 @@
   const browse=document.querySelector('.home-catalogue h2');
   if(browse){
     const trail=make('div',null,'build-actions home-editorial-links');
-    trail.append(link('Browse finished products','#catalogue/product'),link('Treehouse profile','#catalogue/dispensary/treehouse'),link('RYTHM profile','#catalogue/brand/rythm'));
+    trail.append(link('Browse the full catalogue','#catalogue'));
     browse.after(trail);
   }
   nav.append(...[['Home','#home'],['About','#about'],['Discover','#discover'],['Business directory','#businesses'],

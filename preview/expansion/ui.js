@@ -14,7 +14,7 @@
     return result;
   };
   function button(name, run){
-    const b=el('button',name);b.type='button';b.addEventListener('click',run);return b;
+    const b=el('button',name,'btn '+(/^(Delete|Reset) /.test(name)?'btn-danger':/^Add /.test(name)?'btn-primary':'btn-outline'));b.type='button';b.addEventListener('click',run);return b;
   }
   function box(parent, text, message){
     const card=el('article',undefined,'exp-card');
@@ -47,9 +47,21 @@
     const dialog=el('dialog');dialog.setAttribute('aria-label','Record editor');
     node.append(el('h2',title[area]),el('p',area==='stash'?'Private synthetic journal · saved in this browser':area==='public'?'Synthetic public projection · only explicitly confirmed reviews appear here':'Synthetic demonstration data · saved in this browser'),status,content,dialog);
     const repository=adapters.session(area,guard,area==='stash'?actor:'');
-    let rows=[];
+    let rows=[], territoryProspects, officialView={};
     const current=new Date().toISOString().slice(0,7);
     let region='',category='',search='',sort='Name A–Z',time='Month',month=current,favorites=false,brandFavorites=false,detail='';
+    const territoryKey='rated420-ux-territory:'+(window.RatedComplete?.actor()||'');
+    if(area==='market'&&window.RatedComplete){
+      try{
+        const view=JSON.parse(sessionStorage.getItem(territoryKey)||'{}');
+        region=regions.some(row=>row.id===view.region)?view.region:'';
+        detail=view.detail||'';category=view.category||'';search=view.search||'';officialView=view.officialView||{};
+      }catch{}
+    }
+    function saveTerritory(){
+      if(area!=='market'||!window.RatedComplete)return;
+      try{sessionStorage.setItem(territoryKey,JSON.stringify({region,detail,category,search,officialView}));}catch{}
+    }
     const report=()=>{ if(node.isConnected)render(); };
     async function refresh(){rows=await repository.list();report();}
     const error=e=>{status.textContent=e.message;const slot=dialog.querySelector('[data-error]');if(slot)slot.textContent=e.message;};
@@ -59,7 +71,7 @@
       const result=el('p');result.dataset.error='';result.setAttribute('role','status');
       build(form);
       const controls=el('div',undefined,'exp-controls');
-      const submit=el('button',submitLabel);submit.type='submit';
+      const submit=el('button',submitLabel,'btn '+(/^(Reset|Delete) /.test(submitLabel)?'btn-danger':'btn-primary'));submit.type='submit';
       controls.append(submit,button('Cancel',()=>dialog.close()));
       form.append(result,controls);
       form.addEventListener('submit',async event=>{
@@ -184,25 +196,53 @@
       return rows.filter(r=>r.date.slice(0,7)>=start&&r.date.slice(0,7)<=stop);
     }
     function territory(container){
-      const map=box(container,'New York territory map','Schematic regions and synthetic business records.');
+      const map=box(container,'New York territory map','Choose a region to filter the business queue and official licensing directory.');
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
       svg.setAttribute('viewBox','0 0 390 245');svg.setAttribute('aria-hidden','true');
       for(const r of regions){
         const shape=document.createElementNS(svg.namespaceURI,'polygon');
         shape.setAttribute('points',r.shape);shape.setAttribute('class',region===r.id?'selected':'');
-        shape.addEventListener('click',()=>{region=r.id;detail='';report();});
+        shape.addEventListener('click',()=>choose(r.id));
         const name=document.createElementNS(svg.namespaceURI,'text');
         name.setAttribute('x',r.label[0]);name.setAttribute('y',r.label[1]);
         name.textContent=String(regions.indexOf(r)+1);svg.append(shape,name);
       }
-      const filters=el('div',undefined,'exp-controls');
+      const filters=el('div',undefined,'exp-controls territory-regions');
+      function choose(id,restoreFocus=false){
+        if(region!==id)officialView={};
+        region=id;detail='';saveTerritory();report();
+        if(restoreFocus)content.querySelector('.territory-regions [aria-pressed=true]')?.focus({preventScroll:true});
+      }
       for(const r of [{id:'',name:'All regions'},...regions]){
         const label=r.id?(regions.indexOf(r)+1)+' · '+r.name:r.name;
-        const control=button(label,()=>{region=r.id;detail='';report();});
+        const control=button(label,event=>choose(r.id,event.detail===0));
         control.setAttribute('aria-pressed',String(region===r.id));filters.append(control);
       }
-      map.append(svg,filters);
+      const selected=regions.find(row=>row.id===region);
+      const intelligence=window.Rated420Intelligence;
+      const official=intelligence?.official.filter(row=>(row.city||row.county||row.region)&&(!region||intelligence.marketRegion(row.region)===region));
+      const snapshot=official&&intelligence.summary(official);
+      const licenseIds=new Set(official?.map(row=>row.id));
+      const context=el('div',undefined,'territory-context');
+      context.append(el('h4',selected?.name||'All regions'));
+      if(snapshot){
+        const prospects=el('p');
+        const refreshProspects=()=>{
+          const count=(hq?.().opportunities||[]).filter(row=>licenseIds.has(row.officialRecordId)).length;
+          prospects.textContent=count+' linked local CRM prospects';
+        };
+        refreshProspects();territoryProspects=refreshProspects;
+        context.append(el('p',snapshot.rows+' official license locations · '+snapshot.active+' marked Active'),prospects);
+        const breakdown=el('details');breakdown.append(el('summary','Official classifications'));
+        for(const [label,count] of snapshot.classes)breakdown.append(el('p',label+' · '+count));
+        context.append(breakdown,button('Jump to official license records',()=>{
+          const licenses=content.querySelector('#territory-licenses');
+          licenses?.focus();licenses?.scrollIntoView({block:'start'});
+        }));
+      }
+      map.append(svg,filters,context);
     }
+    content.addEventListener('rated420:prospect-created',()=>territoryProspects?.());
     function render(){
       content.replaceChildren();
       if(area==='public'){
@@ -226,7 +266,7 @@
       const starredBrands=area==='stash'?field(tools,'Favorite brands only',brandFavorites,null,'checkbox'):null;
       tools.append(button('Add '+headings[area],()=>edit()),button('Reset '+title[area],()=>{
         formDialog('Reset demo records?',f=>f.append(el('p','This restores the original synthetic records for this view.')), 'Reset records',async()=>{
-          await repository.reset();detail='';region='';category='';search='';month=current;
+          await repository.reset();detail='';region='';category='';search='';officialView={};month=current;
           await refresh();status.textContent='Demo records reset.';
         });
       }));
@@ -235,7 +275,7 @@
       content.append(tools,summary,list);
       const name=r=>r.name||r.product;
       function draw(){
-        search=searchBox.value;sort=sorts.value;category=filter.value;favorites=starred?.checked??false;brandFavorites=starredBrands?.checked??false;
+        search=searchBox.value;sort=sorts.value;category=filter.value;saveTerritory();favorites=starred?.checked??false;brandFavorites=starredBrands?.checked??false;
         const query=search.toLowerCase().trim();
         const data=periodRows.filter(r=>(!region||r.region===region)&&(!favorites||r.favorite)&&(!brandFavorites||r.favoriteBrand)&&
           (!category||[r.category,r.status,r.type,r.relationship].includes(category)||(category==='Filming locations'&&r.filming)||(category==='Projection'&&r.type!=='Budget'))&&
@@ -244,7 +284,7 @@
           sort==='Highest score'?(b.rating??adapters.total(b.scores||[]))-(a.rating??adapters.total(a.scores||[])):
           sort==='Most engagement'?b.engagement-a.engagement:name(a).localeCompare(name(b)));
         list.replaceChildren();
-        summary.textContent=data.length+' records';
+        summary.textContent=data.length+(area==='market'?' synthetic business records':' records');
         if(area==='market'){
           const n=data.reduce((sum,row)=>sum+row.reviews,0);
           const weighted=data.reduce((sum,row)=>sum+row.rating*row.reviews,0);
@@ -258,10 +298,14 @@
           const card=box(list,name(row),desc.filter(Boolean).join(' · '));
           if(area==='market'){
             const disclosure=el('details');const label=el('summary','Business profile');disclosure.open=detail===row.id;
-            disclosure.addEventListener('toggle',()=>{if(disclosure.open)detail=row.id;});
+            disclosure.addEventListener('toggle',()=>{if(disclosure.open)detail=row.id;else if(detail===row.id)detail='';saveTerritory();});
             const org=hq()?.organizations.find(o=>o.id===row.org);
             disclosure.append(label,el('p',row.product||'No product intelligence'),el('p',row.filming?'Potential filming location':'No filming location recorded'),el('p',row.reviews+' ratings · '+row.rating+' / 420 · '+row.engagement+' engagements'));
-            if(org)disclosure.append(el('p','CRM · '+org.name+' · '+org.city));
+            if(org){
+              disclosure.append(el('p','CRM · '+org.name+' · '+org.city));
+              const record=el('a','Open CRM organization','btn btn-tertiary');
+              record.href='#hq/gary/organizations/'+encodeURIComponent(org.id)+'/territory';disclosure.append(record);
+            }
             card.append(disclosure);
           }
           if(area==='finance'){
@@ -274,7 +318,7 @@
           if(area==='stash'&&row.status==='Tried'&&row.scores.length===5)card.append(button('Preview public review',()=>publish(row)));
         }
       }
-      if(area==='market')window.Rated420IntelligenceUI?.directory(content,{territory:true,territoryRegion:region,hq,create:createProspect});
+      if(area==='market')window.Rated420IntelligenceUI?.directory(content,{territory:true,territoryRegion:region,hq,create:createProspect,view:officialView,saveView:saveTerritory});
       tools.addEventListener('input',event=>{
         if(area==='finance'&&event.target===filter&&(category==='Projection'||filter.value==='Projection')){category=filter.value;report();return;}
         draw();

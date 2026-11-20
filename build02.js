@@ -313,7 +313,10 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     finish();
   }
 
-  async function hq(founder, initial, intelligence, editorial, catalogManager) {
+  async function hq(section, subview, recordId, returnTo) {
+    const founder=section==='gary', intelligence=section==='intelligence', editorial=section==='content', catalogManager=section==='catalogue';
+    const initial=subview&&decodeURIComponent(subview);
+    const complete=Boolean(window.RatedComplete);
     const role=await api('role');
     if(!member()||role==='member')return parent=>parent.append(el('p','Rated420 HQ is available to authorized staff.'),...(!member()?[button('Log in',login)]:[]));
     const identity=member().id;
@@ -323,9 +326,11 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
         throw Error('Sign in as authorized staff to change this workspace.');
     };
     const createProspect=(id,org)=>window.GaryStore.openStore(assertAccess).dispatch('official-prospect',{record:id,org},window.GaryStore.founders[0]);
+    const backToHQ=parent=>parent.append(link('Back to Rated420 HQ','#hq','btn btn-tertiary'));
     if(catalogManager&&window.Rated420CatalogueUI)return parent=>{
       if(!canEnterWorkspace()){parent.append(el('p','Catalogue management is available to founders and administrators.'));return;}
-      window.Rated420CatalogueUI.manager(parent,{guard:assertAccess,actor:identity});
+      backToHQ(parent);
+      window.Rated420CatalogueUI.manager(parent,{guard:assertAccess,actor:identity,initial});
     };
     if(editorial&&window.Rated420Editorial)return parent=>{
       if(!canEnterWorkspace()){parent.append(el('p','Editorial editing is available to founders and administrators.'));return;}
@@ -333,20 +338,19 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       parent.append(back);window.Rated420Editorial.mountHQ(parent,assertAccess);
     };
     if(intelligence&&window.Rated420IntelligenceUI)return parent=>{
-      window.Rated420IntelligenceUI.mount(parent,{guard:assertAccess,writable:canEnterWorkspace(),
-        hq:()=>window.GaryStore.openStore().read(),create:createProspect});
+      backToHQ(parent);
+      window.Rated420IntelligenceUI.mount(parent,{guard:assertAccess,writable:canEnterWorkspace(),initial,recordId,
+        hq:canEnterWorkspace()?()=>window.GaryStore.openStore().read():undefined,create:createProspect});
     };
     const gary=window.mountGaryPreview && ['staff','administrator'].includes(role) && canEnterWorkspace();
     if(founder && window.RatedComplete && !gary)return parent=>parent.append(el('p','The founder workspace is available to founders and administrators.'));
     if(founder&&gary)return parent=>{
-      const back=el('a','Back to Rated420 HQ');
-      back.href='#hq';
-      parent.append(back);
-      if(window.mountRatedExpansion){
+      backToHQ(parent);
+      if(window.mountRatedExpansion&&(!complete||initial==='finance'||initial==='territory')){
         const controls=el('nav',undefined,'build-actions');
         controls.setAttribute('aria-label','Founder workspaces');
         for(const [hash,label] of [['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
-          const link=el('a',label,'btn btn-outline');link.href=hash;controls.append(link);
+          const link=el('a',label,'btn btn-outline');link.href=hash;if(hash===(initial==='finance'||initial==='territory'?'#hq/gary/'+initial:'#hq/gary'))link.setAttribute('aria-current','page');controls.append(link);
         }
         if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.append(link);}
         if(window.Rated420Editorial){const link=el('a','Editorial content','btn btn-outline');link.href='#hq/content';controls.append(link);}
@@ -358,12 +362,14 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
           window.mountRatedExpansion(content,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read(),createProspect});return;
         }
       }
-      window.mountGaryPreview(parent,{initial,assertAccess});
+      window.mountGaryPreview(parent,{initial,initialRecord:recordId,backToTerritory:returnTo==='territory',assertAccess});
     };
     if(role!=='administrator'&&activeTab==='Access')activeTab='Submissions';
-    const current=activeTab;
+    const sections=complete?['Overview',...tabs]:tabs;
+    const selected=sections.find(tab=>tab.toLowerCase()===section)||(complete?'Overview':activeTab);
+    const current=selected==='Access'&&role!=='administrator'?'Submissions':selected;
     let data;
-    if(current==='Submissions')data=await api('queue');
+    if(current==='Submissions'||current==='Overview')data=await api('queue');
     if(current==='Catalog')data=await api('manage_catalog');
     if(current==='Polls')data=await api('polls',{},'rated420_build01');
     if(current==='Episodes'||current==='Showroom')data=await Promise.all([
@@ -373,8 +379,11 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       const nav=el(window.Rated420UX?'nav':'div',undefined,'build-actions');
       nav.setAttribute('aria-label','HQ administration');
       const controls={};
-      for(const tab of tabs.filter(t=>t!=='Access'||role==='administrator')){
-        const b=button(tab,()=>{activeTab=tab;void route();});b.setAttribute('aria-pressed',String(tab===current));controls[tab]=b;
+      for(const tab of sections.filter(t=>t!=='Access'||role==='administrator')){
+        const b=button(tab,()=>{
+          if(complete){const hash=tab==='Overview'?'#hq':'#hq/'+tab.toLowerCase();if(location.hash!==hash)location.hash=hash;return;}
+          activeTab=tab;void route();
+        });b.setAttribute('aria-pressed',String(tab===current));controls[tab]=b;
       }
       if(gary){const link=el('a','Founder workspace','btn btn-outline');link.href='#hq/gary';controls.Founder=link;}
       if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.Intelligence=link;}
@@ -382,7 +391,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       if(window.Rated420CatalogueUI&&canEnterWorkspace()){const link=el('a','Catalogue Manager','btn btn-outline');link.href='#hq/catalogue';controls.Manager=link;}
       if(window.Rated420UX){
         const set=(title,items)=>[title,items.map(key=>controls[key]).filter(Boolean)];
-        window.Rated420UX.sections(nav,[set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom','Editorial','Manager']),
+        window.Rated420UX.sections(nav,[set('Desk',['Overview']),set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom','Editorial','Manager']),
           set('Insights and access',['Analytics','Access']),set('Founder tools',['Founder','Intelligence'])]);
       }else nav.append(...Object.values(controls));
       parent.append(nav);
@@ -391,26 +400,60 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       if(current==='Analytics'){
         void analytics(content).catch(error=>content.append(el('p',error.message)));return;
       }
+      function submission(row,container=content){
+        const detail=el('details',undefined,'build-card');
+        detail.append(el('summary',row.name+' · '+row.status));
+        container.append(detail);
+        if(row.note)detail.append(el('p',row.note));
+        if(row.photo)detail.append(button('Open supporting photo',async event=>{
+          const target=event.currentTarget;
+          const {data,error}=await client().storage.from('catalog-submissions').createSignedUrl(row.photo,60);
+          target.after(error?el('p',error.message):image(data.signedUrl,'Private supporting photo'));
+        }));
+        if(['Approved','Rejected'].includes(row.status))return;
+        const {form,finish}=formFor(detail,'Record decision',async values=>{await api('moderate',{...values,id:row.id});await route();});
+        submissionFields(form,{...row,staff:true});
+        field(form,'Status','status',{options:[['Approved','Approve'],['Needs Revision','Needs Revision'],['Rejected','Reject']]});
+        field(form,'Existing listing ID (optional)','listing');
+        field(form,'Private decision note','note',{type:'textarea',max:1500});
+        finish();
+      }
+      if(current==='Overview'){
+        const pending=data.filter(row=>!['Approved','Rejected'].includes(row.status));
+        const primary=el('section',undefined,'build-card ops-queue');
+        primary.append(el('h2','Needs attention'),el('p',pending.length+' outstanding '+(pending.length===1?'submission':'submissions')));
+        for(const row of pending.slice(0,3))submission(row,primary);
+        primary.append(link('View all submissions','#hq/submissions','btn btn-tertiary'));
+        const work=el('section',undefined,'build-card ops-queue');work.append(el('h2','What to do next'));
+        const catalogue=canEnterWorkspace()?window.Rated420Catalogue?.read():null;
+        if(catalogue){
+          const proposals=catalogue.proposals.filter(row=>row.state==='Pending review').length;
+          const drafts=catalogue.records.filter(row=>row.state==='Draft').length;
+          const openTasks=window.GaryStore?.openStore().read().tasks.filter(task=>!task.done).length;
+          if(openTasks!=null)work.append(link(openTasks+' open founder tasks','#hq/gary/tasks','btn btn-tertiary'));
+          work.append(link(proposals+' business proposals to review','#hq/catalogue/proposals','btn btn-tertiary'),
+            link(drafts+' catalogue drafts','#hq/catalogue/records','btn btn-tertiary'));
+        }
+        const intelligence=window.Rated420Intelligence;
+        if(intelligence){
+          const batches=intelligence.read().batches.filter(batch=>!batch.revertedAt);
+          const recent=batches.at(-1);
+          const exceptions=batches.reduce((count,batch)=>count+batch.skipped,0);
+          work.append(link(exceptions+' rejected or skipped import rows','#hq/intelligence/history','btn btn-tertiary'),
+            link('OCM snapshot · retrieved '+intelligence.snapshot.retrievedOn,'#hq/intelligence/sources','btn btn-tertiary'));
+          const changes=el('section',undefined,'build-card ops-queue');changes.append(el('h2','Recent changes'),
+            el('p',recent?'Last applied import · '+recent.label:'No local imports applied.'));
+          for(const item of (catalogue?.history||[]).slice(0,3)){
+            const record=catalogue.records.find(row=>row.id===item.target);
+            changes.append(el('p',item.action+' · '+(record?.name||item.at.slice(0,10))));
+          }
+          content.append(primary,work,changes);
+        }else content.append(primary,work);
+        return;
+      }
       if(current==='Submissions'){
         if(!data.length)content.append(el('p','No submissions to review.'));
-        for(const row of data){
-          const detail=el('details',undefined,'build-card');
-          detail.append(el('summary',row.name+' · '+row.status));
-          content.append(detail);
-          if(row.note)detail.append(el('p',row.note));
-          if(row.photo)detail.append(button('Open supporting photo',async event=>{
-            const target=event.currentTarget;
-            const {data,error}=await client().storage.from('catalog-submissions').createSignedUrl(row.photo,60);
-            target.after(error?el('p',error.message):image(data.signedUrl,'Private supporting photo'));
-          }));
-          if(['Approved','Rejected'].includes(row.status))continue;
-          const {form,finish}=formFor(detail,'Record decision',async values=>{await api('moderate',{...values,id:row.id});await route();});
-          submissionFields(form,{...row,staff:true});
-          field(form,'Status','status',{options:[['Approved','Approve'],['Needs Revision','Needs Revision'],['Rejected','Reject']]});
-          field(form,'Existing listing ID (optional)','listing');
-          field(form,'Private decision note','note',{type:'textarea',max:1500});
-          finish();
-        }
+        for(const row of data)submission(row);
       } else if(current==='Catalog'){
         for(const row of data){
           const detail=el('details',undefined,'build-card');
@@ -454,7 +497,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
 
   async function route() {
     const hash=location.hash;
-    const [view,id,subview]=hash.slice(1).split('/');
+    const [view,id,subview,recordId,returnTo]=hash.slice(1).split('/');
     if(!Object.hasOwn(headings,view)||!client())return false;
     const token=++request;
     page('hq');
@@ -462,7 +505,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {
-      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview,id==='intelligence',id==='content',id==='catalogue'),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
+      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id,subview,recordId,returnTo),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
       if(token===request&&location.hash===hash){area.replaceChildren();render(area);}
     } catch(error){
       if(token===request&&location.hash===hash){area.textContent=error.message;area.append(button('Try again',route));}

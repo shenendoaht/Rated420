@@ -107,7 +107,7 @@ html.rated-refined {
 .rated-refined .hero-subtitle,.rated-refined .hero-text{font-size:clamp(.98rem,1.5vw,1.15rem);line-height:1.6}
 .rated-refined .hero-note,.rated-refined .fine,.rated-refined .field-tip{color:var(--text-dim)}
 .rated-refined .hero-buttons{gap:.6rem;margin-top:1.5rem}
-.rated-refined .join-section{background:var(--iridescent);color:var(--pearl);border:1px solid var(--edge);margin-block:var(--space-5);padding:var(--space-4)}
+.rated-refined .join-section{--join-copy:var(--pearl);background:var(--iridescent);color:var(--pearl);border:1px solid var(--edge);margin-block:var(--space-5);padding:var(--space-4)}
 .rated-refined .join-section em,.rated-refined .join-section .eyebrow{color:var(--emerald-ink)}
 .rated-refined .standard-band{background:var(--surface-deep);border-color:var(--edge)}
 .rated-refined .section,.rated-refined .standard-inner{padding-block:var(--space-5)}
@@ -115,7 +115,7 @@ html.rated-refined {
 .rated-refined .build-page>h1,.rated-refined .strain-page>h1,.rated-refined .dispensary-page>h1{
   font-size:clamp(2.1rem,5.4vw,4.8rem);line-height:1.08;letter-spacing:-.045em;max-width:24ch
 }
-.rated-refined .build-grid,.rated-refined .gary-grid,.rated-refined .exp-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.75rem}
+.rated-refined .build-grid:not(.home-catalogue .build-grid),.rated-refined .gary-grid,.rated-refined .exp-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.75rem}
 .rated-refined .build-card,.rated-refined .directory-panel,.rated-refined .member-reviews,
 .rated-refined .account-page .member-card,.rated-refined .account-page .profile-card,.rated-refined .step,
 .rated-refined .exp-card,.rated-refined .rating-workspace,.rated-refined .profile-section{
@@ -280,4 +280,39 @@ html.rated-refined {
     border-radius:50%;background:var(--emerald-ink);box-shadow:0 0 0 1px var(--edge-control);
   }
   .rated-refined #siteMain input[type=range]:disabled::-webkit-slider-thumb{background:var(--muted-control)}
+}
+
+/* Action hierarchy and compact operational queues share the same surface tokens. */
+.rated-refined .btn.btn-tertiary{
+  color:var(--accent);background:transparent;border:1px solid transparent;box-shadow:none;
+  justify-content:flex-start;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em;
+}
+.rated-refined .btn.btn-tertiary:hover:not(:disabled){background:var(--surface-raised);border-color:var(--edge)}
+.rated-refined .ref-workspace-pane nav :is(.btn-outline,.btn-tertiary):not([aria-pressed=true],[aria-current=page]){
+  background:transparent;color:var(--text-dim);border-color:transparent;box-shadow:none;text-decoration:none;
+}
+.rated-refined .ref-workspace-pane nav :is(button,a):hover:not([aria-pressed=true],[aria-current=page]){
+  background:var(--surface-raised);border-color:var(--edge-control);color:var(--pearl);
+}
+.rated-refined .ref-workspace-pane nav [aria-current=page]{
+  box-shadow:inset 3px 0 var(--accent);
+}
+.rated-refined .ref-workspace-pane nav .ref-group-links{gap:.1rem}
+.rated-refined .ref-workspace-pane nav summary{font-weight:700}
+.rated-refined .ops-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+.rated-refined .ops-queue{margin-block:.65rem}
+.rated-refined .ops-board .build-card{margin:0}
+.rated-refined .ops-board h3,.rated-refined .ops-queue h2{margin:0 0 .25rem}
+.rated-refined .ops-list{padding:0;margin:.35rem 0;list-style:none}
+.rated-refined .ops-list li{border-top:1px solid var(--edge);padding:0 0 .35rem}
+.rated-refined .ops-list .btn{margin:0;padding-inline:0;text-align:left}
+.rated-refined .ops-meta{display:block;color:var(--text-dim);font-size:.85rem;overflow-wrap:anywhere}
+.rated-refined .ops-queue>.btn-tertiary{padding-inline:0;margin-inline-end:.8rem}
+.rated-refined .territory-regions .btn{font-size:.86rem}
+.rated-refined .territory-context{margin-top:.55rem;padding-block:.6rem;border-top:1px solid var(--edge)}
+.rated-refined .territory-context :is(h4,p){margin:.3rem 0}
+.rated-refined .home-editorial-links{margin:0 0 .7rem}
+@media(max-width:660px){.rated-refined .ops-board{grid-template-columns:1fr}}
+@media(max-width:365px){
+  .rated-refined .home-catalogue .build-grid{grid-template-columns:1fr}
 }

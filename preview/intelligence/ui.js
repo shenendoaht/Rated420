@@ -10,7 +10,7 @@
     return node;
   };
   function action(label,fn){
-    const control=el('button',label,'btn btn-outline');
+    const control=el('button',label,'btn '+(label.startsWith('Revert ')?'btn-danger':'btn-outline'));
     control.type='button';control.addEventListener('click',fn);return control;
   }
   function link(label,url){
@@ -72,7 +72,7 @@
       const matches=state.organizations.filter(org=>[org.name,org.legal].some(name=>name&&[row.name,row.dba].filter(Boolean).some(value=>data.fold(value)===data.fold(name))));
       const opportunity=state.opportunities.find(item=>item.officialRecordId===row.id);
       parent.append(el('p',opportunity?'CRM prospect exists: '+opportunity.name:matches.length?'Potential CRM matches: '+matches.map(item=>item.name).join(', '):'Outreach: no linked demo prospect.'));
-      if(opportunity)parent.append(link('Open business development','#hq/gary/opportunities'));
+      if(opportunity)parent.append(link('Open business development','#hq/gary/opportunities/'+encodeURIComponent(opportunity.id)+(options.territory?'/territory':'')));
       else if(options.create&&row.licenseStatus==='Active'&&row.name){
         const chooser=matches.length?field(parent,'Associate existing CRM organization',[['','Choose a match'],...matches.map(item=>[item.id,item.name])]):null;
         const status=el('p');status.setAttribute('role','status');
@@ -81,21 +81,25 @@
           try{
             if(chooser&&!chooser.value)throw Error('Choose an existing CRM match before creating a prospect.');
             await options.create(row.id,chooser?.value||'');
+            const prospect=options.hq().opportunities.find(item=>item.officialRecordId===row.id);
+            parent.dispatchEvent(new CustomEvent('rated420:prospect-created',{bubbles:true}));
             status.textContent='Prospect created in Business Development. No correspondence sent.';
-            parent.append(link('Open business development','#hq/gary/opportunities'));
+            parent.append(link('Open business development','#hq/gary/opportunities'+(prospect?'/'+encodeURIComponent(prospect.id)+(options.territory?'/territory':''):'')));
           }catch(error){status.textContent=error.message;create.disabled=false;}
         });
         parent.append(create,status);
       }
     }
   }
-  function directory(parent,{territory=false,territoryRegion='',hq,create}={}){
+  function directory(parent,{territory=false,territoryRegion='',hq,create,view={},saveView=()=>{}}={}){
     const card=el('section',null,'build-card ri-directory');
+    if(territory){card.id='territory-licenses';card.tabIndex=-1;}
     card.append(el('h3',territory?'Official license locations':'Official public licensing directory'),
       el('p',territory?'Browse records with state-reported municipalities, counties or regions. The schematic map is not a street-level map.':'Source-reported license and location records. Community scores and Rated420 content remain separate.'));
-    const base=territory?data.official.filter(row=>(row.city||row.county||row.region)&&(!territoryRegion||data.marketRegion(row.region)===territoryRegion)):data.official;
+    const matchesTerritory=row=>!territory||(row.city||row.county||row.region)&&(!territoryRegion||data.marketRegion(row.region)===territoryRegion);
+    const base=data.official.filter(matchesTerritory);
     const tools=el('div',null,'exp-controls');
-    const filterRows=hq?[...base,...data.records()]:base;
+    const filterRows=hq?[...base,...data.records().filter(matchesTerritory)]:base;
     const search=field(tools,'Search official licenses',null,'search');
     let refinements=tools;
     if(window.Rated420UX){
@@ -125,16 +129,24 @@
     const outreach=hq?field(refinements,'Outreach status',[['','All outreach statuses'],...(hq().stages??[]),['none','No CRM opportunity']]):null;
     const summary=el('p');summary.setAttribute('aria-live','polite');
     const grid=el('div',null,'build-grid');const pager=el('div',null,'build-actions');
-    let page=0;
+    const controls={search,region,category,status,verified,outreach};
+    for(const [key,control] of Object.entries(controls)){
+      if(control&&view[key])control.value=view[key];
+    }
+    let page=view.page||0;
+    function remember(){
+      for(const [key,control] of Object.entries(controls))if(control)view[key]=control.value;
+      view.page=page;saveView();
+    }
     function render(){
       const q=data.fold(search.value);
       const state=hq?.();
       const stages=new Map((state?.opportunities??[]).filter(r=>r.officialRecordId).map(r=>[r.officialRecordId,r.stage]));
-      const selected=(verified.value==='unverified'?data.records().filter(row=>!territory||row.city||row.county||row.region):base)
+      const selected=(verified.value==='unverified'?data.records().filter(matchesTerritory):base)
         .filter(row=>(!region.value||(row.region||'__unknown')===region.value)&&(!category.value||row.category===category.value)&&
           (!status.value||row.licenseStatus===status.value)&&(!outreach?.value||(stages.get(row.id)||'none')===outreach.value)&&
           [row.name,row.dba,row.city,row.county,row.sourceId].some(value=>data.fold(value).includes(q)));
-      const max=Math.max(0,Math.ceil(selected.length/12)-1);page=Math.min(page,max);
+      const max=Math.max(0,Math.ceil(selected.length/12)-1);page=Math.min(page,max);remember();
       summary.textContent=selected.length+' records · Page '+(page+1)+' of '+(max+1);
       grid.replaceChildren();
       for(const row of selected.slice(page*12,page*12+12)){
@@ -148,12 +160,16 @@
           const brief=el('p',[row.category,row.city||row.county||row.region,'Official public'].filter(Boolean).join(' · '));
           record.append(overview,brief);
           const details=el('div');record.append(details);
-          const fill=()=>{if(!details.childElementCount)businessDetails(details,row,{directoryLink:true,hq,create});};
-          record.addEventListener('toggle',()=>{if(record.open)fill();});
-          if(q&&selected.length===1){record.open=true;fill();}
+          const fill=()=>{if(!details.childElementCount)businessDetails(details,row,{directoryLink:true,hq,create,territory});};
+          record.addEventListener('toggle',()=>{
+            if(record.open){fill();view.record=row.id;}
+            else if(view.record===row.id)view.record='';
+            saveView();
+          });
+          if(view.record===row.id||q&&selected.length===1){record.open=true;fill();}
           grid.append(record);continue;
         }
-        if(row.verified)businessDetails(entry,row,{directoryLink:true,hq,create});
+        if(row.verified)businessDetails(entry,row,{directoryLink:true,hq,create,territory});
         else entry.append(el('h3',row.name),el('p','Unverified · '+row.kind+' · '+row.category+' · '+(row.licenseStatus||'Status not supplied')),
           el('p','Source: '+sources.find(s=>s.id===row.source)?.name+' · Record '+row.sourceId+' · Imported '+row.at.slice(0,10)));
         grid.append(entry);
@@ -167,7 +183,7 @@
     if(!tools.isConnected&&tools.parentNode!==card)card.append(tools);
     card.append(summary,grid,pager);parent.append(card);render();
   }
-  function mount(parent,{guard,writable,hq,create}){
+  function mount(parent,{guard,writable,hq,create,initial,recordId}){
     const root=el('section',null,'expansion ri-center');
     const status=el('p');status.setAttribute('role','status');
     root.append(el('h2','Data Intelligence Center'),el('p',writable?'Official snapshot and browser-local import management.':'Read-only intelligence view for the simulated moderator role.'),status);
@@ -176,32 +192,47 @@
     root.append(tabs,content);parent.append(root);
     const service=data.session(guard);
     const visible=(error)=>{status.textContent=error.message;};
-    function overview(){dashboard(content,true);}
+    function overview(){
+      const local=data.read().batches.filter(batch=>!batch.revertedAt);
+      const pending=local.reduce((sum,batch)=>sum+batch.skipped,0);
+      const panel=el('section',null,'build-card ops-queue');
+      panel.append(el('h3','Source and import status'),el('p','State snapshot retrieved '+data.snapshot.retrievedOn),
+        el('p','Commercial providers · no active connection'),el('p',local.length+' applied local batches · '+pending+' rejected or skipped rows'),
+        link('Inspect import history','#hq/intelligence/history'),link('Inspect source availability','#hq/intelligence/sources'));
+      content.append(panel);dashboard(content,true);
+    }
     function datasets(){directory(content,{hq,create:writable?create:null});}
+    let openedSource='';
     function directorySources(){
       const proposed=data.read().settings;
       for(const source of sources){
         const card=el('article',null,'build-card');
         const setting=proposed[source.id]??{};
-        card.append(el('h3',source.name),el('p',source.kind+' · '+source.status),
-          el('p',source.categories),el('p',source.coverage),el('p','Integration: '+source.method),el('p','Conditions: '+source.terms),
-          el('p',source.id==='ocm'?'Last retrieved: '+data.snapshot.retrievedOn+' · '+data.snapshot.version:'Last successful sync: none · availability: '+(source.status==='Available locally'?'manual input only':'no active connection')),
+        const batches=data.read().batches.filter(batch=>batch.source===source.id&&!batch.revertedAt);
+        const availability=source.id==='ocm'?'Official snapshot · '+data.snapshot.retrievedOn:source.id==='manual'?'Manual input available':'No authorized connection';
+        card.append(el('h3',source.name),el('p',availability),
+          el('p',batches.length+' applied local batches · '+batches.reduce((sum,batch)=>sum+batch.skipped,0)+' rejected or skipped rows'));
+        const details=el('details');details.append(el('summary','Provenance and controls'),
+          el('p',source.kind+' · '+source.status),el('p',source.categories),el('p',source.coverage),
+          el('p','Integration: '+source.method),el('p','Conditions: '+source.terms),
+          el('p',source.id==='ocm'?'Bundled version: '+data.snapshot.version:'Last successful sync: none'),
           el('p',setting.mode?'Proposed setting: '+setting.mode+' · '+setting.interval:'Proposed setting: manual'));
-        if(setting.checkedAt)card.append(el('p','Last local diagnostic: '+setting.checkedAt+' · '+setting.outcome));
-        if(source.url)card.append(link('Source website',source.url));
-        if(source.policy)card.append(link('Usage conditions',source.policy));
+        if(setting.checkedAt)details.append(el('p','Last local diagnostic: '+setting.checkedAt+' · '+setting.outcome));
+        if(source.url)details.append(link('Source website',source.url));
+        if(source.policy)details.append(link('Usage conditions',source.policy));
         if(writable){
           const options=el('div',null,'exp-controls');
           const mode=field(options,'Sync mode for '+source.name,['Manual','Scheduled proposal']);mode.value=setting.mode||'Manual';
           const interval=field(options,'Sync interval for '+source.name,['Daily','Weekly','Monthly']);interval.value=setting.interval||'Weekly';
           options.append(action('Save synchronization proposal',async()=>{
-            try{await service.settings(source.id,mode.value,interval.value);status.textContent='Proposal saved. No background sync was scheduled.';show('Sources');}catch(error){visible(error);}
+            try{await service.settings(source.id,mode.value,interval.value);status.textContent='Proposal saved. No background sync was scheduled.';openedSource=source.id;show('Sources');}catch(error){visible(error);}
           }));
           options.append(action('Check local availability',async()=>{
-            try{status.textContent=await service.check(source.id);show('Sources');}catch(error){visible(error);}
+            try{status.textContent=await service.check(source.id);openedSource=source.id;show('Sources');}catch(error){visible(error);}
           }));
-          card.append(options);
+          details.append(options);
         }
+        details.open=openedSource===source.id;card.append(details);
         content.append(card);
       }
     }
@@ -212,7 +243,7 @@
         const card=el('article',null,'build-card');
         card.append(el('h3',batch.label),el('p','Batch '+batch.id+' · '+batch.at+' · '+sources.find(s=>s.id===batch.source)?.name),
           el('p',batch.records.length+' applied · '+batch.rejected+' invalid · '+(batch.skipped-batch.rejected)+' skipped'+(batch.revertedAt?' · Reverted '+batch.revertedAt:'')));
-        const changes=el('details');changes.append(el('summary','Audit decisions'));
+        const changes=el('details');changes.open=recordId===batch.id;changes.append(el('summary','Audit decisions'));
         for(const change of batch.decisions)changes.append(el('p','Row '+change.line+' · '+change.recordId+' · '+change.decision));
         card.append(changes);
         if(writable&&!batch.revertedAt)card.append(action('Revert '+batch.label,async()=>{
@@ -292,7 +323,7 @@
       }
       sections[name]();
     }
-    show('Overview');
+    show(Object.keys(sections).find(name=>name.toLowerCase()===initial)||'Overview');
   }
   window.Rated420IntelligenceUI={mount,dashboard,directory,businessDetails};
 })();
