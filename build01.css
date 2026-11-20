@@ -32,7 +32,6 @@ a.build-card:hover { border-color: var(--violet); }
 .build-actions { display: flex; gap: .8rem; flex-wrap: wrap; margin-block: 1rem; }
 .build-review-list { padding: .75rem 0; list-style: none; }
 .build-review-list li { display: flex; align-items: center; gap: .75rem; border-bottom: 1px solid var(--build-line); padding-block: .6rem; }
-.build-review-list img { width: 2.1rem; height: 2.1rem; border-radius: 50%; }
 .build-poll { margin-block: 1.5rem; }
 .build-poll label { display: flex; align-items: center; gap: .7rem; margin-block: .6rem; }
 .build-poll meter { width: 100%; }

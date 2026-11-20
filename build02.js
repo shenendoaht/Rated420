@@ -223,9 +223,12 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     const data=await api('profile',{username});
     return parent=>{
       if(!data){parent.append(el('p','This member has no public profile.'));return;}
-      heading.textContent='@'+data.username;
+      const identity=el('header',undefined,'profile-identity');
+      const copy=el('div',undefined,'profile-identity-copy');
+      copy.append(el('h2','@'+data.username));
+      identity.append(window.Rated420Avatar.create({name:data.username,src:avatarImage(data.avatar_choice)},'large'),copy);
+      parent.append(identity);
       const n=card(parent,'Contributor recognition');
-      n.prepend(image(data.avatar_choice?avatarImage(data.avatar_choice):'images/rated420-logo.png','Member avatar'));
       if(!data.badges.length)n.append(el('p','No recognition earned yet.'));
       else n.append(...data.badges.map(badge));
     };

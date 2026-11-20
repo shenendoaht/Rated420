@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const output = path.join(root, 'dist');
 const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
-const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js'];
+const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js', 'profile-layout.css', 'profile-avatar.js'];
 const staging = process.env.RATED420_BUILD01_STAGING === '1';
 const gary = !staging && !process.env.VERCEL_ENV && process.env.RATED420_GARY_PREVIEW === '1';
 const stagingOrigin = process.env.RATED420_STAGING_SUPABASE_URL;

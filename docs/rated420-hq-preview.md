@@ -1,19 +1,29 @@
-# Rated420 HQ founder preview
+# Rated420 HQ offline preview
 
-Gary is a synthetic workspace for reviewing founder workflows. The integrated preview uses the Rated420 Build 02 HQ and its synthetic role adapter. The standalone edition opens directly into the founder workspace.
+Rated420 HQ is an offline workspace for reviewing synthetic founder workflows and profile examples. The integrated preview uses the Rated420 Build 02 HQ and its synthetic role adapter. The standalone edition opens into the founder workspace and includes a navigation bar for three profile examples.
 
 - Base revision `a7e8e2dc322e71b16d93f7a03347633bacfec8e1` is the verified Build 02 source checkpoint. It supplies the existing HQ, roles, visual conventions, catalog, and synthetic test adapter.
-- Local branch `preview/gary-hq`. The package's `SOURCE.txt` records the exact source checkpoint.
+- Profile design baseline `2720192fe8f151ab04e534d1c3acffcad29f54ca`. Local branch `preview/profile-avatar-design`. The package's `SOURCE.txt` records the exact source checkpoint.
 - Demo state stays under `rated420-gary-preview-v1` in the browser's local storage. Each browser profile and origin has its own copy. The workspace is intended for one working tab. The two founder personas simulate attribution.
 
 ## Launch and reset
 
-1. Extract the ZIP into its own folder. Keep its files and subfolders together.
-2. On macOS, double-click **Launch Gary.command** and keep the Terminal window open. If Finder does not launch it, open Terminal, type `cd ` with a trailing space, drag the extracted folder into Terminal, and press Return. Then run `/usr/bin/perl ./serve-offline.pl`.
+1. Extract `Rated420-HQ-Offline.zip` into its own folder. Keep its files and subfolders together.
+2. On macOS, double-click **Launch Rated420 HQ.command** and keep the Terminal window open. If Finder does not launch it, open Terminal, type `cd ` with a trailing space, drag the extracted folder into Terminal, and press Return. Then run `/usr/bin/perl ./serve-rated420-hq.pl`.
 3. In Chrome, open `http://127.0.0.1:8767/` if it did not open automatically. The launcher needs the system Perl executable and an available port 8767. It serves packaged files on loopback and requires no packages or internet. The loopback origin gives JavaScript a secure context for local record IDs and a stable origin for persistence. Use this address instead of double-clicking index.html.
 4. To start over, use **Reset founder demo** and confirm. Existing drafts and changes in this demo copy are erased. To stop the server, press Control-C in the launcher window.
 
 For the integrated developer preview, run `RATED420_GARY_PREVIEW=1 node scripts/build.mjs`, serve `dist` on loopback using your local static server, pass the age prompt, select **Staff member**, open **Rated420 HQ**, and select **Founder workspace**. `#hq/gary/opportunities` is an example direct entry subject to the same role gate. A regular or signed-out user sees the HQ access message. The flag is read only for a local synthetic build. Normal builds omit the fixture files, standalone shell, and founder navigation entry.
+
+## Profile examples
+
+Use these fragment links on `http://127.0.0.1:8767/`, or use the links in the preview navigation.
+
+- `#profiles/populated` opens the visitor view with a long display name, a bio, a wide avatar and three synthetic reviews.
+- `#profiles/missing` opens an empty visitor profile with an intentionally broken image and an initials fallback.
+- `#profiles/edit` opens the synthetic owner's avatar editor. Choose **Use sample photo** to try a tall image, or choose a local JPG, PNG or WebP and select **Save photo**. **Remove avatar** shows initials. Changes persist on reload and in the populated example in that browser. **Reset profile example** restores the original image. This reset is independent of **Reset founder demo**.
+
+The owner editor is a local example. In the app, **Edit profile** goes to the existing account form. The existing profile fields and visibility rules still apply. Public profiles display the opted-in handle, preset avatar and recognition already available to visitors. Private photo uploads and account details stay private. The offline examples store a resized copy of a chosen photo in the browser.
 
 ## Walkthrough
 
@@ -63,4 +73,8 @@ Private work stays in staff-authorized tables and buckets. Release approved fiel
 
 ## Local verification
 
-Use `node --test tests/build-isolation.test.mjs tests/contact-handler.test.mjs` for the build and contact checks. Use the repo's existing browser fixture tests for Build 02 and the Playwright harness in `tests/gary.browser.cjs` for Gary. The Gary harness expects an extracted package running on port 8767 and the opt-in integrated build in `dist`. Set `RATED_TEST_CHROME` to a compatible local browser executable if needed. It blocks every request outside the local fixture origin and checks for attempted off-origin requests.
+The packaged preview was checked with Chrome for Testing 116.0.5845.96 on Linux, with every off-loopback browser request blocked. Profile examples were tested at 320, 390, 820, and 1366 pixels. Integrated account editing and visibility were tested at 320, 820, and 1366 pixels. The local launcher and direct Perl command were checked on Linux. Finder and Chrome auto-launch on macOS were not exercised.
+
+Use `tests/profile-avatar.browser.cjs` for the profile and avatar examples and integrated account flow.
+
+Use `node --test tests/build-isolation.test.mjs tests/contact-handler.test.mjs` for the build and contact checks. Use the repo's existing browser fixture tests for Build 02 and the Playwright harness in `tests/rated420-hq.browser.cjs` for Rated420 HQ. The Rated420 HQ harness expects an extracted package running on port 8767 and the opt-in integrated build in `dist`. Set `RATED_TEST_CHROME` to a compatible local browser executable if needed. It blocks every request outside the local fixture origin and checks for attempted off-origin requests.

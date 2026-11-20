@@ -3,20 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; object-src 'none'; base-uri 'none'">
-  <title>Rated420 HQ | Founder workspace</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; font-src 'self'; img-src 'self' data: blob:; connect-src 'none'; form-action 'none'; object-src 'none'; base-uri 'none'">
+  <title>Rated420 HQ | Offline preview</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="stylesheet" href="gary.css">
-  <script defer src="gary-store.js"></script>
-  <script defer src="gary-ui.js"></script>
-  <script defer src="gary-standalone.js"></script>
+  <link rel="stylesheet" href="hq-workspace.css">
+  <link rel="stylesheet" href="profile-layout.css">
+  <script defer src="profile-avatar.js"></script>
+  <script defer src="profile-examples.js"></script>
+  <script defer src="hq-workspace-store.js"></script>
+  <script defer src="hq-workspace-ui.js"></script>
+  <script defer src="rated420-hq-preview.js"></script>
 </head>
 <body class="gary-standalone">
   <header class="gary-standalone-header">
     <img src="rated420-logo.png" width="76" height="76" alt="Rated420">
-    <div><p>RATED420 HQ</p><h1>Founder workspace</h1></div>
+    <div><p>OFFLINE PREVIEW</p><h1>Rated420 HQ</h1></div>
   </header>
+  <div class="profile-preview-shell">
+    <nav class="profile-preview-nav profile-actions" aria-label="Rated420 HQ preview">
+      <a href="#hq">Founder workspace</a>
+      <a href="#profiles/populated">Populated profile</a>
+      <a href="#profiles/missing">Missing avatar</a>
+      <a href="#profiles/edit">Owner edit example</a>
+    </nav>
+  </div>
   <main id="founder-workspace"></main>
+  <main id="profile-examples" class="profile-preview-shell" hidden></main>
   <noscript>This offline demo needs JavaScript enabled.</noscript>
 </body>
 </html>

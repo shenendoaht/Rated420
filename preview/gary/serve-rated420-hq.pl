@@ -18,14 +18,15 @@ my %mime = (
     png => 'image/png', webp => 'image/webp',
 );
 my %files = map { $_ => 1 } (
-    'index.html', 'gary.css', 'gary-store.js', 'gary-ui.js', 'gary-standalone.js',
+    'index.html', 'hq-workspace.css', 'hq-workspace-store.js', 'hq-workspace-ui.js', 'rated420-hq-preview.js',
+    'profile-layout.css', 'profile-avatar.js', 'profile-examples.js',
     'synthetic-media-kit.txt', 'rated420-logo.png', glob('fonts/fonts.css'),
     glob('fonts/*.woff2'), glob('images/*.png'), glob('images/*.webp'),
 );
 
 $SIG{PIPE} = 'IGNORE';
 $| = 1;
-print "Rated420 HQ founder preview\nOpen http://$address:$port/ in Chrome.\n";
+print "Rated420 HQ offline preview\nOpen http://$address:$port/ in Chrome.\n";
 print "Keep this window open while you use the demo. Press Control-C to stop.\n";
 if ($ENV{RATED420_OPEN_BROWSER} && $^O eq 'darwin') {
     system('/usr/bin/open', '-a', 'Google Chrome', "http://$address:$port/");

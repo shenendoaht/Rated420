@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="build01.css">
   <link rel="stylesheet" href="build02.css">
+  <link rel="stylesheet" href="profile-layout.css">
 </head>
 <body>
   <a class="skip-link" href="#siteMain">Skip to content</a>
@@ -293,16 +294,21 @@
   </section>
 </section>
       <section class="account-page page-width" id="accountPage" hidden aria-labelledby="accountTitle">
-        <div class="account-heading"><div><p class="eyebrow">MEMBER SPACE / 001</p><h1 id="accountTitle">You’re in. <em>Welcome.</em></h1><p>Manage your profile, favorites and reviews.</p></div><button type="button" class="btn btn-outline" id="accountSignOut">Sign out</button></div>
-        <div class="account-grid"><div class="member-card"><img id="memberAvatar" class="member-avatar is-logo" src="rated420-logo.png" alt="Your profile picture"><p class="eyebrow">YOUR RATED420 IDENTITY</p><h2 id="memberHandle">Member</h2><p id="memberEmail" class="member-email"></p><p class="member-since" id="memberSince"></p><span class="member-active"><span class="status-pip"></span> MEMBER ACCOUNT ACTIVE</span></div>
-          <div class="profile-card"><h2>My profile</h2><p>Choose how your account appears while your ratings grow.</p><div class="auth-message" id="profileMessage" role="status" aria-live="polite" hidden></div><form id="profileForm" novalidate>
+        <header class="account-heading profile-identity">
+          <span class="profile-avatar profile-avatar--large" aria-hidden="true" id="memberAvatarFrame"><span class="profile-avatar-fallback">•</span><img id="memberAvatar" alt=""></span>
+          <div class="profile-identity-copy"><h1 id="accountTitle">Member</h1><p id="memberHandle" class="profile-handle"></p></div>
+          <div class="profile-actions"><a class="btn btn-primary" id="editProfileLink" href="#profileEditor">Edit profile</a><button type="button" class="btn btn-outline" id="accountSignOut">Sign out</button></div>
+        </header>
+        <div class="account-grid">
+          <section class="member-card profile-section" aria-labelledby="accountDetailsTitle"><h2 id="accountDetailsTitle">Account details</h2><p id="memberEmail" class="member-email"></p><p class="member-since" id="memberSince"></p><span class="member-active"><span class="status-pip"></span> Member account active</span></section>
+          <section class="profile-card profile-section" id="profileEditor" aria-labelledby="profileEditorTitle"><h2 id="profileEditorTitle" tabindex="-1">Edit profile</h2><p>Choose how your account appears while your ratings grow.</p><div class="auth-message" id="profileMessage" role="status" aria-live="polite" hidden></div><form id="profileForm" novalidate>
           <fieldset class="avatar-picker"><legend>Profile picture</legend>
-            <div class="avatar-options"><label><input type="radio" name="avatar" value="" checked> <img class="avatar-logo" src="rated420-logo.png" alt=""> Rated420 logo</label></div>
+            <div class="avatar-options"><label><input type="radio" name="avatar" value="" checked> <span id="defaultAvatarOption" aria-hidden="true"></span> No photo · use initials</label></div>
             <div class="avatar-options" id="avatarOptions"></div>
             <label><input type="radio" name="avatar" value="upload"> My photo</label>
             <label for="avatarFile">Upload a photo (JPG, PNG or WebP up to 5 MB)</label>
             <input type="file" id="avatarFile" accept="image/jpeg,image/png,image/webp">
-          </fieldset><label for="profileUsername">Username</label><input id="profileUsername" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="your_username"><p class="field-tip">Letters, numbers, underscores. Leave blank to set later.</p><label for="profileDisplayName">Display name (optional)</label><input id="profileDisplayName" type="text" minlength="2" maxlength="60" placeholder="What should we call you?"><label class="review-identity-option"><input id="profileReviewIdentity" type="checkbox"> Show my username and preset avatar on community reviews</label><p class="field-tip">Uploaded profile photos stay private.</p><button class="btn btn-primary form-submit" type="submit">Save profile</button></form></div>
+          </fieldset><label for="profileUsername">Username</label><input id="profileUsername" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="your_username"><p class="field-tip">Letters, numbers, underscores. Leave blank to set later.</p><label for="profileDisplayName">Display name (optional)</label><input id="profileDisplayName" type="text" minlength="2" maxlength="60" placeholder="What should we call you?"><label class="review-identity-option"><input id="profileReviewIdentity" type="checkbox"> Show my username and preset avatar on community reviews</label><p class="field-tip">Uploaded profile photos stay private.</p><button class="btn btn-primary form-submit" type="submit">Save profile</button></form></section>
         </div>
         <section class="member-reviews" aria-labelledby="myReviewsTitle"><span class="eyebrow">YOUR REVIEWS</span><h2 id="myReviewsTitle">My strain reviews.</h2><p>Your ratings are tied to your account. Edit or remove them any time.</p><div id="myStrainReviewList" aria-live="polite"><p>No strain reviews yet.</p></div><button class="btn btn-primary" type="button" data-open-strains="catalogue">Explore strain catalogue ↗</button></section>
 <section class="member-reviews"><h2>My favorites</h2><div id="buildFavorites"></div></section>
@@ -350,6 +356,7 @@
   <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
   <script src="build01.js"></script>
+  <script src="profile-avatar.js"></script>
   <script src="build02.js"></script>
   <script src="app.js"></script>
 </body>

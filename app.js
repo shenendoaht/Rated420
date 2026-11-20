@@ -179,6 +179,7 @@
   function fillAccount() {
     if (!user) return;
     const username = profile?.username || 'New member';
+    $('accountTitle').textContent = profile?.display_name || (username === 'New member' ? 'New member' : username);
     $('memberHandle').textContent = '@' + (username === 'New member' ? 'new_member' : username);
     $('memberEmail').textContent = user.email || '';
     const joined = profile?.created_at || user.created_at;
@@ -665,15 +666,10 @@ function appendCommunityScore(node, stats) {
         updateCount(count);
         for (const review of data) {
           const item = makeNode('li', 'community-review-entry');
-          const image = makeNode('img');
-          image.alt = '';
-          const choice = Number(review.avatar_choice);
-          image.src = Number.isInteger(choice) && choice >= 1 && choice <= AVATARS.length
-            ? avatarImage(choice) : avatarLogo;
-          item.append(image, makeNode('span', '', review.username ? '@' + review.username : 'Community member'),
-            makeNode('strong', '', `${review.total} / 420`));
+          const identity = makeNode('span', '', review.username ? '@' + review.username : 'Community member');
+          item.append(reviewAvatar(review), identity, makeNode('strong', '', `${review.total} / 420`));
           list.append(item);
-          build02.decorate(item.querySelector('span'), review.username);
+          build02.decorate(identity, review.username);
         }
         offset += data.length;
         loaded = true;
@@ -1090,7 +1086,9 @@ function appendCommunityScore(node, stats) {
   let avatarPreviewUrl = null;
 
   function avatarImage(index) {
-    const [icon, , color] = AVATARS[index - 1];
+    const preset = AVATARS[Number(index) - 1];
+    if (!preset) return null;
+    const [icon, , color] = preset;
     const markup = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
       '<circle cx="50" cy="50" r="50" fill="' + color + '"/>' +
       '<text x="50" y="66" text-anchor="middle" font-size="48">' + icon + '</text></svg>';
@@ -1098,12 +1096,25 @@ function appendCommunityScore(node, stats) {
   }
 
   const avatarLogo = 'rated420-logo.png';
-  const memberAvatar = $('memberAvatar');
+  const memberAvatar = $('memberAvatarFrame');
+  const avatar = window.Rated420Avatar;
 
-  function showAvatar(src) {
-    memberAvatar.classList.toggle('is-logo', !src);
-    memberAvatar.src = src || avatarLogo;
+  function reviewAvatar(row) {
+    return avatar.create({ name:row.username, src:avatarImage(row.avatar_choice) });
   }
+
+  function showAvatar(src, onError) {
+    const name = profile?.display_name || profile?.username;
+    avatar.update(memberAvatar, { name, src, onError });
+    const option = $('defaultAvatarOption');
+    option.replaceChildren(avatar.create({ name }, 'medium'));
+  }
+
+  $('editProfileLink').addEventListener('click', event => {
+    event.preventDefault();
+    $('profileEditorTitle').focus();
+    $('profileEditor').scrollIntoView({block:'start'});
+  });
 
   let signedAvatarRequest;
   let signedAvatarRetryUsed = false;
@@ -1115,7 +1126,7 @@ function appendCommunityScore(node, stats) {
     try {
       const { data, error } = await db.storage.from(AVATAR_BUCKET).createSignedUrl(request.path, 3600);
       if (error || !data?.signedUrl) throw error || new Error('Missing avatar URL.');
-      if (currentAvatarRequest(request)) showAvatar(data.signedUrl);
+      if (currentAvatarRequest(request)) showAvatar(data.signedUrl, () => retrySignedAvatar(request));
     } catch {
       if (currentAvatarRequest(request)) {
         showAvatar();
@@ -1124,18 +1135,15 @@ function appendCommunityScore(node, stats) {
     }
   }
 
-  memberAvatar.addEventListener('error', () => {
-    if (memberAvatar.getAttribute('src') === avatarLogo) return;
-    showAvatar();
-    if (signedAvatarRequest && currentAvatarRequest(signedAvatarRequest)) {
-      if (!signedAvatarRetryUsed) {
-        signedAvatarRetryUsed = true;
-        void loadSignedAvatar(signedAvatarRequest);
-      } else {
-        toast('Profile photo is unavailable. Reopen My account to try again.');
-      }
+  function retrySignedAvatar(request) {
+    if (!currentAvatarRequest(request)) return;
+    if (!signedAvatarRetryUsed) {
+      signedAvatarRetryUsed = true;
+      void loadSignedAvatar(request);
+    } else {
+      toast('Profile photo is unavailable. Reopen My account to try again.');
     }
-  });
+  }
 
   async function fillAvatar() {
     const form = $('profileForm');
@@ -1145,7 +1153,7 @@ function appendCommunityScore(node, stats) {
     $('avatarFile').value = '';
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     avatarPreviewUrl = null;
-    showAvatar(choice ? avatarImage(choice) : null);
+    showAvatar(path ? null : avatarImage(choice));
     signedAvatarRetryUsed = false;
     signedAvatarRequest = path ? { memberId:user?.id, path } : null;
     if (signedAvatarRequest) await loadSignedAvatar(signedAvatarRequest);
@@ -1157,11 +1165,9 @@ function appendCommunityScore(node, stats) {
     input.type = 'radio';
     input.name = 'avatar';
     input.value = String(index + 1);
-    const image = makeNode('img');
-    image.src = avatarImage(index + 1);
-    image.alt = name;
+    input.setAttribute('aria-label', name);
     label.title = name;
-    label.append(input, image);
+    label.append(input, avatar.create({ name, src: avatarImage(index + 1) }, 'medium'));
     $('avatarOptions').append(label);
   });
 
@@ -1472,7 +1478,7 @@ function refreshCommunityScores() {
   const build01 = window.createBuild01({
     decorate: (n,name)=>build02.decorate(n,name),
     db: () => db, user: () => user, login: () => showAuth('login'), page, toast,
-    avatarImage,
+    reviewAvatar,
     async openFavorite(kind, id) {
       if (kind === 'strain') {
         openStrains('catalogue');

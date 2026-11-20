@@ -1,5 +1,5 @@
 /* Shared presentation for the Build 01 catalogue and Vault routes. */
-window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, avatarImage, decorate }) {
+window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, reviewAvatar, decorate }) {
   const root = document.getElementById('buildContent');
   const title = document.getElementById('buildTitle');
   const categories = {
@@ -45,11 +45,9 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
     const list = node('ul', undefined, 'build-review-list');
     for (const row of rows) {
       const item = node('li');
-      const avatar = node('img');
-      avatar.alt = '';
-      avatar.src = row.avatar_choice ? avatarImage(Number(row.avatar_choice)) : 'images/rated420-logo.png';
-      item.append(avatar, node('span', row.username ? '@' + row.username : 'Rated420 member'), node('strong', `${row.total} / 420`));
-      decorate(item.querySelector('span'),row.username);
+      const identity = node('span', row.username ? '@' + row.username : 'Rated420 member');
+      item.append(reviewAvatar(row), identity, node('strong', `${row.total} / 420`));
+      decorate(identity,row.username);
       list.append(item);
     }
     if (rows.length) details.append(list);

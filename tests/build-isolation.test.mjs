@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const source=fileURLToPath(new URL('..',import.meta.url));
 const root=mkdtempSync(path.join(tmpdir(),'rated420-build-test-'));
-for(const name of ['scripts','preview','index.html','app.js','styles.css','build01.js','build01.css','build02.js','build02.css','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
+for(const name of ['scripts','preview','index.html','app.js','styles.css','build01.js','build01.css','build02.js','build02.css','profile-layout.css','profile-avatar.js','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
 // Synthetic canaries, not credentials or real records.
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');
@@ -26,7 +26,9 @@ for(const [name,variables,demo] of cases)test(name,()=>{
  const output=path.join(root,'dist'),html=readFileSync(path.join(output,'index.html'),'utf8');
  assert.equal(existsSync(path.join(output,'community-demo.js')),demo);
  assert.doesNotMatch(html,/gary-(?:store|ui|fonts)/);
- assert(!readdirSync(output).some(file=>/gary|synthetic-media-kit/i.test(file)));
+ assert(!readdirSync(output,{recursive:true}).some(file=>/gary|synthetic-media-kit|profile-examples|profile-portrait|rated420-hq-preview/i.test(file)));
+ assert(existsSync(path.join(output,'profile-layout.css')));
+ assert(existsSync(path.join(output,'profile-avatar.js')));
  assert.equal(html.includes('src="community-demo.js"'),demo);
  for(const file of ['.env','private.sql','private.db','tests','preview','scripts'])assert(!existsSync(path.join(output,file)),file+' must not be published');
  assert(!readdirSync(output,{recursive:true}).some(file=>file.endsWith('.sql')));
