@@ -1545,7 +1545,7 @@ function refreshCommunityScores() {
       }else if(route==='business-account'&&!window.RatedComplete.business()){
         parent.append(makeNode('p','','This dashboard is available to the synthetic business representative.'));
       }else{
-        await window.RatedComplete.renderBusiness(parent,route==='business-account'?window.RatedComplete.business():id,{privateView:route==='business-account'});
+        await window.RatedComplete.renderBusiness(parent,route==='business-account'?window.RatedComplete.business():id&&decodeURIComponent(id),{privateView:route==='business-account'});
       }
     } else if (route === 'demo-reviews' && window.mountRatedExpansion) {
       page('hq');

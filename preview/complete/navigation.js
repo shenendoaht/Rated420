@@ -17,13 +17,18 @@
   document.getElementById('authPage').prepend(make('p','Offline accounts only. Use an @example.test address and password demo-only-420. No email is sent.','complete-note'));
   document.addEventListener('click',event=>{
     const anchor=event.target.closest('a[href]');
-    if(!anchor||!/^https?:|^mailto:/i.test(anchor.getAttribute('href')))return;
+    if(!anchor||anchor.dataset.officialOnline||!/^https?:|^mailto:/i.test(anchor.getAttribute('href')))return;
     event.preventDefault();
     const dialog=make('dialog',null,'complete-dialog');
     dialog.append(make('h2','Internet required'),make('p','This destination is available outside the offline preview.'),make('p',anchor.href));
     const close=make('button','Close','btn btn-outline');
     close.addEventListener('click',()=>dialog.close());
     dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+    if(['https://data.ny.gov','https://cannabis.ny.gov'].includes(new URL(anchor.href).origin)){
+      const external=make('a','Open official source online','btn btn-outline');
+      external.href=anchor.href;external.target='_blank';external.rel='noopener noreferrer';
+      external.dataset.officialOnline='true';dialog.append(external);
+    }
     dialog.append(close);document.body.append(dialog);dialog.showModal();
   });
   const contact=make('form',null,'build-card build-form');
@@ -53,6 +58,13 @@
   demo.renderBusiness=async(host,id,{privateView=false}={})=>{
     const content=make('div');
     host.append(content);
+    const intelligence=window.Rated420IntelligenceUI;
+    const licensed=id&&window.Rated420Intelligence?.record(id);
+    if(licensed&&!privateView){
+      content.append(link('Back to businesses','#businesses'));
+      intelligence.businessDetails(content,licensed);
+      return;
+    }
     const client=window.supabase.createClient();
     const entities=id?demo.entities.filter(item=>item.id===id):demo.entities;
     if(!entities.length){content.append(make('p','Business not found.'));return;}
@@ -83,5 +95,6 @@
       if(privateView)card.append(make('h3','Business dashboard'),make('p','You represent this organization. Listing suggestions go to the moderation queue.'),link('Suggest or track a listing','#contribute'));
       grid.append(card);
     }
+    if(!id)intelligence?.directory(content);
   };
 })();

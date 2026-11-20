@@ -129,6 +129,23 @@
           if(old) Object.assign(old,row);else state[collection].push(row);
           result=row.id;description='Saved '+row.name;break;
         }
+        case 'official-prospect': {
+          const intelligence=window.Rated420Intelligence;
+          const row=intelligence?.record(data.record);
+          if(!row||row.licenseStatus!=='Active'||!row.name)throw Error('Select a named source-verified record marked Active.');
+          if(state.opportunities.some(item=>item.officialRecordId===row.id))throw Error('An outreach prospect already exists for this license location.');
+          const matches=state.organizations.filter(org=>[org.name,org.legal].some(name=>name&&[row.name,row.dba].filter(Boolean).some(value=>intelligence.fold(value)===intelligence.fold(name))));
+          if(matches.length&&!matches.some(item=>item.id===data.org))throw Error('Resolve the potential CRM duplicate first.');
+          if(!matches.length&&data.org)throw Error('This CRM association could not be verified.');
+          const org=data.org||uuid();
+          if(!data.org)state.organizations.push({id:org,name:row.dba||row.name,legal:row.name,city:row.city||row.county||row.region||'',
+            classes:[],license:row.sourceId,source:'Official public · '+row.version,verification:'Source verified',officialRecordId:row.id});
+          const name=(row.dba||row.name)+' · regional outreach';
+          const id=uuid();
+          state.opportunities.push({id,name,type:'Brand partnership',stage:'Research',owner,org,notes:'Local prospect from '+row.version+' · '+(row.region||'Region not reported'),
+            officialRecordId:row.id});
+          result=id;description='Created official-data outreach prospect '+name;break;
+        }
         case 'stage-add': {
           const name=data.name.trim();
           if(!name||state.stages.some(stage=>normalized(stage)===normalized(name))) throw Error('Choose a new stage name.');

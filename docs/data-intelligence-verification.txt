@@ -1,0 +1,23 @@
+Rated420 Data Intelligence verification
+Package target: complete ecosystem offline; public sandbox uses a static
+derived package with indexing restrictions and no network connections in app.
+
+Checks:
+- Official projection schema, row identity, counts, CSV quoting, invalid dates,
+  authorization, stale preview rejection and audited reversion in Node.
+- Intelligence browsers: guest denial, moderator read-only, founder import,
+  preview and field mapping, CSV duplicates, JSON supersession and restoration,
+  official provenance, source diagnostics, regional filtering, CRM opportunity,
+  profile routing, persistence and reset.
+- Cumulative application checks: home, browse, ratings, authenticated fixtures,
+  public Stash publication, linked rating aggregates, moderation, profiles,
+  account storage, Vault, HQ founder workspace and expansion.
+- Chromium executable for compatibility: Chrome for Testing 116.0.5845.96 on
+  Linux. Packaged command and Perl fallback are local; Finder is untested.
+- Hosted tests use certificate-verified HTTPS responses fetched into the
+  browser harness when the local Chrome runtime does not trust its proxy CA.
+  Verification does not authenticate to any production data service.
+
+The completion report records results on the final distributed bytes and the
+verified Vercel deployment. Source and provenance are in SOURCE.txt and
+DATA-INTELLIGENCE.md.

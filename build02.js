@@ -313,29 +313,35 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     finish();
   }
 
-  async function hq(founder, initial) {
+  async function hq(founder, initial, intelligence) {
     const role=await api('role');
     if(!member()||role==='member')return parent=>parent.append(el('p','Rated420 HQ is available to authorized staff.'),...(!member()?[button('Log in',login)]:[]));
     const identity=member().id;
     const canEnterWorkspace=()=>!window.RatedComplete || window.RatedComplete.founder() || role==='administrator';
+    const assertAccess=async()=>{
+      if(!canEnterWorkspace()||member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
+        throw Error('Sign in as authorized staff to change this workspace.');
+    };
+    const createProspect=(id,org)=>window.GaryStore.openStore(assertAccess).dispatch('official-prospect',{record:id,org},window.GaryStore.founders[0]);
+    if(intelligence&&window.Rated420IntelligenceUI)return parent=>{
+      window.Rated420IntelligenceUI.mount(parent,{guard:assertAccess,writable:canEnterWorkspace(),
+        hq:()=>window.GaryStore.openStore().read(),create:createProspect});
+    };
     const gary=window.mountGaryPreview && ['staff','administrator'].includes(role) && canEnterWorkspace();
     if(founder && window.RatedComplete && !gary)return parent=>parent.append(el('p','The founder workspace is available to founders and administrators.'));
     if(founder&&gary)return parent=>{
       const back=el('a','Back to Rated420 HQ');
       back.href='#hq';
       parent.append(back);
-      const assertAccess=async()=>{
-        if(!canEnterWorkspace()||member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
-          throw Error('Sign in as authorized staff to change this workspace.');
-      };
       if(window.mountRatedExpansion){
         const controls=el('nav',undefined,'build-actions');
         for(const [hash,label] of [['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
           const link=el('a',label,'btn btn-outline');link.href=hash;controls.append(link);
         }
+        if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.append(link);}
         parent.append(controls);
         if(initial==='finance'||initial==='territory'){
-          window.mountRatedExpansion(parent,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read()});return;
+          window.mountRatedExpansion(parent,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read(),createProspect});return;
         }
       }
       window.mountGaryPreview(parent,{initial,assertAccess});
@@ -355,6 +361,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
         const b=button(tab,()=>{activeTab=tab;void route();});b.setAttribute('aria-pressed',String(tab===current));nav.append(b);
       }
       if(gary){const link=el('a','Founder workspace');link.href='#hq/gary';nav.append(link);}
+      if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';nav.append(link);}
       parent.append(nav);
       const content=el('section');parent.append(content);
       if(current==='Analytics'){
@@ -431,7 +438,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {
-      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
+      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview,id==='intelligence'),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
       if(token===request&&location.hash===hash){area.replaceChildren();render(area);}
     } catch(error){
       if(token===request&&location.hash===hash){area.textContent=error.message;area.append(button('Try again',route));}

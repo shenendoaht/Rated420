@@ -1,0 +1,8 @@
+.ri-center textarea {min-height:9rem;width:100%;resize:vertical}
+.ri-center label {margin-block:.35rem}
+.ri-center .build-card {margin-block:.65rem}
+.ri-center .build-actions,.ri-directory .build-actions {display:flex;flex-wrap:wrap;gap:.4rem}
+.ri-directory .build-card {min-width:0;overflow-wrap:anywhere}
+.ri-directory select,.ri-directory input,.ri-center input,.ri-center select {max-width:100%;box-sizing:border-box}
+.ri-directory .exp-controls label {display:grid;gap:.25rem;min-width:0}
+.ri-directory .build-grid {margin-block:.7rem}

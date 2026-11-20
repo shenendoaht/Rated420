@@ -26,7 +26,7 @@ for(const [name,variables,demo] of cases)test(name,()=>{
  const output=path.join(root,'dist'),html=readFileSync(path.join(output,'index.html'),'utf8');
  assert.equal(existsSync(path.join(output,'community-demo.js')),demo);
  assert.doesNotMatch(html,/gary-(?:store|ui|fonts)/);
- assert(!readdirSync(output,{recursive:true}).some(file=>/gary|synthetic-media-kit|profile-examples|profile-portrait|complete-(?:navigation|layout)|expansion-(?:fixtures|store|ui|layout)|rated420-hq-preview/i.test(file)));
+ assert(!readdirSync(output,{recursive:true}).some(file=>/gary|synthetic-media-kit|profile-examples|profile-portrait|intelligence-|complete-(?:navigation|layout)|expansion-(?:fixtures|store|ui|layout)|rated420-hq-preview/i.test(file)));
  assert(existsSync(path.join(output,'profile-layout.css')));
  assert(existsSync(path.join(output,'profile-avatar.js')));
  assert.equal(html.includes('src="community-demo.js"'),demo);

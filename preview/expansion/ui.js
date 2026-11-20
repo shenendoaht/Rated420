@@ -39,7 +39,7 @@
     }
     control.setAttribute('aria-label',name);label.append(control);parent.append(label);return control;
   }
-  function mount(parent,area,{guard=async()=>{},actor='offline-member',hq}={}){
+  function mount(parent,area,{guard=async()=>{},actor='offline-member',hq,createProspect}={}){
     const node=el('section',undefined,'expansion');
     parent.append(node);
     const status=el('p');status.setAttribute('role','status');
@@ -274,6 +274,7 @@
           if(area==='stash'&&row.status==='Tried'&&row.scores.length===5)card.append(button('Preview public review',()=>publish(row)));
         }
       }
+      if(area==='market')window.Rated420IntelligenceUI?.directory(content,{territory:true,territoryRegion:region,hq,create:createProspect});
       tools.addEventListener('input',event=>{
         if(area==='finance'&&event.target===filter&&(category==='Projection'||filter.value==='Projection')){category=filter.value;report();return;}
         draw();
