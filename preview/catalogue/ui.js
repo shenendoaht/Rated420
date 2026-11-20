@@ -11,7 +11,7 @@
     return a;
   }
   function button(text,fn){
-    const b=el('button',text,'btn btn-outline');b.type='button';b.addEventListener('click',fn);return b;
+    const b=el('button',text,'btn '+(text.startsWith('Archive ')||text==='Decline proposal'?'btn-danger':'btn-outline'));b.type='button';b.addEventListener('click',fn);return b;
   }
   const path=row=>'#catalogue/'+row.type+'/'+encodeURIComponent(row.id);
   const native=row=>row.reviewId?({strain:'#strains/',dispensary:'#dispensaries/',brand:'#brands/'}[row.type]||'')+row.reviewId:'';
@@ -37,12 +37,14 @@
   }
   function imageFor(row){
     const figure=el('figure',null,'catalogue-image');
+    figure.dataset.entityType=row.type;
     const asset=store.publicAsset(row.id);
     if(asset){
       const img=el('img');img.src=asset.image;img.alt=asset.alt;img.loading='lazy';figure.append(img);
       if(asset.attribution)figure.append(el('figcaption',asset.attribution));
     }else{
-      figure.append(el('span','RATED420','catalogue-wordmark'),el('span','Approved imagery pending','catalogue-caption'));
+      figure.classList.add('catalogue-placeholder');
+      figure.append(el('span','Approved imagery pending','catalogue-caption'));
     }
     return figure;
   }
@@ -65,16 +67,16 @@
     return card;
   }
   function browser(parent,type){
-    const nav=el('nav',null,'build-actions');nav.setAttribute('aria-label','Catalogue categories');
-    for(const [id,label] of [['','All catalogue'],...Object.entries(labels)]){
-      const a=link(label,'#catalogue'+(id?'/'+id:''));if(id===(type||''))a.setAttribute('aria-current','page');nav.append(a);
-    }
-    nav.append(link('Accessories','#accessories'),link('Strain scorecards','#strains'),link('Dispensary scorecards','#dispensaries'));
-    const tools=el('div',null,'exp-controls');
+    const shortcuts=el('details',null,'catalogue-shortcuts');
+    shortcuts.append(el('summary','Accessories and scorecards'),link('Accessories','#accessories'),link('Strain scorecards','#strains'),link('Dispensary scorecards','#dispensaries'));
+    const tools=el('div',null,'catalogue-filters');
     const search=field(tools,'Search catalogue','search','',null,'search');
+    search.placeholder='Name, format or description';
+    const category=field(tools,'Category','category',type||'',[['','All catalogue'],...Object.entries(labels)]);
+    category.addEventListener('change',()=>{location.hash='catalogue'+(category.value?'/'+category.value:'');});
     const format=field(tools,'Product format','format','',[['','All formats'],...store.formats]);
     const view=field(tools,'Catalogue layout','layout','cards',[['cards','Cards'],['compact','Compact']]);
-    const grid=el('div',null,'build-grid catalogue-grid');const summary=el('p');summary.setAttribute('aria-live','polite');
+    const grid=el('div',null,'build-grid catalogue-grid');const summary=el('p',null,'catalogue-result-count');summary.setAttribute('role','status');
     const draw=()=>{
       const query=search.value.trim().toLowerCase();
       const rows=store.published().filter(row=>(!type||row.type===type)&&(!format.value||row.format===format.value)&&
@@ -84,7 +86,8 @@
       if(!rows.length)grid.append(el('p','No catalogue records match those filters.'));
     };
     tools.addEventListener('input',draw);
-    parent.append(el('p','Browse finished products, cultivars, brands and licensed locations. Manufacturer imagery appears after permission review.'),nav,tools,summary,grid);draw();
+    const results=el('div',null,'catalogue-result-bar');
+    results.append(summary,shortcuts);parent.append(tools,results,grid);draw();
   }
   async function score(parent,row){
     const host=el('section',null,'build-card');
@@ -130,13 +133,15 @@
   }
   function detail(parent,row,options){
     const article=el('article',null,'build-card catalogue-profile');
-    article.append(imageFor(row),el('p',labels[row.type],'catalogue-meta'),el('p',row.description));
+    const summary=el('div',null,'catalogue-summary');
+    article.append(imageFor(row),summary);
+    summary.append(el('p',labels[row.type],'catalogue-meta'),el('p',row.description));
     for(const [key,label] of [['format','Format'],['category','Category'],['manufacturer','Manufacturer'],['cannabinoids','Reported cannabinoids'],['terpenes','Reported terpenes'],['cultivation','Cultivation or production']]){
-      if(row[key])article.append(el('p',label+' · '+row[key]));
+      if(row[key])summary.append(el('p',label+' · '+row[key]));
     }
-    if(row.url)article.append(link('Open official website',row.url,true));
-    if(row.media)article.append(link('Watch Rated420 coverage',row.media,true));
-    provenance(row,article);stash(article,row,options);
+    if(row.url)summary.append(link('Open official website',row.url,true));
+    if(row.media)summary.append(link('Watch Rated420 coverage',row.media,true));
+    provenance(row,summary);stash(summary,row,options);
     parent.append(link('Back to catalogue','#catalogue/'+row.type),article);
     const records=store.published();
     const relations=records.filter(item=>store.linkedIds(row).includes(item.id)||store.linkedIds(item).includes(row.id));

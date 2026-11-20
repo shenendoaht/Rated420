@@ -10,6 +10,12 @@
   const link=(text,hash)=>{const a=make('a',text,'btn btn-outline');a.href=hash;return a;};
   const nav=make('nav',null,'page-width complete-nav');
   nav.setAttribute('aria-label','Offline ecosystem navigation');
+  const browse=document.querySelector('.home-catalogue h2');
+  if(browse){
+    const trail=make('div',null,'build-actions home-editorial-links');
+    trail.append(link('Browse finished products','#catalogue/product'),link('Treehouse profile','#catalogue/dispensary/treehouse'),link('RYTHM profile','#catalogue/brand/rythm'));
+    browse.after(trail);
+  }
   nav.append(...[['Home','#home'],['About','#about'],['Discover','#discover'],['Business directory','#businesses'],
     ['Community reviews','#demo-reviews'],['Episodes','#episodes'],['The Vault','#vault'],['The Shop','#shop'],['Contact','#contact']]
     .map(([text,hash])=>link(text,hash)));

@@ -94,7 +94,7 @@
       if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
     }
     const selected=nav.querySelector('[aria-current=page]');
-    for(const item of nav.querySelectorAll('details'))item.dataset.current=String(Boolean(selected&&item.contains(selected)));
+    for(const item of nav.querySelectorAll('details'))item.dataset.current=String(Boolean(selected&&item.contains(selected)||item===catalogue&&route==='#dispensaries'&&!account));
     shell.dataset.surface=route.startsWith('#hq')?'hq':route.startsWith('#business')?'business':'public';
   }
   window.addEventListener('hashchange',()=>{closePublic();reflect();});

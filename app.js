@@ -446,8 +446,24 @@
         slide.setAttribute('aria-hidden', String(!active));
       });
     }
+    const motionControl = document.querySelector('[data-carousel-motion]');
+    let slideshowOn = !reduceMotion.matches;
+    if (motionControl) {
+      const syncMotion = () => {
+        motionControl.textContent = slideshowOn ? 'Pause slideshow' : 'Play slideshow';
+      };
+      motionControl.addEventListener('click', () => {
+        slideshowOn = !slideshowOn;
+        syncMotion();
+      });
+      reduceMotion.addEventListener('change', event => {
+        slideshowOn = !event.matches;
+        syncMotion();
+      });
+      syncMotion();
+    }
     window.setInterval(() => {
-      if (!document.hidden && !reduceMotion.matches && isAgeAccepted() && currentPage === 'home') {
+      if (!document.hidden && (motionControl ? slideshowOn : !reduceMotion.matches) && isAgeAccepted() && currentPage === 'home') {
         showCarouselSlide(carouselIndex + 1);
       }
     }, 5000);
