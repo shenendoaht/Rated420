@@ -47,7 +47,8 @@
         if(area!=='stash')throw Error('Journal access required.');
         const row=read('stash',actor).find(record=>record.id===preview.id);
         if(!row||row.status!=='Tried'||row.scores.length!==5||row.scores.some(n=>!Number.isInteger(n)||n<0||n>84))throw Error('A tried product with five valid scores is required.');
-        if(row.product!==preview.product||row.format!==preview.format||row.scores.some((score,i)=>score!==preview.scores[i]))throw Error('This entry changed. Open a fresh preview before publishing.');
+        if(row.product!==preview.product||row.productId!==preview.productId||row.format!==preview.format||row.scores.some((score,i)=>score!==preview.scores[i]))throw Error('This entry changed. Open a fresh preview before publishing.');
+        if(window.RatedComplete){window.RatedComplete.publish(row,publicText.trim(),actor);return;}
         const publicId=actor+':'+row.id;
         const reviews=read('public');
         const existing=reviews.find(record=>record.id===publicId);
@@ -56,5 +57,5 @@
       }
     };
   }
-  window.RatedExpansionStore={session,project,total,publicReviews:()=>read('public').map(({id,...review})=>review)};
+  window.RatedExpansionStore={session,project,total,publicReviews:()=>window.RatedComplete?.publicReviews()??read('public').map(({id,...review})=>review)};
 })();

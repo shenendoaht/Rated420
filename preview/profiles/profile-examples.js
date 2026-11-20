@@ -72,7 +72,7 @@
     header.append(frame,copy);
     if (isOwner) {
       const ownerActions = el('div','','profile-actions');
-      ownerActions.append(link('View as visitor','#profiles/populated'));
+      ownerActions.append(link('View as visitor',window.RatedComplete?'#profile-examples/populated':'#profiles/populated'));
       header.append(ownerActions);
     }
     host.replaceChildren(header);

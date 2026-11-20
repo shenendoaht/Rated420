@@ -1,10 +1,10 @@
 /* Browser-only fixtures. The production authorization boundary is the SQL RPC. */
-function runBuild02Fixture(operation,payload,state,actor,users,profile,aggregate) {
+function runBuild02Fixture(operation,payload,state,actor,users,profile,aggregate,defaultRoles) {
   const now=new Date().toISOString();
   if(!state.build01)runBuild01Fixture('polls',{},state,actor,users,profile);
   const b=state.build01;
   const h=state.build02??={
-    roles:{[users[0]]:'staff',[users[2]]:'administrator',[users[3]]:'staff'},
+    roles:defaultRoles||{[users[0]]:'staff',[users[2]]:'administrator',[users[3]]:'staff'},
     submissions:[],archive:[],library:[
       {kind:'episode',id:'episode-one',title:'Rated 420:NY Episode 1 - AETERNA',description:'Verified public destination. Release date to be confirmed.',image:'artwork',url:'https://www.youtube.com/watch?v=_sIMx7bO0MQ',position:1,published:true},
       {kind:'episode',id:'episode-two',title:'Rated 420:NY Episode 2 - TREEHOUSE',description:'Verified public destination. Release date to be confirmed.',image:'artwork',url:'https://www.youtube.com/watch?v=5A0oNueR_SM',position:2,published:true},
@@ -21,7 +21,7 @@ function runBuild02Fixture(operation,payload,state,actor,users,profile,aggregate
   const rows=[
     ...state.strains.map(r=>score({...r,kind:'strain',formats:[...new Set(state.strain_reviews.filter(v=>Number(v.strain_id)===Number(r.id)).map(v=>v.product_type))]},strain.find(v=>Number(v.strain_id)===Number(r.id)))),
     ...state.dispensaries.map(r=>score({...r,kind:'dispensary'},disp.find(v=>Number(v.dispensary_id)===Number(r.id)))),
-    ...['brand','accessory'].flatMap(kind=>runBuild01Fixture('catalog',{kind},state,actor,users,profile))
+    ...['brand','accessory'].flatMap(kind=>runBuild01Fixture('catalog',{kind,manage:true},state,actor,users,profile))
   ];
   const same=(row,kind,name,location)=>row.kind===kind&&key(row.name)===key(name)&&key(row.location)===key(location);
   function key(v){return String(v??'').trim().toLowerCase().replace(/\s+/g,' ');}

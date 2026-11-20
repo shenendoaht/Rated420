@@ -100,10 +100,15 @@
           }
           return collect=()=>({...values(pairs),rating:Number(pairs.rating.value),reviews:Number(pairs.reviews.value),engagement:Number(pairs.engagement.value)});
         }
-        add('product','Product').required=true;
+        const product=window.RatedComplete?.products();
+        if(product){
+          const selected=row.productId||product.find(item=>item.name===row.product)?.id;
+          pairs.product=field(form,'Product',selected?String(selected):'', [['','Select a Rated420 strain'],...product.map(item=>[String(item.id),item.name])]);
+          pairs.product.required=true;
+        }else add('product','Product').required=true;
         add('brand','Brand');add('status','Status',['Tried','Wishlist']);
         add('favorite','Favorite product',null,'checkbox');add('favoriteBrand','Favorite brand',null,'checkbox');add('flavor','Flavor preference');add('cultivar','Cultivar');
-        add('format','Format',['Flower','Pre-Roll','Infused Pre-Roll','Vape Cartridge','Disposable Vape','Concentrate','Edible','Tincture','Topical','Other']);
+        add('format','Format',window.RatedComplete?.formats??['Flower','Pre-Roll','Infused Pre-Roll','Vape Cartridge','Disposable Vape','Concentrate','Edible','Tincture','Topical','Other']);
         add('notes','Private tasting notes',null,'textarea');
         const scoring=el('fieldset');scoring.append(el('legend','Optional scorecard · all five scores required to publish'));
         const scores=keys.map((label,i)=>field(scoring,label,row.scores?.[i],null,'number'));
@@ -112,7 +117,9 @@
         return collect=()=>{
           if(pairs.favoriteBrand.checked&&!pairs.brand.value.trim())throw Error('Enter the brand before marking it as a favorite.');
           if(scores.some(s=>s.value!=='')&&scores.some(s=>s.value===''))throw Error('Complete all five scores or leave them blank.');
-          return {...values(pairs),scores:scores[0].value===''?[]:scores.map(s=>Number(s.value)),date:row.date||new Date().toISOString().slice(0,10)};
+          const chosen=product?.find(item=>String(item.id)===pairs.product.value);
+          if(product&&!chosen)throw Error('Choose an active Rated420 strain.');
+          return {...values(pairs),...(chosen?{product:chosen.name,productId:chosen.id}:{}),scores:scores[0].value===''?[]:scores.map(s=>Number(s.value)),date:row.date||new Date().toISOString().slice(0,10)};
         };
       },'Save record',async()=>{
         const fields=collect();
@@ -204,6 +211,7 @@
         for(const row of reviews){
           const card=box(content,row.product,row.format+' · '+row.total+' / 420');
           if(row.text)card.append(el('p',row.text));
+          if(row.productId){const link=el('a','Open strain and community scores');link.href='#strains/'+row.productId;card.append(link);}
         }
         return;
       }

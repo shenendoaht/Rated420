@@ -9,9 +9,13 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
     reviews: [], favorites: [],
     polls: [{ id: 'demo-poll', question: 'What should The Vault cover next?', closed: false, options: ['New York growers', 'Dispensary design'], votes: {} }]
   };
+  const complete=typeof COMPLETE_ENTITIES!=='undefined';
+  if(complete&&!fixtures.items.some(item=>item.id==='org-brand')){
+    fixtures.items.push({id:'org-brand',kind:'brand',name:'Field Signal',description:'Synthetic brand affiliated with Hudson Lantern Farm.'});
+  }
   const { id, kind } = payload;
   const role=state.build02?.roles[actor];
-  const staff = role ? role !== 'member' : [users[0],users[2],users[3]].includes(actor);
+  const staff = role ? role !== 'member' : complete ? Boolean(COMPLETE_ACCOUNTS.find(entry=>entry.id===actor)?.role) : [users[0],users[2],users[3]].includes(actor);
   const ownFavorites = () => fixtures.favorites.filter(row => row.actor === actor);
   const identity = (id, total) => {
     const { username, avatar_choice, show_review_identity } = profile(state, id);
@@ -24,10 +28,10 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
       average: reviews.length ? reviews.reduce((sum, row) => sum + row.total, 0) / reviews.length : null
     };
   });
-  if (operation === 'catalog') return catalog.filter(item => item.kind === kind);
+  if (operation === 'catalog') return catalog.filter(item => item.kind === kind && (!complete || payload.manage || !state.build02?.archive?.includes(item.kind+':'+item.id)));
   if (operation === 'item') {
     const item = catalog.find(row => row.id === id && row.kind === kind);
-    if (!item) return null;
+    if (!item || (complete && state.build02?.archive?.includes(kind+':'+id))) return null;
     const reviews = fixtures.reviews.filter(row => row.id === id);
     return {
       ...item, own: reviews.find(row => row.actor === actor) ?? null,

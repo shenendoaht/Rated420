@@ -1,0 +1,5 @@
+.complete-nav {display:flex;gap:.4rem;flex-wrap:wrap;padding-block:.7rem}
+.complete-nav .btn {min-height:44px;padding:.45rem .7rem;white-space:normal}
+.complete-note {grid-column:1/-1;background:#25213a;border:1px solid #69578b;border-radius:.5rem;padding:.8rem;color:#f1e9ff}
+.complete-dialog {background:#22202c;color:#fff;max-width:min(30rem,calc(100% - 2rem));border:1px solid #6d6379;border-radius:.65rem;overflow-wrap:anywhere}
+.complete-dialog::backdrop {background:#08070bcb}

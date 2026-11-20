@@ -72,6 +72,7 @@
     currentPage = name;
     if (name !== 'account') document.getElementById('accountStash')?.replaceChildren();
     const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq', 'demo-reviews':'hq' };
+    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home'});
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
@@ -110,6 +111,14 @@
     const publicLink = makeNode('a','btn btn-outline','Community review preview');
     publicLink.href='#demo-reviews';
     host.append(button,publicLink,content);
+    if(window.RatedComplete){
+      if(window.RatedComplete.business()){
+        const business=makeNode('a','btn btn-primary','Business dashboard');
+        business.href='#business-account';host.append(business);
+      }
+      const preview=makeNode('a','btn btn-outline','Profile examples');
+      preview.href='#profile-examples/edit';host.append(preview);
+    }
   }
 
   function home() { page('home'); }
@@ -230,7 +239,7 @@
         }
         fillAccount();
         if (goToAccount && !inRecovery) page('account');
-      } else if (currentPage === 'account') {
+      } else if (currentPage === 'account' || (window.RatedComplete && goToAccount)) {
         home();
       }
     } catch (e) {
@@ -260,7 +269,10 @@
           setTimeout(() => showAuth('reset'), 0);
         }
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
-          setTimeout(() => refreshUser(event === 'SIGNED_IN' && !inRecovery), 0);
+          setTimeout(() => {
+            if(window.RatedComplete && event==='SIGNED_OUT')home();
+            void refreshUser(event === 'SIGNED_IN' && !inRecovery);
+          }, 0);
         }
       });
       await refreshUser(false);
@@ -1518,7 +1530,24 @@ function refreshCommunityScores() {
   async function routeHash() {
     const hash = location.hash;
     const [route, id] = hash.slice(1).split('/');
-    if (route === 'demo-reviews' && window.mountRatedExpansion) {
+    if(window.RatedComplete && ['home','about'].includes(route)){
+      home();
+      if(route==='about')$('rated420-standard').scrollIntoView();
+    } else if(window.RatedComplete && ['businesses','business-account','profile-examples'].includes(route)){
+      page('hq');
+      const parent=$('hqContent');parent.replaceChildren();
+      $('hqTitle').textContent=route==='businesses'?'Business directory':route==='business-account'?'Business dashboard':'Profile examples';
+      if(route==='profile-examples'){
+        for(const [slug,name] of [['populated','Populated profile'],['missing','Missing avatar'],['edit','Owner edit example']]){
+          const link=makeNode('a','btn btn-outline',name);link.href='#profile-examples/'+slug;parent.append(link);
+        }
+        window.renderProfileExample(parent.appendChild(makeNode('div','profile-preview-shell')),id||'populated');
+      }else if(route==='business-account'&&!window.RatedComplete.business()){
+        parent.append(makeNode('p','','This dashboard is available to the synthetic business representative.'));
+      }else{
+        await window.RatedComplete.renderBusiness(parent,route==='business-account'?window.RatedComplete.business():id,{privateView:route==='business-account'});
+      }
+    } else if (route === 'demo-reviews' && window.mountRatedExpansion) {
       page('hq');
       $('hqTitle').textContent='Community';
       $('hqContent').replaceChildren();
@@ -1548,6 +1577,10 @@ function refreshCommunityScores() {
     $('contactTitle').focus({ preventScroll: true });
 
   }
+  window.addEventListener('rated420:journal-published', () => {
+    void loadMyStrainReviews();
+    void loadStrainCatalogue();
+  });
   window.addEventListener('rated420:session-ready', () => void routeHash());
   window.addEventListener('hashchange', () => { if (isAgeAccepted()) void routeHash(); });
   document.querySelectorAll('[data-build-page]').forEach(link => link.addEventListener('click', event => {

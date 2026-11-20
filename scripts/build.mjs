@@ -8,7 +8,8 @@ const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
 const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js', 'profile-layout.css', 'profile-avatar.js'];
 const staging = process.env.RATED420_BUILD01_STAGING === '1';
-const gary = !staging && !process.env.VERCEL_ENV && process.env.RATED420_GARY_PREVIEW === '1';
+const complete = !staging && !process.env.VERCEL_ENV && process.env.RATED420_COMPLETE_PREVIEW === '1';
+const gary = complete || !staging && !process.env.VERCEL_ENV && process.env.RATED420_GARY_PREVIEW === '1';
 const stagingOrigin = process.env.RATED420_STAGING_SUPABASE_URL;
 const stagingKey = process.env.RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY;
 const productionOrigin = 'https://ymluyoqkmzxomjokjmkj.supabase.co';
@@ -56,11 +57,20 @@ if (staging) {
   files.set('app.js', files.get('app.js')
     .replace(productionOrigin, 'https://rated420-demo.invalid')
     .replace(/const SUPABASE_PUBLISHABLE_KEY = '[^']+';/, "const SUPABASE_PUBLISHABLE_KEY = 'synthetic';"));
+  if (complete) {
+    for(const [source,target] of [['preview/complete/navigation.js','complete-navigation.js'],['preview/complete/layout.css','complete-layout.css'],['preview/profiles/profile-examples.js','profile-examples.js']]){
+      files.set(target,await readFile(path.join(root,source),'utf8'));
+    }
+    files.set('index.html',files.get('index.html').replace('<title>','<link rel="stylesheet" href="complete-layout.css">\n  <title>')
+      .replace("connect-src 'none'; form-action 'none'; script-src 'self'; object-src 'none'; base-uri 'none'","default-src 'none'; connect-src 'none'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'none'")
+      .replace('<script src="app.js"></script>','<script src="profile-examples.js"></script><script src="complete-navigation.js"></script><script src="app.js"></script>'));
+  }
   const seed = await readFile(path.join(root, 'preview/seed.json'), 'utf8');
   const client = await readFile(path.join(root, 'preview/client.js'), 'utf8');
   const adapter = await readFile(path.join(root, 'preview/build01-adapter.js'), 'utf8');
   const hqAdapter = await readFile(path.join(root, 'preview/build02-adapter.js'), 'utf8');
-  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + adapter + '\n' + hqAdapter + '\n' + client);
+  const dataset = complete ? await readFile(path.join(root,'preview/complete/dataset.js'),'utf8') : '';
+  files.set('community-demo.js', 'const COMMUNITY_DEMO_SEED=' + seed + ';\n' + dataset + '\n' + adapter + '\n' + hqAdapter + '\n' + client);
 
   for (const [file, content] of files) {
     if (/ymluyoqkmzxomjokjmkj|(?:https?:)?\/\/[^\s"'<>]*\.supabase\.(?:co|in|net)\b|sb_(?:publishable|secret)_/i.test(content)) {
@@ -73,6 +83,7 @@ await mkdir(output, { recursive: true });
 for (const file of ['rated420-logo.png', 'images']) {
   await cp(path.join(root, file), path.join(output, file), { recursive: true });
 }
+if (complete) await cp(path.join(root,'preview/profiles/images'),path.join(output,'images'),{recursive:true});
 if (gary) await cp(path.join(root, 'preview/gary/fonts'), path.join(output, 'gary-fonts'), { recursive: true });
 await Promise.all([...files].map(([file, content]) => writeFile(path.join(output, file), content)));
 console.log(staging ? 'Built for isolated Build 01 staging.' : production

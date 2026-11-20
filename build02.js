@@ -317,13 +317,15 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     const role=await api('role');
     if(!member()||role==='member')return parent=>parent.append(el('p','Rated420 HQ is available to authorized staff.'),...(!member()?[button('Log in',login)]:[]));
     const identity=member().id;
-    const gary=window.mountGaryPreview && ['staff','administrator'].includes(role);
+    const canEnterWorkspace=()=>!window.RatedComplete || window.RatedComplete.founder() || role==='administrator';
+    const gary=window.mountGaryPreview && ['staff','administrator'].includes(role) && canEnterWorkspace();
+    if(founder && window.RatedComplete && !gary)return parent=>parent.append(el('p','The founder workspace is available to founders and administrators.'));
     if(founder&&gary)return parent=>{
       const back=el('a','Back to Rated420 HQ');
       back.href='#hq';
       parent.append(back);
       const assertAccess=async()=>{
-        if(member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
+        if(!canEnterWorkspace()||member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
           throw Error('Sign in as authorized staff to change this workspace.');
       };
       if(window.mountRatedExpansion){

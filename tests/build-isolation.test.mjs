@@ -12,21 +12,21 @@ for(const name of ['scripts','preview','index.html','app.js','styles.css','build
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');
 const cases=[
- ['production main excludes demo even with a legacy demo flag',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'main',RATED420_LOCAL_DEMO:'1',RATED420_GARY_PREVIEW:'1'},false],
+ ['production main excludes demo even with a legacy demo flag',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'main',RATED420_LOCAL_DEMO:'1',RATED420_GARY_PREVIEW:'1',RATED420_COMPLETE_PREVIEW:'1'},false],
  ['feature preview uses isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/community-averages'},true],
- ['other feature previews also use isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/unrelated',RATED420_GARY_PREVIEW:'1'},true],
+ ['other feature previews also use isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/unrelated',RATED420_GARY_PREVIEW:'1',RATED420_COMPLETE_PREVIEW:'1'},true],
  ['default local build uses isolated data',{},true],
  ['development is isolated even with a production target',{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'development'},true],
  ['production target without a Git ref uses isolated data',{VERCEL_ENV:'production'},true],
  ['preview of main uses isolated data',{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'main'},true]
 ];
 for(const [name,variables,demo] of cases)test(name,()=>{
- const env={...process.env};for(const key of ['VERCEL_ENV','VERCEL_GIT_COMMIT_REF','RATED420_LOCAL_DEMO','RATED420_GARY_PREVIEW'])delete env[key];Object.assign(env,variables);
+ const env={...process.env};for(const key of ['VERCEL_ENV','VERCEL_GIT_COMMIT_REF','RATED420_LOCAL_DEMO','RATED420_GARY_PREVIEW','RATED420_COMPLETE_PREVIEW'])delete env[key];Object.assign(env,variables);
  execFileSync(process.execPath,[path.join(root,'scripts/build.mjs')],{env,stdio:'pipe'});
  const output=path.join(root,'dist'),html=readFileSync(path.join(output,'index.html'),'utf8');
  assert.equal(existsSync(path.join(output,'community-demo.js')),demo);
  assert.doesNotMatch(html,/gary-(?:store|ui|fonts)/);
- assert(!readdirSync(output,{recursive:true}).some(file=>/gary|synthetic-media-kit|profile-examples|profile-portrait|expansion-(?:fixtures|store|ui|layout)|rated420-hq-preview/i.test(file)));
+ assert(!readdirSync(output,{recursive:true}).some(file=>/gary|synthetic-media-kit|profile-examples|profile-portrait|complete-(?:navigation|layout)|expansion-(?:fixtures|store|ui|layout)|rated420-hq-preview/i.test(file)));
  assert(existsSync(path.join(output,'profile-layout.css')));
  assert(existsSync(path.join(output,'profile-avatar.js')));
  assert.equal(html.includes('src="community-demo.js"'),demo);
@@ -52,7 +52,7 @@ for(const [name,variables,demo] of cases)test(name,()=>{
  }
 });
 test('explicit Build 01 staging build removes production addresses and rejects the production target',()=>{
- const env={...process.env,VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'rebuild/build-01',RATED420_BUILD01_STAGING:'1',RATED420_GARY_PREVIEW:'1',
+ const env={...process.env,VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'rebuild/build-01',RATED420_BUILD01_STAGING:'1',RATED420_GARY_PREVIEW:'1',RATED420_COMPLETE_PREVIEW:'1',
   RATED420_STAGING_SUPABASE_URL:'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
   RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test_fixture'};
  const script=path.join(root,'scripts/build.mjs');
