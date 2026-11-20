@@ -30,6 +30,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     const box = el('label',label);
     const input = el(options ? 'select' : type==='textarea' ? 'textarea' : 'input');
     input.name=name;
+    input.setAttribute('aria-label',label);
     if (options) {
       for (const [key,caption] of options) {
         const option=el('option',caption);
