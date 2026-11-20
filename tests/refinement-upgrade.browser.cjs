@@ -16,6 +16,8 @@ const origin='http://127.0.0.1:8889';
    return fs.existsSync(file)?route.fulfill({path:file}):route.fulfill({status:404,body:''});
   });
   await page.goto(origin);await page.locator('#ageYes').click();
+  const controls=page.locator('.ref-demo-controls');
+  if(await controls.count()&&!await controls.evaluate(el=>el.open))await controls.locator('summary').click();
   await page.locator('#demoReviewer').selectOption({label:'Founder · Jordan'});await page.locator('#accountPage').waitFor();
   const before=await page.evaluate(async()=>{
     const hq=window.GaryStore.openStore(async()=>{});

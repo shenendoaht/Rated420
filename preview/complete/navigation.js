@@ -24,8 +24,8 @@
     const close=make('button','Close','btn btn-outline');
     close.addEventListener('click',()=>dialog.close());
     dialog.addEventListener('close',()=>dialog.remove(),{once:true});
-    if(['https://data.ny.gov','https://cannabis.ny.gov'].includes(new URL(anchor.href).origin)){
-      const external=make('a','Open official source online','btn btn-outline');
+    if(anchor.dataset.editorialExternal||['https://data.ny.gov','https://cannabis.ny.gov'].includes(new URL(anchor.href).origin)){
+      const external=make('a',anchor.dataset.editorialExternal?'Open manufacturer site online':'Open official source online','btn btn-outline');
       external.href=anchor.href;external.target='_blank';external.rel='noopener noreferrer';
       external.dataset.officialOnline='true';dialog.append(external);
     }

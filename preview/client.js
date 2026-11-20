@@ -289,7 +289,7 @@
       localStorage.removeItem(key);
       if(complete){
         localStorage.removeItem(actorKey);
-        for(const name of Object.keys(localStorage))if(/^rated420-(?:expansion-v1:|gary-preview-v1$|hq-profile-examples-v1$|complete-contact-v1$|intelligence-v1$)/.test(name))localStorage.removeItem(name);
+        for(const name of Object.keys(localStorage))if(/^rated420-(?:expansion-v1:|gary-preview-v1$|hq-profile-examples-v1$|complete-contact-v1$|intelligence-v1$|editorial-v1$)/.test(name))localStorage.removeItem(name);
         history.replaceState(null,'',location.pathname);
       }
       location.reload();

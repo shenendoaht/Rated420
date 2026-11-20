@@ -72,7 +72,7 @@
     currentPage = name;
     if (name !== 'account') document.getElementById('accountStash')?.replaceChildren();
     const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq', 'demo-reviews':'hq' };
-    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home'});
+    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home',team:'hq'});
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
@@ -1532,7 +1532,13 @@ function refreshCommunityScores() {
     const [route, id] = hash.slice(1).split('/');
     if(window.RatedComplete && ['home','about'].includes(route)){
       home();
-      if(route==='about')$('rated420-standard').scrollIntoView();
+      if(route==='about')$(window.Rated420Editorial?'how-it-works':'rated420-standard').scrollIntoView();
+    } else if(route==='team'&&window.Rated420Editorial){
+      page('hq');
+      const parent=$('hqContent');parent.replaceChildren();
+      $('hqTitle').textContent='Meet the Rated420 Team';
+      $('hqTitle').focus({preventScroll:true});
+      window.Rated420Editorial.renderTeam(parent);
     } else if(window.RatedComplete && ['businesses','business-account','profile-examples'].includes(route)){
       page('hq');
       const parent=$('hqContent');parent.replaceChildren();

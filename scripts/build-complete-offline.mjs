@@ -20,5 +20,6 @@ for(const [from,to] of [
   ['docs/data-intelligence.md','DATA-INTELLIGENCE.md'],
   ['docs/data-intelligence-verification.txt','DATA-VERIFICATION.txt'],
   ['docs/responsive-identity.md','VISUAL-DESIGN.md'],
-  ['docs/responsive-verification.txt','VERIFICATION.txt']
+  ['docs/responsive-verification.txt','VERIFICATION.txt'],
+  ['docs/brand-content.md','BRAND-CONTENT.md']
 ])await cp(path.join(root,from),path.join(target,to));

@@ -37,7 +37,9 @@
   nav.classList.add('ref-public-nav');
   const media=group('Media',[shortcut('#episodes'),shortcut('#vault'),shortcut('#shop')]);
   const community=group('Community',[shortcut('#demo-reviews'),navLink('#contribute','Suggest a listing')]);
-  const more=group('About',[shortcut('#about'),shortcut('#contact')]);
+  const about=shortcut('#about');
+  about.textContent='About Rated420';
+  const more=group('About',[about,navLink('#team','Team and company story'),shortcut('#contact')]);
   const explore=catalogue.querySelector('summary');
   explore.textContent='Explore';
   catalogue.querySelector('.nav-catalogue-links').append(shortcut('#businesses'));
