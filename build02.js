@@ -310,9 +310,20 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     finish();
   }
 
-  async function hq() {
+  async function hq(founder, initial) {
     const role=await api('role');
     if(!member()||role==='member')return parent=>parent.append(el('p','Rated420 HQ is available to authorized staff.'),...(!member()?[button('Log in',login)]:[]));
+    const identity=member().id;
+    const gary=window.mountGaryPreview && ['staff','administrator'].includes(role);
+    if(founder&&gary)return parent=>{
+      const back=el('a','Back to Rated420 HQ');
+      back.href='#hq';
+      parent.append(back);
+      window.mountGaryPreview(parent,{initial,assertAccess:async()=>{
+        if(member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
+          throw Error('Sign in as authorized staff to change this workspace.');
+      }});
+    };
     if(role!=='administrator'&&activeTab==='Access')activeTab='Submissions';
     const current=activeTab;
     let data;
@@ -327,6 +338,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       for(const tab of tabs.filter(t=>t!=='Access'||role==='administrator')){
         const b=button(tab,()=>{activeTab=tab;void route();});b.setAttribute('aria-pressed',String(tab===current));nav.append(b);
       }
+      if(gary){const link=el('a','Founder workspace');link.href='#hq/gary';nav.append(link);}
       parent.append(nav);
       const content=el('section');parent.append(content);
       if(current==='Analytics'){
@@ -395,7 +407,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
 
   async function route() {
     const hash=location.hash;
-    const [view,id]=hash.slice(1).split('/');
+    const [view,id,subview]=hash.slice(1).split('/');
     if(!Object.hasOwn(headings,view)||!client())return false;
     const token=++request;
     page('hq');
@@ -403,7 +415,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {
-      const render=await ({discover:()=>discover(id),contribute,hq,shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
+      const render=await ({discover:()=>discover(id),contribute,hq:()=>hq(id==='gary',subview),shop:()=>library('merch'),episodes:()=>library('episode'),profile:()=>profile(id)})[view]();
       if(token===request&&location.hash===hash){area.replaceChildren();render(area);}
     } catch(error){
       if(token===request&&location.hash===hash){area.textContent=error.message;area.append(button('Try again',route));}

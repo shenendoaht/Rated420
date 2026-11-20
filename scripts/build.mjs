@@ -8,6 +8,7 @@ const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
 const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js'];
 const staging = process.env.RATED420_BUILD01_STAGING === '1';
+const gary = !staging && !process.env.VERCEL_ENV && process.env.RATED420_GARY_PREVIEW === '1';
 const stagingOrigin = process.env.RATED420_STAGING_SUPABASE_URL;
 const stagingKey = process.env.RATED420_STAGING_SUPABASE_PUBLISHABLE_KEY;
 const productionOrigin = 'https://ymluyoqkmzxomjokjmkj.supabase.co';
@@ -38,7 +39,17 @@ if (staging) {
     throw new Error('Synthetic build could not install its backend isolation controls.');
   }
 
-  files.set('index.html', html);
+  if (gary) {
+    for (const [source, target] of [['store.js','gary-store.js'],['ui.js','gary-ui.js'],['gary.css','gary.css'],['synthetic-media-kit.txt','synthetic-media-kit.txt']]) {
+      files.set(target, await readFile(path.join(root, 'preview/gary', source), 'utf8'));
+    }
+    files.set('index.html', html.replace(/^  <link[^>]+https:\/\/fonts\.(?:googleapis|gstatic)\.com[^>]*>\n/gm, '')
+      .replace('<link rel="stylesheet" href="build02.css">','<link rel="stylesheet" href="build02.css">\n  <link rel="stylesheet" href="gary-fonts/fonts.css">\n  <link rel="stylesheet" href="gary.css">')
+      .replace('<script src="build02.js"></script>',
+      '<script src="gary-store.js"></script><script src="gary-ui.js"></script><script src="build02.js"></script>'));
+  } else {
+    files.set('index.html', html);
+  }
   files.set('app.js', files.get('app.js')
     .replace(productionOrigin, 'https://rated420-demo.invalid')
     .replace(/const SUPABASE_PUBLISHABLE_KEY = '[^']+';/, "const SUPABASE_PUBLISHABLE_KEY = 'synthetic';"));
@@ -59,6 +70,7 @@ await mkdir(output, { recursive: true });
 for (const file of ['rated420-logo.png', 'images']) {
   await cp(path.join(root, file), path.join(output, file), { recursive: true });
 }
+if (gary) await cp(path.join(root, 'preview/gary/fonts'), path.join(output, 'gary-fonts'), { recursive: true });
 await Promise.all([...files].map(([file, content]) => writeFile(path.join(output, file), content)));
 console.log(staging ? 'Built for isolated Build 01 staging.' : production
   ? 'Built production static assets (no database commands).'
