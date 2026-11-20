@@ -1,0 +1,4 @@
+Rated420 artifact distribution
+Source checkpoint: ca020951c8f088b58a10ccd11129483aaf249045
+ZIP bytes: 274652
+SHA-256: acb8ec78d7f01d959f96fa1713112f496a87d6a8ad85e9297ec8fa599881bf26
