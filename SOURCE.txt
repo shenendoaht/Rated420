@@ -1,0 +1,2 @@
+Source ec0a488c8f93e085a56a7e06d60b9770844051ce
+SHA-256 df061e5411ad88bc46dd9db5d7edfeaab694b36130da916740e1a533f325535c  Rated420-Founder-Focused-Offline.zip
