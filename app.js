@@ -72,12 +72,13 @@
     currentPage = name;
     if (name !== 'account') document.getElementById('accountStash')?.replaceChildren();
     const linkedPage = { brands:'build', accessories:'build', vault:'build', strains:'strain', dispensaries:'dispensary', contact:'contact', discover:'hq', contribute:'hq', hq:'hq', shop:'hq', episodes:'hq', profile:'hq', 'demo-reviews':'hq' };
-    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:'home',home:'home',team:'hq',catalogue:'hq','business-catalogue':'hq'});
+    if(window.RatedComplete)Object.assign(linkedPage,{businesses:'hq','business-account':'hq','profile-examples':'hq',about:$('aboutPage')?'about':'home',home:'home',team:'hq',catalogue:'hq','business-catalogue':'hq'});
     const route = location.hash.slice(1).split('/')[0];
     const hashPage = Object.hasOwn(linkedPage, route) ? linkedPage[route] : null;
     if (hashPage && hashPage !== name) history.replaceState(null, '', location.pathname + location.search);
     $('hqPage').hidden = name !== 'hq';
     $('buildPage').hidden = name !== 'build';
+    if($('aboutPage'))$('aboutPage').hidden=name!=='about';
     $('homePage').hidden = name !== 'home';
     $('authPage').hidden = name !== 'auth';
     $('accountPage').hidden = name !== 'account';
@@ -537,7 +538,7 @@
     Topical: [
       "How does it look? What’s the texture like?",
       "What does it smell like on your skin?",
-      "If taste applies to this product, how was it? Never taste a topical to score it.",
+      window.Rated420Scores.topicalPrompt,
       "How did the area feel after you applied it?",
       "How did it spread and absorb? Would you use it again?"
     ],
@@ -587,7 +588,7 @@ function communityReviewLabel(stats) {
   return count ? `Avg out of ${count} user ${count === 1 ? 'review' : 'reviews'}` : 'Be the first to rate.';
 }
 function appendCommunityScore(node, stats) {
-  node.append(makeNode('strong','community-score', stats && Number(stats.review_count) ? `${Math.round(Number(stats.avg_total))} / 420` : 'Not yet rated'),
+  node.append(makeNode('strong','community-score', stats && Number(stats.review_count) ? `${window.Rated420Scores.display(stats.avg_total)} / 420` : 'Not yet rated'),
     makeNode('small','community-review-count',communityReviewLabel(stats)));
 }
   function totalForFormat(strainId, format) {
@@ -769,17 +770,14 @@ function appendCommunityScore(node, stats) {
     const title = makeNode('div');
     title.append(makeNode('span','eyebrow', `${formatFilter.toUpperCase()} · COMMUNITY RATINGS`),makeNode('h3','',selectedStrain.name));
     head.append(title);
-    head.append(makeNode('strong','strain-avg-total', summary ? `${Math.round(Number(summary.avg_total))} / 420` : 'Not yet rated'));
+    head.append(makeNode('strong','strain-avg-total', summary ? `${window.Rated420Scores.display(summary.avg_total)} / 420` : 'Not yet rated'));
     card.append(head);
     card.append(makeNode('p','', communityReviewLabel(summary)));
-    if (summary && !Number.isInteger(Number(summary.avg_total))) {
-      card.append(makeNode('p', 'precise-average', 'Average: ' + Number(summary.avg_total).toLocaleString(undefined, { maximumFractionDigits: 4 }) + ' / 420'));
-    }
     if (summary) {
       const bars = makeNode('div','strain-avg-categories');
       for (const [field,label] of STRAIN_CATEGORIES) {
         const tile = makeNode('div','strain-avg-category');
-        tile.append(makeNode('span','',label),makeNode('strong','',`${Math.round(Number(summary['avg_'+field]))} / 84`));
+        tile.append(makeNode('span','',field==='flavor'?(allFormats?'Flavor / consistency':window.Rated420Scores.thirdDimension(formatFilter)):label),makeNode('strong','',`${window.Rated420Scores.display(summary['avg_'+field])} / 84`));
         bars.append(tile);
       }
       card.append(bars);
@@ -850,6 +848,7 @@ function appendCommunityScore(node, stats) {
   function setStrainReviewFormat(format) {
     $('rated420-strain-product-type').value = format;
     const guidance = STRAIN_SCORE_GUIDANCE[format] || STRAIN_SCORE_GUIDANCE.Other;
+    getScoreForm().querySelector('label[for="rated420-strain-rating-form_flavor"]').textContent=window.Rated420Scores.thirdDimension(format);
     getScoreForm().querySelectorAll('.rating-guidance').forEach((description, index) => {
       description.textContent = guidance[index];
     });
@@ -880,6 +879,20 @@ function appendCommunityScore(node, stats) {
       sliders.append(wrapper);
     }
     updateScoreTotal(form, categories);
+  }
+
+  const calculator=$('about-score-calculator');
+  if(calculator){
+    buildScoreSliders(calculator,STRAIN_CATEGORIES,STRAIN_SCORE_GUIDANCE.Flower);
+    calculator.addEventListener('submit',event=>event.preventDefault());
+    const format=$('about-score-format');
+    format.addEventListener('change',()=>{
+      calculator.querySelector('label[for="about-score-calculator_flavor"]').textContent=window.Rated420Scores.thirdDimension(format.value);
+      calculator.querySelectorAll('.rating-guidance').forEach((description,index)=>{
+        description.textContent=STRAIN_SCORE_GUIDANCE[format.value][index];
+      });
+    });
+    document.querySelector('[data-score-methodology]').hidden=false;
   }
 
   function resetStrainPhotoPreview() {
@@ -1311,7 +1324,7 @@ function renderDispensarySummary() {
     const categories = makeNode('div','strain-avg-categories');
     for (const [field,label] of DISPENSARY_CATEGORIES) {
       const category = makeNode('div','strain-avg-category');
-      category.append(makeNode('span','',label),makeNode('strong','',`${Math.round(Number(stats['avg_'+field]))} / 84`));
+      category.append(makeNode('span','',label),makeNode('strong','',`${window.Rated420Scores.display(stats['avg_'+field])} / 84`));
       categories.append(category);
     }
     box.append(categories);
@@ -1551,7 +1564,11 @@ function refreshCommunityScores() {
   async function routeHash() {
     const hash = location.hash;
     const [route, id, detail] = hash.slice(1).split('/');
-    if(window.RatedComplete && ['home','about'].includes(route)){
+    if(route==='about'&&$('aboutPage')){
+      page('about');
+      $('aboutTitle').focus({preventScroll:true});
+      window.scrollTo(0,0);
+    } else if(window.RatedComplete && ['home','about'].includes(route)){
       home();
       if(route==='about')$(window.Rated420Editorial?'how-it-works':'rated420-standard').scrollIntoView();
     } else if(['catalogue','business-catalogue'].includes(route)&&window.Rated420CatalogueUI){

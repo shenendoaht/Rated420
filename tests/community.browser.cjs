@@ -153,7 +153,7 @@ async function runCommunityBrowserTests() {
       await setScores('#rated420-strain-rating-form',61);
       await page.locator('#reviewSaveButton').click();
       await expectScore(card('Demo Unrated'),153,2);
-      await page.locator('.precise-average').getByText('Average: 152.5 / 420').waitFor();
+      await page.getByText('153 / 420',{exact:true}).first().waitFor();
       await disclosure.locator('summary').click();
       await reviewList.getByText('@demo_a',{exact:true}).waitFor();
       await reviewList.getByText('@demo_b',{exact:true}).waitFor();

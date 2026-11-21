@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const output = path.join(root, 'dist');
 const production = process.env.VERCEL_ENV === 'production' &&
   process.env.VERCEL_GIT_COMMIT_REF === 'main';
-const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js', 'profile-layout.css', 'profile-avatar.js'];
+const textFiles = ['index.html', 'app.js', 'styles.css', 'build01.css', 'build01.js', 'build02.css', 'build02.js', 'profile-layout.css', 'profile-avatar.js', 'score-display.js'];
 const staging = process.env.RATED420_BUILD01_STAGING === '1';
 const complete = !staging && !process.env.VERCEL_ENV && process.env.RATED420_COMPLETE_PREVIEW === '1';
 const gary = complete || !staging && !process.env.VERCEL_ENV && process.env.RATED420_GARY_PREVIEW === '1';
@@ -65,7 +65,8 @@ if (staging) {
     for(const [source,target] of [['preview/complete/navigation.js','complete-navigation.js'],['preview/complete/layout.css','complete-layout.css'],['preview/profiles/profile-examples.js','profile-examples.js']]){
       files.set(target,await readFile(path.join(root,source),'utf8'));
     }
-    files.set('index.html',files.get('index.html').replace('<title>','<link rel="stylesheet" href="complete-layout.css">\n  <link rel="stylesheet" href="intelligence-layout.css">\n  <title>')
+    const about=await readFile(path.join(root,'preview/editorial/about.html'),'utf8');
+    files.set('index.html',files.get('index.html').replace('</main>',about+'\n</main>').replace('<title>','<link rel="stylesheet" href="complete-layout.css">\n  <link rel="stylesheet" href="intelligence-layout.css">\n  <title>')
       .replace('</head>','  <link rel="stylesheet" href="refinement-design.css">\n  <link rel="stylesheet" href="editorial-design.css">\n  <link rel="stylesheet" href="catalogue-layout.css">\n</head>')
       .replace(/<div class="(feature-strip page-width|scale-visual|rating-instructions)" aria-label=/g,'<div class="$1" role="group" aria-label=')
       .replace('id="rated420-strain-options" aria-label=', 'id="rated420-strain-options" role="group" aria-label=')

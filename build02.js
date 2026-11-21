@@ -135,7 +135,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
         for(const row of rowsToShow) {
           const n=card(results,row.name,[labels[row.kind],row.location].filter(Boolean).join(' · '));
           if(row.description)n.append(el('p',row.description));
-          n.append(el('p',Number(row.count) ? Number(row.average).toFixed(1)+' / 420 · '+row.count+' reviews':'Unrated','build-score'));
+          n.append(el('p',Number(row.count) ? window.Rated420Scores.display(row.average)+' / 420 · '+row.count+' reviews':'Unrated','build-score'));
           n.append(link('View listing and scorecard ↗','#'+paths[row.kind]+'/'+row.id,'btn btn-outline'));
         }
         if(!rowsToShow.length) results.append(el('p','No matching listings. Try clearing the filters.'));

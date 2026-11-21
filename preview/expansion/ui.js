@@ -125,6 +125,18 @@
         const scoring=el('fieldset');scoring.append(el('legend','Optional scorecard · all five scores required to publish'));
         const scores=keys.map((label,i)=>field(scoring,label,row.scores?.[i],null,'number'));
         for(const input of scores){input.min=0;input.max=84;input.step=1;}
+        const prompt=el('p',window.Rated420Scores.topicalPrompt);
+        prompt.id='stash-topical-prompt';scoring.append(prompt);
+        const syncFormat=()=>{
+          const topical=pairs.format.value==='Topical';
+          const name=window.Rated420Scores.thirdDimension(pairs.format.value);
+          scores[2].parentElement.firstChild.textContent=name;
+          scores[2].setAttribute('aria-label',name);
+          if(topical)scores[2].setAttribute('aria-describedby',prompt.id);
+          else scores[2].removeAttribute('aria-describedby');
+          prompt.hidden=!topical;
+        };
+        pairs.format.addEventListener('change',syncFormat);syncFormat();
         form.append(scoring);
         return collect=()=>{
           if(pairs.favoriteBrand.checked&&!pairs.brand.value.trim())throw Error('Enter the brand before marking it as a favorite.');
@@ -304,7 +316,7 @@
         if(area==='market'){
           const n=data.reduce((sum,row)=>sum+row.reviews,0);
           const weighted=data.reduce((sum,row)=>sum+row.rating*row.reviews,0);
-          summary.textContent+=' · '+n+' synthetic ratings · '+(n?Math.round(weighted/n)+' / 420 weighted average':'No average')+
+          summary.textContent+=' · '+n+' synthetic ratings · '+(n?window.Rated420Scores.display(weighted/n)+' / 420 weighted average':'No average')+
             ' · '+data.reduce((sum,row)=>sum+row.engagement,0)+' synthetic engagements · '+data.filter(row=>row.outreach!=='Research').length+' with outreach underway';
         }
         for(const row of data){

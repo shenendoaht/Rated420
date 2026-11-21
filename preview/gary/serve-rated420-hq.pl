@@ -20,7 +20,7 @@ my %mime = (
 my %files = map { $_ => 1 } (
     'index.html', 'hq-workspace.css', 'hq-workspace-store.js', 'hq-workspace-ui.js', 'rated420-hq-preview.js',
     'expansion-layout.css', 'expansion-fixtures.js', 'expansion-store.js', 'expansion-ui.js',
-    'profile-layout.css', 'profile-avatar.js', 'profile-examples.js',
+    'profile-layout.css', 'profile-avatar.js', 'score-display.js', 'profile-examples.js',
     'synthetic-media-kit.txt', 'rated420-logo.png', glob('fonts/fonts.css'),
     glob('fonts/*.woff2'), glob('images/*.png'), glob('images/*.webp'),
 );

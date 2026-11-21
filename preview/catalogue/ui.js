@@ -106,12 +106,12 @@
     const api=window.supabase.createClient();
     if(row.type==='brand'){
       const result=await api.rpc('rated420_build01',{operation:'item',payload:{kind:'brand',id:row.reviewId}});
-      status.textContent=result.data?.count?Math.round(result.data.average)+' / 420 · '+result.data.count+' reviews':'No brand reviews yet.';
+      status.textContent=result.data?.count?window.Rated420Scores.display(result.data.average)+' / 420 · '+result.data.count+' reviews':'No brand reviews yet.';
     }else{
       const kind=row.type==='strain'?'strain':'dispensary';
       const result=await api.from(kind+'_community_stats').select('*').eq(kind+'_id',row.reviewId);
       const grade=result.data?.find(item=>kind!=='strain'||item.product_type===null);
-      status.textContent=grade?Math.round(grade.avg_total)+' / 420 · '+grade.review_count+' reviewers':'No reviews yet.';
+      status.textContent=grade?window.Rated420Scores.display(grade.avg_total)+' / 420 · '+grade.review_count+' reviewers':'No reviews yet.';
     }
   }
   function stash(parent,row,options){

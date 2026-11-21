@@ -52,7 +52,7 @@ async function hosted(route){
    await nav.getByRole('link',{name:'About Rated420'}).click();
    await heading('The 420 Standard').waitFor();
    await page.getByText("Ratings and reviews can't be bought.",{exact:true}).waitFor();
-   assert.equal((await page.locator('.editorial-formula').textContent()).replace(/\s/g,''),'SCORE=R+3C+P');
+   assert.equal((await page.locator('#aboutPage .editorial-formula').textContent()).replace(/\s/g,''),'SCORE=R+3C+P');
    await page.getByText(/Distinct review units/).waitFor();
    await go('#team');
    await heading('Meet the Rated420 Team').waitFor();
@@ -64,13 +64,11 @@ async function hosted(route){
    await fit();
    await go('#accessories');
    for(const name of ['Peak','Glass Grinder','GRAV® 3-Piece Grinder','Waterpipe'])await heading(name).waitFor();
-   await heading('Existing community accessory ratings').waitFor();
+   assert.equal(await page.getByText('Shen’s blue Houseplant glass grinder',{exact:true}).count(),0);
    const puffco=page.getByRole('link',{name:'View at Puffco'});
    await puffco.click();await heading('Internet required').waitFor();
    assert.equal(await page.getByRole('link',{name:'Open manufacturer site online'}).getAttribute('href'),'https://www.puffco.com/products/the-peak');
    await page.keyboard.press('Escape');await fit();
-   await page.getByRole('link',{name:/Houseplant glass grinder/}).click();
-   await heading('Community score').waitFor();
    await go('#hq/content');
    await page.getByText(/available to authorized staff/).waitFor();
    await role('Moderator · Camille');await go('#hq/content');

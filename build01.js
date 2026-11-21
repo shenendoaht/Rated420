@@ -36,7 +36,7 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
   }
 
   function score(data) {
-    return data.count ? `${Number(data.average).toLocaleString(undefined, { maximumFractionDigits: 2 })} / 420 · ${data.count} ${data.count === 1 ? 'reviewer' : 'reviewers'}` : 'Not yet rated';
+    return data.count ? `${window.Rated420Scores.display(data.average)} / 420 · ${data.count} ${data.count === 1 ? 'reviewer' : 'reviewers'}` : 'Not yet rated';
   }
 
   function disclosure(parent, rows) {
@@ -209,7 +209,11 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
       return;
     }
     if(kind==='brand'&&window.Rated420CatalogueUI)parent.append(link('Browse curated brand profiles','#catalogue/brand'));
-    if(kind==='accessory'&&window.Rated420Editorial)window.Rated420Editorial.renderAccessories(parent);
+    if(kind==='accessory'&&window.Rated420Editorial){
+      window.Rated420Editorial.renderAccessories(parent);
+      if(!data.length)return;
+      parent.append(node('h2','Existing community accessory ratings'));
+    }
     parent.append(node('p', kind === 'brand' ? 'Explore the makers behind the catalogue.' : 'Explore the gear behind the experience.', 'build-lede'));
     const grid = node('div', undefined, 'build-grid');
     for (const item of data) {

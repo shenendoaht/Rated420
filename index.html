@@ -195,17 +195,14 @@
         </label>
         <p class="fine">Flower is the default. Ratings for different product formats are averaged separately.</p>
       </div>
-      <div class="rating-instructions" aria-label="How the 420-point rating works">
-        <div class="rating-instructions__copy">
-          <span class="eyebrow">FIVE SLIDERS. YOUR CALL.</span>
-          <strong>84 × 5 = 420.</strong>
-          <p>Move each slider to rate your experience. Your total updates as you go.</p>
-        </div>
-        <button type="button" class="btn btn-outline" data-open-dispensary>Rate a dispensary</button>
-      </div>
-      <div class="sliders"></div>
-      <div class="rating-top"><h2>Total rating</h2><strong><output class="total" aria-live="polite">0</output><small> / 420</small></strong></div>
+      <nav class="scorecard-links" aria-label="Review options">
+        <a href="#dispensaries" data-open-dispensary>Rate a dispensary</a>
+        <a href="#about" data-score-methodology hidden>About the score</a>
+      </nav>
+      <div class="rating-top"><h2>Your scorecard</h2><strong><output class="total" aria-live="polite">0</output><small> / 420</small></strong></div>
+      <p class="scorecard-help">Rate each category from 0 to 84.</p>
       <div class="meter" role="progressbar" aria-label="strain total rating" aria-valuemin="0" aria-valuemax="420" aria-valuenow="0"><span></span></div>
+      <div class="sliders"></div>
       <label for="rated420-strain-notes">Notes
         <textarea name="notes" id="rated420-strain-notes" maxlength="3000" placeholder="What stood out? What would you remember?" rows="4"></textarea>
       </label>
@@ -356,6 +353,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <!-- Pinned browser SDK; publishable key only, never a service-role key. -->
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1" onload="window.dispatchEvent(new Event('rated420:sdk-ready'))"></script>
+  <script src="score-display.js"></script>
   <script src="build01.js"></script>
   <script src="profile-avatar.js"></script>
   <script src="build02.js"></script>

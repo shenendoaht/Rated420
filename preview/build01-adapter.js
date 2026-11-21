@@ -1,15 +1,16 @@
 /* Synthetic Build 01 data adapter. The real authorization checks live in PostgreSQL. */
 function runBuild01Fixture(operation, payload, state, actor, users, profile) {
+  const complete=typeof COMPLETE_ENTITIES!=='undefined';
+  const personalAccessory=item=>item.kind==='accessory'&&['houseplant-grinder','puffco'].includes(item.id);
   const fixtures = state.build01 ??= {
     items: [
       { id: 'demo-brand', kind: 'brand', name: 'Demo Orchard Co.', description: 'Synthetic brand for local review testing.' },
       { id: 'houseplant-grinder', kind: 'accessory', name: 'Shen’s blue Houseplant glass grinder', description: 'Accessory fixture supplied in the Build 01 brief.' },
       { id: 'puffco', kind: 'accessory', name: 'Al’s Puffco', description: 'Accessory fixture supplied in the Build 01 brief.' }
-    ],
+    ].filter(item=>!complete||!personalAccessory(item)),
     reviews: [], favorites: [],
     polls: [{ id: 'demo-poll', question: 'What should The Vault cover next?', closed: false, options: ['New York growers', 'Dispensary design'], votes: {} }]
   };
-  const complete=typeof COMPLETE_ENTITIES!=='undefined';
   if(complete&&!fixtures.items.some(item=>item.id==='org-brand')){
     fixtures.items.push({id:'org-brand',kind:'brand',name:'Field Signal',description:'Synthetic brand affiliated with Hudson Lantern Farm.'});
   }
@@ -26,7 +27,7 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
     const { username, avatar_choice, show_review_identity } = profile(state, id);
     return { total, username: show_review_identity ? username : null, avatar_choice: show_review_identity ? avatar_choice : null };
   };
-  const catalog = fixtures.items.map(item => {
+  const catalog = fixtures.items.filter(item=>!complete||!personalAccessory(item)).map(item => {
     const reviews = fixtures.reviews.filter(row => row.id === item.id);
     return {
       ...item, count: reviews.length,
@@ -63,7 +64,7 @@ function runBuild01Fixture(operation, payload, state, actor, users, profile) {
     if (payload.active) fixtures.favorites.push({ actor, kind, id, name: listing.name });
   } else if (operation === 'review') {
     const { scores, notes } = payload;
-    if (!fixtures.items.some(item => item.id === id) || !Array.isArray(scores) || scores.length !== 5 ||
+    if (!catalog.some(item => item.id === id && (!kind || item.kind === kind)) || !Array.isArray(scores) || scores.length !== 5 ||
         scores.some(value => !Number.isInteger(value) || value < 0 || value > 84) || notes.length > 1200) {
       throw new Error('Check your five scores and notes.');
     }

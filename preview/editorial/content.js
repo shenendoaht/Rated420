@@ -31,7 +31,7 @@
     }
     if(!grid.childElementCount)grid.append(el('p','No accessories are currently featured.'));
     section.append(grid);
-    parent.append(section,el('h2','Existing community accessory ratings'));
+    parent.append(section);
   }
 
   function renderTeam(parent){
@@ -83,6 +83,13 @@
       el('p','Advertising, sponsorships, affiliate links, and manufacturer partnerships do not influence Rated420 ratings or reviews.'),
       formula,el('p','This contributor-recognition score rewards review activity, catalog contributions, and poll participation. Product scorecards still use five categories worth 84 points each.'),list);
     document.getElementById('how-it-works').append(card);
+    const about=document.getElementById('aboutStandard');
+    if(about){
+      const standard=card.cloneNode(true);
+      standard.setAttribute('aria-labelledby','about-standard-title');
+      standard.querySelector('h3').id='about-standard-title';
+      about.append(standard);
+    }
   }
   function field(form,caption,name,value='',type='text'){
     const label=el('label',caption);

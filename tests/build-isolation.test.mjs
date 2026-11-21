@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 const source=fileURLToPath(new URL('..',import.meta.url));
 const root=mkdtempSync(path.join(tmpdir(),'rated420-build-test-'));
-for(const name of ['scripts','preview','index.html','app.js','styles.css','build01.js','build01.css','build02.js','build02.css','profile-layout.css','profile-avatar.js','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
+for(const name of ['scripts','preview','index.html','app.js','styles.css','build01.js','build01.css','build02.js','build02.css','profile-layout.css','profile-avatar.js','score-display.js','rated420-logo.png','images'])cpSync(path.join(source,name),path.join(root,name),{recursive:true});
 // Synthetic canaries, not credentials or real records.
 for(const name of ['.env','private.sql','private.db'])writeFileSync(path.join(root,name),'fixture-must-not-be-published');
 mkdirSync(path.join(root,'tests'));writeFileSync(path.join(root,'tests/private.txt'),'fixture');

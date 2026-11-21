@@ -96,14 +96,14 @@
         const rating=stats.find(row=>row.strain_id===product.id&&row.product_type===null);
         const row=make('p');
         row.append(link(product.name,'#strains/'+product.id),
-          document.createTextNode(rating?' '+Math.round(rating.avg_total)+' / 420 · '+rating.review_count+' reviewers':' No ratings yet'));
+          document.createTextNode(rating?' '+window.Rated420Scores.display(rating.avg_total)+' / 420 · '+rating.review_count+' reviewers':' No ratings yet'));
         card.append(row);
       }
       if(entity.kind==='Brand')card.append(link('Brand scorecard','#brands/'+entity.id));
       if(entity.listing){
         const rating=shops.find(s=>s.dispensary_id===entity.listing);
         card.append(link('Dispensary listing and reviews','#dispensaries/'+entity.listing));
-        if(rating)card.append(make('p',Math.round(rating.avg_total)+' / 420 · '+rating.review_count+' dispensary reviewers'));
+        if(rating)card.append(make('p',window.Rated420Scores.display(rating.avg_total)+' / 420 · '+rating.review_count+' dispensary reviewers'));
       }
       if(privateView){
         card.append(make('h3','Business dashboard'),make('p','You represent this organization. Listing suggestions go to the moderation queue.'));

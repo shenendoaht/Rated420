@@ -373,3 +373,9 @@ input[type=range] {accent-color:#d5f58a;min-height:36px;cursor:pointer}
 .community-review-entry strong { white-space: nowrap; }
 .review-identity-option { display: flex; align-items: center; gap: .5rem; }
 #profileForm .review-identity-option input { width: auto; margin: 0; }
+
+.scorecard-links{display:flex;flex-wrap:wrap;gap:.25rem 1rem}
+.scorecard-links a{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;text-underline-offset:.2em;color:var(--lime)}
+.scorecard-links a[hidden]{display:none}
+#rated420-strain-rating-form .rating-top{margin:.35rem 0}
+#rated420-strain-rating-form .scorecard-help{margin:0 0 .65rem;color:var(--muted)}

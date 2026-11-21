@@ -9,6 +9,7 @@ await mkdir(target);
 const assets = [
   ['rated420-logo.png', 'rated420-logo.png'],
   ['profile-avatar.js', 'profile-avatar.js'],
+  ['score-display.js', 'score-display.js'],
   ['profile-layout.css', 'profile-layout.css'],
   ['preview/profiles/profile-examples.js', 'profile-examples.js'],
   ['preview/profiles/images', 'images'],

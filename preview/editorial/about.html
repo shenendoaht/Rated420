@@ -1,0 +1,31 @@
+<section id="aboutPage" class="page-width build-page about-rated420" hidden aria-labelledby="aboutTitle">
+  <header class="about-intro">
+    <p class="eyebrow">Independent cannabis community</p>
+    <h1 id="aboutTitle" tabindex="-1">About Rated420</h1>
+    <p>Rated420 gives New York cannabis consumers a place to record what they tried, compare experiences and discover what to explore next. A shared scorecard makes it easier to compare perspectives while leaving room for individual preferences.</p>
+    <a class="btn btn-tertiary" href="#team">Meet the Rated420 team</a>
+  </header>
+  <section class="build-card about-method" aria-labelledby="method-title">
+    <h2 id="method-title">How the 420-point score works</h2>
+    <p>Each review evaluates five dimensions. Every dimension carries the same weight, with 0 to 84 points available. Their sum gives a total from 0 to 420.</p>
+    <ul class="about-dimensions" aria-label="Five equal rating dimensions">
+      <li>Aesthetic <strong>84</strong></li><li>Aroma <strong>84</strong></li><li>Flavor or consistency <strong>84</strong></li>
+      <li>Effects <strong>84</strong></li><li>Overall <strong>84</strong></li>
+    </ul>
+    <p class="about-equation" role="math" aria-label="S equals x one plus x two plus x three plus x four plus x five"><span aria-hidden="true"><var>S</var> = <var>x</var>₁ + <var>x</var>₂ + <var>x</var>₃ + <var>x</var>₄ + <var>x</var>₅</span></p>
+    <p>Flavor applies when taste is part of the experience. For topicals, the third category is Consistency. Dispensaries use Aesthetic, Accessibility, Staff, Menu and Overall. Brands use Presentation, Consistency, Selection, Transparency and Overall. Accessories use Design, Build quality, Ease of use, Performance and Overall. All use the same 420-point scale.</p>
+    <h3>Community averages</h3>
+    <p class="about-equation" role="math" aria-label="A equals the rounded sum of reviewer scores divided by the number of reviewers"><span aria-hidden="true"><var>A</var> = round((<var>S</var>₁ + <var>S</var>₂ + … + <var>S</var>ₙ) ÷ <var>n</var>)</span></p>
+    <p>We average the reviewer scores at full precision and round only the displayed result. For strain listings, each reviewer contributes equally. Flower and other product formats can be viewed separately. In All formats, a reviewer’s eligible reviews are averaged together before they count as one contribution. With no reviews, the listing is unrated. The numbers summarize personal experiences.</p>
+  </section>
+  <form id="about-score-calculator" class="build-card about-calculator" aria-labelledby="calculator-title">
+    <h2 id="calculator-title">Try the score calculator</h2>
+    <p>Move the five sliders to score an example. The calculator is separate from reviews.</p>
+    <label for="about-score-format">Example format</label>
+    <select id="about-score-format"><option>Flower</option><option>Topical</option></select>
+    <div class="rating-top"><strong><output class="total" aria-live="polite">0</output> / 420</strong></div>
+    <div class="meter" role="progressbar" aria-label="Example total" aria-valuemin="0" aria-valuemax="420" aria-valuenow="0"><span></span></div>
+    <div class="sliders"></div>
+  </form>
+  <div id="aboutStandard"></div>
+</section>
