@@ -51,9 +51,9 @@ async function hosted(route){
    await nav.getByText('About',{exact:true}).click();
    await nav.getByRole('link',{name:'About Rated420'}).click();
    await heading('The 420 Standard').waitFor();
-   await page.getByText("Ratings and reviews can't be bought.",{exact:true}).waitFor();
+   await page.locator('#aboutPage').getByText("Ratings and reviews can't be bought.",{exact:true}).waitFor();
    assert.equal((await page.locator('#aboutPage .editorial-formula').textContent()).replace(/\s/g,''),'SCORE=R+3C+P');
-   await page.getByText(/Distinct review units/).waitFor();
+   await page.locator('#aboutPage').getByText(/Distinct review units/).waitFor();
    await go('#team');
    await heading('Meet the Rated420 Team').waitFor();
    assert.equal(await page.locator('.editorial-portrait').count(),3);
