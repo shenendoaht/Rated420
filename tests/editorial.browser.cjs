@@ -90,8 +90,8 @@ async function hosted(route){
    await edit.getByRole('button',{name:'Save local content'}).click();
    await page.getByText('Saved in this browser.',{exact:true}).waitFor();
    await button('Team and story').click();
-   await page.getByText('Edit team slot three',{exact:true}).click();
-   const team=page.locator('details.editorial-edit').filter({hasText:'Edit team slot three'});
+   await page.getByText('Edit Greg',{exact:true}).click();
+   const team=page.locator('details.editorial-edit').filter({hasText:'Edit Greg'});
    await team.getByLabel('Name',{exact:true}).fill('Synthetic team test');
    await team.getByLabel('Biography',{exact:true}).fill('Browser-only test biography.');
    await team.getByRole('button',{name:'Save local content'}).click();
