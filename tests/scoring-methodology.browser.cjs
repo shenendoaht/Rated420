@@ -54,6 +54,27 @@ function hostedFile(url){
    await third.press('Home');
    assert.equal(await calculator.locator('.total').textContent(),'336');
    assert.equal(await third.getAttribute('aria-describedby'),'about-score-calculator_flavor-guidance');
+   const modelPicker=calculator.getByLabel('Example format');
+   const models=await modelPicker.locator('option').evaluateAll(options=>options.map(option=>option.value));
+   assert.equal(models.length,13);
+   const other={
+    dispensary:['Aesthetic','Accessibility','Staff','Menu','Overall'],
+    brand:['Presentation','Consistency','Selection','Transparency','Overall'],
+    accessory:['Design','Build quality','Ease of use','Performance','Overall']
+   };
+   for(const model of models){
+    await modelPicker.selectOption(model);
+    const expected=other[model]||['Aesthetic','Aroma',model==='Topical'?'Consistency':'Flavor','Effects','Overall'];
+    assert.deepEqual(await calculator.locator('.rating-heading label').allTextContents(),expected);
+    const sliders=await calculator.getByRole('slider').all();
+    for(const slider of sliders){
+     assert.equal(await slider.getAttribute('max'),'84');
+     const description=await slider.getAttribute('aria-describedby');
+     assert((await calculator.locator('#'+description).textContent()).trim());
+     await slider.press('End');
+    }
+    assert.equal(await calculator.locator('.total').textContent(),'420');
+   }
    assert.equal(await page.evaluate(()=>JSON.stringify(localStorage)),before);
    const rows=await calculator.locator('.rating-row').evaluateAll(items=>items.map(row=>{
     const style=getComputedStyle(row);
@@ -76,7 +97,7 @@ function hostedFile(url){
    await form.getByRole('slider',{name:'Flavor',exact:true}).waitFor();
    assert.equal(await form.locator('.total').textContent(),'0');
    const totalSize=await form.locator('.rating-top strong').evaluate(node=>parseFloat(getComputedStyle(node).fontSize));
-   assert(width>760?totalSize===38:totalSize>=29&&totalSize<38);
+   assert(width>760?totalSize===38:totalSize>=22&&totalSize<30);
    await capture('review',form.getByRole('heading',{name:'Your scorecard'}));
    await form.locator('[name=productType]').selectOption('Topical');
    const topical=form.getByRole('slider',{name:'Consistency',exact:true});
@@ -122,16 +143,16 @@ function hostedFile(url){
    await page.locator('#accountPage').waitFor();
    if(await controls.evaluate(el=>el.open))await controls.locator('summary').click();
    await go('#hq/gary');
-   await page.locator('.founder-location').getByText('Overview',{exact:true}).waitFor();
+   await page.getByRole('heading',{name:'Overview',exact:true}).waitFor();
    const toggle=page.getByRole('button',{name:'Founder navigation',exact:true});
    if(await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
    const area=page.getByLabel('Founder area');
    assert.equal(await area.inputValue(),'Today');
    await capture('founder',page.locator('.founder-location'));
-   await area.selectOption('Business');
+   await area.selectOption('Relationships');
    const directory=page.getByRole('button',{name:'Industry directory',exact:true});
    await directory.press('Enter');
-   await page.locator('.founder-location').getByText('Industry directory',{exact:true}).waitFor();
+   await page.getByRole('heading',{name:'Industry directory',exact:true}).waitFor();
    if(await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
    assert.equal(await directory.getAttribute('aria-pressed'),'true');
    const search=page.getByLabel('Search industry directory');
@@ -139,6 +160,20 @@ function hostedFile(url){
    await page.getByRole('button',{name:'Open Hudson Lantern Farm',exact:true}).click();
    await page.getByRole('button',{name:'Back to Industry directory',exact:true}).click();
    assert.equal(await search.inputValue(),'Lantern');
+   await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+   await page.evaluate(()=>document.documentElement.style.removeProperty('font-size'));
+   await search.fill('North Loop');
+   await page.getByRole('button',{name:'Open North Loop Dispensary',exact:true}).click();
+   await page.getByRole('heading',{name:'Campaign history',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Hudson Valley farm tours',exact:true}).click();
+   await page.getByRole('button',{name:'Back to Industry directory',exact:true}).click();
+   await page.getByRole('heading',{name:'Campaign history',exact:true}).waitFor();
+   if(await toggle.getAttribute('aria-expanded')==='false')await toggle.click();
+   await page.getByRole('link',{name:'Back to Rated420 HQ',exact:true}).click();
+   await page.getByRole('heading',{name:'Needs attention',exact:true}).waitFor();
+   await go('#strains/101');
+   await form.getByRole('heading',{name:'Your scorecard'}).waitFor();
    await page.evaluate(()=>document.documentElement.style.fontSize='200%');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
    assert.deepEqual(errors,[]);

@@ -54,25 +54,25 @@
     const banner=el('div',undefined,{class:'gary-top'});
     const complete=Boolean(window.RatedComplete);
     if(complete)main.classList.add('founder-desk');
-    banner.append(el('p',complete?'Founder workspace · synthetic preview':'SYNTHETIC PREVIEW · All delivery, imports, documents, and approvals are simulated.',{class:'gary-preview'}));
+    if(!complete)banner.append(el('p','SYNTHETIC PREVIEW · All delivery, imports, documents, and approvals are simulated.',{class:'gary-preview'}));
     const who=el('label','Acting founder');
     const roles=el('select',undefined,{'aria-label':'Acting founder'});
     for(const name of founders)roles.append(el('option',name,{value:name}));
     roles.addEventListener('change',()=>{owner=roles.value;});
     who.append(roles);
     const reset=btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));});
-    reset.className='btn btn-danger';banner.append(who);
+    reset.className='btn btn-danger';
     if(complete){
       const tools=el('details',undefined,{class:'founder-demo-tools'});
-      tools.append(el('summary','Demo settings'),el('p','Delivery, imports and approvals are simulated.'),reset);
+      tools.append(el('summary','Demo settings'),who,el('p','Delivery, imports and approvals are simulated.'),reset);
       banner.append(tools);
-    }else banner.append(reset);
+    }else banner.append(who,reset);
     const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
     const locationLabel=el('p',undefined,{class:'founder-location'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
+    if(complete)banner.prepend(locationLabel);
     main.append(banner);
-    if(complete)main.append(locationLabel);
     main.append(nav,notice,body,editor);
     host.append(main);
     window.Rated420UX?.workspace(nav,body,'Founder');
@@ -221,6 +221,7 @@
         for(const id of row.related??[])relation(item,'organizations',id);
         relations(item,'contacts','Contacts',x=>x.roles.some(role=>role.org===row.id));
         relations(item,'products','Products',x=>['brand','cultivator','manufacturer','distributor','retailer'].some(k=>x[k]===row.id));
+        relations(item,'campaigns','Campaign history',campaign=>campaign.recipients.some(recipient=>recipient.org===row.id));
       }
       if(collection==='contacts'){
         const roles=el('ul');
@@ -495,13 +496,13 @@
       if(complete&&window.Rated420UX){
         const link=(label,href)=>el('a',label,{href,class:'btn btn-tertiary'});
         const groups=[
-          ['Today',['dashboard','tasks','threads'],[]],
-          ['Business',['organizations','contacts','campaigns','opportunities'],[]],
+          ['Today',['dashboard','tasks','threads','activity'],[]],
+          ['Relationships',['organizations','contacts','campaigns','opportunities'],[]],
           ['Intelligence',['products','integrations'],[link('Territory Explorer','#hq/gary/territory'),link('Data Intelligence Center','#hq/intelligence')]],
-          ['Operations',['production','documents','activity'],[link('Financial Command Center','#hq/gary/finance')]]
+          ['Operations',['production','documents'],[link('Financial Command Center','#hq/gary/finance')]]
         ];
         const current=groups.find(([,views])=>views.includes(selected));
-        locationLabel.replaceChildren(el('span',current[0]),el('strong',names[selected]));
+        locationLabel.textContent=current[0];
         const chooser=el('select',undefined,{'aria-label':'Founder area'});
         for(const [label] of groups)chooser.append(el('option',label,{value:label}));
         chooser.value=current[0];
@@ -513,7 +514,7 @@
           destinations.replaceChildren(...views.map(view=>controls[view]),...links);
         };
         chooser.addEventListener('change',draw);
-        nav.append(field,destinations);draw();
+        nav.append(field,destinations,link('Back to Rated420 HQ','#hq'));draw();
       }else nav.append(...Object.values(controls));
       body.replaceChildren(el('h2',names[selected]));
       if(selected==='dashboard'){dashboard(body);return;}

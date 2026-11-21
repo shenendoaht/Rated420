@@ -882,20 +882,6 @@ function appendCommunityScore(node, stats) {
     updateScoreTotal(form, categories);
   }
 
-  const calculator=$('about-score-calculator');
-  if(calculator){
-    buildScoreSliders(calculator,STRAIN_CATEGORIES,STRAIN_SCORE_GUIDANCE.Flower);
-    calculator.addEventListener('submit',event=>event.preventDefault());
-    const format=$('about-score-format');
-    format.addEventListener('change',()=>{
-      calculator.querySelector('label[for="about-score-calculator_flavor"]').textContent=window.Rated420Scores.thirdDimension(format.value);
-      calculator.querySelectorAll('.rating-guidance').forEach((description,index)=>{
-        description.textContent=STRAIN_SCORE_GUIDANCE[format.value][index];
-      });
-    });
-    document.querySelector('[data-score-methodology]').hidden=false;
-  }
-
   function resetStrainPhotoPreview() {
     if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
     photoObjectUrl = null;
@@ -1138,10 +1124,8 @@ function appendCommunityScore(node, stats) {
     ['💨', 'Cloud', '#384660'],
     ['🍪', 'Cookie', '#65442b']
   ];
-  const DISPENSARY_CATEGORIES = [
-    ['aesthetic', 'Aesthetic'], ['accessibility', 'Accessibility'],
-    ['staff', 'Staff'], ['menu', 'Menu'], ['overall', 'Overall']
-  ];
+  const reviewModels=window.Rated420Scores.models;
+  const DISPENSARY_CATEGORIES=reviewModels.dispensary.fields;
   const dispensaryForm = $('dispensaryForm');
   const dispensaryFields = dispensaryForm.elements;
   let editingDispensary = null;
@@ -1517,13 +1501,35 @@ async function ensureDispensary(name,location) {
   }
 
   $('dispensarySearch').addEventListener('input',renderDispensaryCatalogue);
-  buildScoreSliders(dispensaryForm, DISPENSARY_CATEGORIES, [
-    "How did the shop look and feel inside?",
-    "How easy was it to get there, get in, and find your way around?",
-    "Were the staff welcoming and helpful?",
-    "How was the selection? Was it easy to find what you wanted?",
-    "How was the visit as a whole? Would you go back?"
-  ]);
+  buildScoreSliders(dispensaryForm,DISPENSARY_CATEGORIES,reviewModels.dispensary.prompts);
+  const calculator=$('about-score-calculator');
+  if(calculator){
+    const select=$('about-score-format');
+    const productFormats=$('rated420-strain-product-type').options;
+    const products=makeNode('optgroup');products.label='Product formats';
+    for(const option of productFormats)products.append(option.cloneNode(true));
+    const entities=makeNode('optgroup');entities.label='Other review types';
+    for(const [value,label] of Object.entries({dispensary:'Dispensary',brand:'Brand',accessory:'Accessory'})){
+      const option=makeNode('option','',label);option.value=value;entities.append(option);
+    }
+    select.replaceChildren(products,entities);
+    let previousModel;
+    const draw=()=>{
+      const model=reviewModels[select.value];
+      const inputs=[...calculator.querySelectorAll('input[type=range]')];
+      const values=model===previousModel?inputs.map(input=>input.value):[];
+      const fields=model?.fields||STRAIN_CATEGORIES.map(([key,label])=>[
+        key,key==='flavor'?window.Rated420Scores.thirdDimension(select.value):label
+      ]);
+      buildScoreSliders(calculator,fields,model?.prompts||STRAIN_SCORE_GUIDANCE[select.value]||STRAIN_SCORE_GUIDANCE.Other);
+      calculator.querySelectorAll('input[type=range]').forEach((input,index)=>{input.value=values[index]??'0';});
+      updateScoreTotal(calculator,fields);previousModel=model;
+    };
+    select.addEventListener('change',draw);
+    calculator.addEventListener('submit',event=>event.preventDefault());
+    draw();
+    document.querySelector('[data-score-methodology]').hidden=false;
+  }
   document.querySelectorAll('[data-open-dispensary]').forEach(button => button.addEventListener('click', () => {
     page('dispensary');
     void loadDispensaryReviews();

@@ -444,6 +444,10 @@ html.rated-refined {
 .rated-refined .founder-area select{width:100%}
 .rated-refined .founder-destinations{display:grid;gap:.15rem}
 @media(max-width:760px){
- .rated-refined #rated420-strain-rating-form .rating-top strong{font-size:clamp(1.85rem,7.5vw,2.15rem)}
- .rated-refined #rated420-strain-rating-form .rating-top small{font-size:.43em}
+ .rated-refined #rated420-strain-rating-form .rating-top strong{font-size:clamp(1.4rem,5.4vw,1.85rem)}
+ .rated-refined #rated420-strain-rating-form .rating-top small{font-size:.52em}
 }
+
+.rated-refined .founder-desk .gary-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.55rem;flex-wrap:wrap}
+.rated-refined .founder-location{margin:.4rem 0;color:var(--emerald-ink);font-weight:700}
+.rated-refined #siteShell[data-surface=hq]:has(.founder-desk) #hqTitle{font-size:clamp(1.65rem,5vw,2.85rem);margin-block:.25rem}

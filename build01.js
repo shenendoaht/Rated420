@@ -2,10 +2,6 @@
 window.createBuild01 = function createBuild01({ db, user, login, page, toast, openFavorite, reviewAvatar, decorate }) {
   const root = document.getElementById('buildContent');
   const title = document.getElementById('buildTitle');
-  const categories = {
-    brand: ['Presentation', 'Consistency', 'Selection', 'Transparency', 'Overall'],
-    accessory: ['Design', 'Build quality', 'Ease of use', 'Performance', 'Overall']
-  };
   const routes = { brands: 'brand', accessories: 'accessory', vault: 'vault' };
   const paths = { brand: 'brands', accessory: 'accessories' };
 
@@ -99,7 +95,8 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
     const form = node('form', undefined, 'build-form');
     const total = node('output', '', 'build-score');
     total.setAttribute('aria-live', 'polite');
-    const sliders = categories[kind].map((label, i) => {
+    const model=window.Rated420Scores.models[kind];
+    const sliders = model.fields.map(([,label], i) => {
       const input = node('input');
       const points = node('span');
       input.type = 'range';
@@ -108,7 +105,10 @@ window.createBuild01 = function createBuild01({ db, user, login, page, toast, op
       input.value = item.own?.scores[i] ?? 42;
       input.setAttribute('aria-label', label);
       field(form, label, input);
-      input.after(points);
+      const guidance=node('small',model.prompts[i],'rating-guidance');
+      guidance.id='listing-score-guidance-'+i;
+      input.setAttribute('aria-describedby',guidance.id);
+      input.after(points,guidance);
       input.addEventListener('input', () => updateTotal());
       return { input, points };
     });

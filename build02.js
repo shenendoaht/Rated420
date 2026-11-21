@@ -346,11 +346,11 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     const gary=window.mountGaryPreview && ['staff','administrator'].includes(role) && canEnterWorkspace();
     if(founder && window.RatedComplete && !gary)return parent=>parent.append(el('p','The founder workspace is available to founders and administrators.'));
     if(founder&&gary)return parent=>{
-      backToHQ(parent);
+      if(!complete)backToHQ(parent);
       if(window.mountRatedExpansion&&(!complete||initial==='finance'||initial==='territory')){
         const controls=el('nav',undefined,'build-actions');
         controls.setAttribute('aria-label','Founder workspaces');
-        for(const [hash,label] of [['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
+        for(const [hash,label] of [['#hq','Back to Rated420 HQ'],['#hq/gary','Founder workspace'],['#hq/gary/finance','Financial Command Center'],['#hq/gary/territory','Territory Explorer']]){
           const link=el('a',label,'btn btn-outline');link.href=hash;if(hash===(initial==='finance'||initial==='territory'?'#hq/gary/'+initial:'#hq/gary'))link.setAttribute('aria-current','page');controls.append(link);
         }
         if(window.Rated420IntelligenceUI){const link=el('a','Data Intelligence Center','btn btn-outline');link.href='#hq/intelligence';controls.append(link);}
@@ -392,8 +392,8 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       if(window.Rated420CatalogueUI&&canEnterWorkspace()){const link=el('a','Catalogue Manager','btn btn-outline');link.href='#hq/catalogue';controls.Manager=link;}
       if(window.Rated420UX){
         const set=(title,items)=>[title,items.map(key=>controls[key]).filter(Boolean)];
-        window.Rated420UX.sections(nav,[set('Desk',['Overview']),set('Moderation',['Submissions','Catalog']),set('Content',['Polls','Episodes','Showroom','Editorial','Manager']),
-          set('Insights and access',['Analytics','Access']),set('Founder tools',['Founder','Intelligence'])]);
+        window.Rated420UX.sections(nav,[set('Work queue',['Overview','Submissions','Catalog','Manager']),set('Publishing',['Polls','Episodes','Showroom','Editorial']),
+          set('Analysis and access',['Analytics','Intelligence','Access']),set('Founder',['Founder'])]);
       }else nav.append(...Object.values(controls));
       parent.append(nav);
       const content=el('section');parent.append(content);
@@ -502,7 +502,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     if(!Object.hasOwn(headings,view)||!client())return false;
     const token=++request;
     page('hq');
-    heading.textContent=headings[view];
+    heading.textContent=view==='hq'&&id==='gary'&&window.RatedComplete?'Founder workspace':headings[view];
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {
