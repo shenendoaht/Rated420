@@ -108,7 +108,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
   async function discover(id) {
     const rows=await api('catalog');
     return parent=>{
-      const form=el('form',undefined,'hq-filters');
+      const form=el('form',undefined,'hq-filters discover-filters');
       form.addEventListener('submit',e=>e.preventDefault());
       const search=field(form,'Search listings','query',{type:'search'});
       const kind=field(form,'Category','kind',{options:[['','All categories'],...Object.entries(labels)],value:Object.hasOwn(labels,id)?id:''});
@@ -314,6 +314,88 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     finish();
   }
 
+  function submission(row,container){
+        const detail=el('details',undefined,'build-card');
+        detail.append(el('summary',row.name+' · '+row.status));
+        container.append(detail);
+        if(row.note)detail.append(el('p',row.note));
+        if(row.photo)detail.append(button('Open supporting photo',async event=>{
+          const target=event.currentTarget;
+          const {data,error}=await client().storage.from('catalog-submissions').createSignedUrl(row.photo,60);
+          target.after(error?el('p',error.message):image(data.signedUrl,'Private supporting photo'));
+        }));
+        if(['Approved','Rejected'].includes(row.status))return;
+        const {form,finish}=formFor(detail,'Record decision',async values=>{await api('moderate',{...values,id:row.id});await route();});
+        submissionFields(form,{...row,staff:true});
+        field(form,'Status','status',{options:[['Approved','Approve'],['Needs Revision','Needs Revision'],['Rejected','Reject']]});
+        field(form,'Existing listing ID (optional)','listing');
+        field(form,'Private decision note','note',{type:'textarea',max:1500});
+        finish();
+      }
+
+  function mountFounderHQ(parent,render,{role,founder,active}){
+    const wide=matchMedia('(min-width:1000px)');
+    const frame=el('div',undefined,'founder-unified');
+    const header=el('div',undefined,'founder-unified-header');
+    const nav=el('nav',undefined,'founder-unified-nav');nav.id='founder-hq-navigation';
+    nav.setAttribute('aria-label','Founder HQ areas');
+    const main=el('div',undefined,'founder-unified-content');
+    const context=el('p',undefined,'founder-unified-context');
+    const settings=el('div');
+    const toggle=button('Founder HQ navigation',()=>setOpen(nav.hidden));
+    toggle.className='btn btn-outline';
+    toggle.setAttribute('aria-controls',nav.id);
+    const setOpen=open=>{
+      nav.hidden=!open;toggle.setAttribute('aria-expanded',String(open));
+      frame.classList.toggle('nav-open',open);
+    };
+    header.append(context,toggle);
+    const tools=(...rows)=>founder?rows:[];
+    const groups=[
+      ['Today',[['#hq','Overview'],['#hq/submissions','Submissions'],...tools(['#hq/gary/tasks','Founder tasks'],['#hq/gary/activity','Recent activity'])]],
+      ['Relationships',tools(['#hq/gary/organizations','Industry directory'],['#hq/gary/contacts','Contacts and relationships'],
+        ['#hq/gary/threads','Correspondence'],['#hq/gary/campaigns','Outreach campaigns'],['#hq/gary/opportunities','Business development'])],
+      ['Intelligence',[['#hq/catalog','Community catalogue'],['#hq/analytics','Analytics'],['#hq/intelligence','Data Intelligence Center'],
+        ...tools(['#hq/catalogue','Catalogue Manager'],['#hq/gary/products','Product intelligence'],['#hq/gary/territory','Territory Explorer'],['#hq/gary/integrations','Data integrations'])]],
+      ['Operations',[['#hq/polls','Polls'],['#hq/episodes','Episodes'],['#hq/showroom','Showroom'],
+        ...tools(['#hq/content','Editorial content'],['#hq/gary/production','Production planning'],['#hq/gary/documents','Documents'],['#hq/gary/finance','Financial Command Center']),
+        ...(role==='administrator'?[['#hq/access','Staff access']]:[])]]
+    ];
+    const entries=[];
+    for(const [label,destinations] of groups){
+      const disclosure=el('details');
+      disclosure.append(el('summary',label));
+      for(const [url,name] of destinations){
+        const item=link(name,url);entries.push({url,label,name,item,disclosure});disclosure.append(item);
+      }
+      if(!destinations.length)disclosure.append(el('p','Relationship tools require founder or administrator access.'));
+      disclosure.querySelector('summary').addEventListener('click',()=>{
+        if(!disclosure.open)for(const other of nav.querySelectorAll('details[open]'))if(other!==disclosure&&!settings.contains(other))other.open=false;
+      });
+      nav.append(disclosure);
+    }
+    nav.append(settings);
+    const returnLink=link('Return to Founder HQ','#hq','btn btn-tertiary');header.append(returnLink);
+    function select(path){
+      if(path==='#hq/gary'||path==='#hq/overview')path='#hq';
+      const current=entries.filter(({url})=>path===url||path.startsWith(url+'/')).sort((a,b)=>b.url.length-a.url.length)[0]||entries[0];
+      for(const row of entries){
+        if(row===current)row.item.setAttribute('aria-current','page');else row.item.removeAttribute('aria-current');
+        if(row.disclosure!==current.disclosure)row.disclosure.open=false;
+      }
+      current.disclosure.open=true;
+      context.textContent=current.label+' · '+current.name;
+      returnLink.hidden=current.url==='#hq';
+    }
+    nav.addEventListener('click',event=>{if(event.target.closest('a')&&!wide.matches)setOpen(false);});
+    frame.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&!nav.hidden){setOpen(false);toggle.focus();}
+    });
+    frame.append(header,nav,main);parent.append(frame);
+    select(active);setOpen(wide.matches);
+    render(main,{settings,select});
+  }
+
   async function hq(section, subview, recordId, returnTo) {
     const founder=section==='gary', intelligence=section==='intelligence', editorial=section==='content', catalogManager=section==='catalogue';
     const initial=subview&&decodeURIComponent(subview);
@@ -326,26 +408,46 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       if(!canEnterWorkspace()||member()?.id!==identity||!['staff','administrator'].includes(await api('role'))||member()?.id!==identity)
         throw Error('Sign in as authorized staff to change this workspace.');
     };
+    const shell=render=>complete?parent=>mountFounderHQ(parent,render,{role,founder:canEnterWorkspace(),active:location.hash||'#hq'}):render;
     const createProspect=(id,org)=>window.GaryStore.openStore(assertAccess).dispatch('official-prospect',{record:id,org},window.GaryStore.founders[0]);
     const backToHQ=parent=>parent.append(link('Back to Rated420 HQ','#hq','btn btn-tertiary'));
-    if(catalogManager&&window.Rated420CatalogueUI)return parent=>{
+    if(catalogManager&&window.Rated420CatalogueUI)return shell(parent=>{
       if(!canEnterWorkspace()){parent.append(el('p','Catalogue management is available to founders and administrators.'));return;}
-      backToHQ(parent);
+      if(!complete)backToHQ(parent);
       window.Rated420CatalogueUI.manager(parent,{guard:assertAccess,actor:identity,initial});
-    };
-    if(editorial&&window.Rated420Editorial)return parent=>{
+    });
+    if(editorial&&window.Rated420Editorial)return shell(parent=>{
       if(!canEnterWorkspace()){parent.append(el('p','Editorial editing is available to founders and administrators.'));return;}
-      const back=el('a','Back to Rated420 HQ','btn btn-outline');back.href='#hq';
-      parent.append(back);window.Rated420Editorial.mountHQ(parent,assertAccess);
-    };
-    if(intelligence&&window.Rated420IntelligenceUI)return parent=>{
-      backToHQ(parent);
+      if(!complete)backToHQ(parent);
+      window.Rated420Editorial.mountHQ(parent,assertAccess);
+    });
+    if(intelligence&&window.Rated420IntelligenceUI)return shell(parent=>{
+      if(!complete)backToHQ(parent);
       window.Rated420IntelligenceUI.mount(parent,{guard:assertAccess,writable:canEnterWorkspace(),initial,recordId,
         hq:canEnterWorkspace()?()=>window.GaryStore.openStore().read():undefined,create:createProspect});
-    };
+    });
     const gary=window.mountGaryPreview && ['staff','administrator'].includes(role) && canEnterWorkspace();
     if(founder && window.RatedComplete && !gary)return parent=>parent.append(el('p','The founder workspace is available to founders and administrators.'));
-    if(founder&&gary)return parent=>{
+    if(complete&&gary&&(founder||!section||section==='overview')){
+      const landing=!initial||initial==='dashboard';
+      const pending=landing?(await api('queue')).filter(row=>!['Approved','Rejected'].includes(row.status)):[];
+      return shell((parent,workspace)=>{
+        if(initial==='finance'||initial==='territory'){
+          window.mountRatedExpansion(parent,initial==='finance'?'finance':'market',{guard:assertAccess,hq:()=>window.GaryStore.openStore().read(),createProspect});
+          return;
+        }
+        window.mountGaryPreview(parent,{initial,initialRecord:recordId,backToTerritory:returnTo==='territory',assertAccess,workspace,
+          attention:landing?container=>{
+            if(!pending.length)return;
+            const queue=el('section',undefined,'build-card ops-queue');
+            queue.append(el('h3','Pending submissions'));
+            for(const row of pending.slice(0,3))submission(row,queue);
+            queue.append(link('View all submissions','#hq/submissions','btn btn-tertiary'));
+            container.append(queue);
+          }:null});
+      });
+    }
+    if(founder&&gary&&!complete)return parent=>{
       if(!complete)backToHQ(parent);
       if(window.mountRatedExpansion&&(!complete||initial==='finance'||initial==='territory')){
         const controls=el('nav',undefined,'build-actions');
@@ -376,7 +478,9 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     if(current==='Episodes'||current==='Showroom')data=await Promise.all([
       api('library',{kind:current==='Episodes'?'episode':'merch',manage:true}),api('polls',{},'rated420_build01')
     ]);
-    return parent=>{
+    return shell(parent=>{
+      const content=el('section');
+      if(!complete){
       const nav=el(window.Rated420UX?'nav':'div',undefined,'build-actions');
       nav.setAttribute('aria-label','HQ administration');
       const controls={};
@@ -396,28 +500,11 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
           set('Analysis and access',['Analytics','Intelligence','Access']),set('Founder',['Founder'])]);
       }else nav.append(...Object.values(controls));
       parent.append(nav);
-      const content=el('section');parent.append(content);
+      parent.append(content);
       window.Rated420UX?.workspace(nav,content,'Administration');
+      }else parent.append(content);
       if(current==='Analytics'){
         void analytics(content).catch(error=>content.append(el('p',error.message)));return;
-      }
-      function submission(row,container=content){
-        const detail=el('details',undefined,'build-card');
-        detail.append(el('summary',row.name+' · '+row.status));
-        container.append(detail);
-        if(row.note)detail.append(el('p',row.note));
-        if(row.photo)detail.append(button('Open supporting photo',async event=>{
-          const target=event.currentTarget;
-          const {data,error}=await client().storage.from('catalog-submissions').createSignedUrl(row.photo,60);
-          target.after(error?el('p',error.message):image(data.signedUrl,'Private supporting photo'));
-        }));
-        if(['Approved','Rejected'].includes(row.status))return;
-        const {form,finish}=formFor(detail,'Record decision',async values=>{await api('moderate',{...values,id:row.id});await route();});
-        submissionFields(form,{...row,staff:true});
-        field(form,'Status','status',{options:[['Approved','Approve'],['Needs Revision','Needs Revision'],['Rejected','Reject']]});
-        field(form,'Existing listing ID (optional)','listing');
-        field(form,'Private decision note','note',{type:'textarea',max:1500});
-        finish();
       }
       if(current==='Overview'){
         const pending=data.filter(row=>!['Approved','Rejected'].includes(row.status));
@@ -454,7 +541,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
       }
       if(current==='Submissions'){
         if(!data.length)content.append(el('p','No submissions to review.'));
-        for(const row of data)submission(row);
+        for(const row of data)submission(row,content);
       } else if(current==='Catalog'){
         for(const row of data){
           const detail=el('details',undefined,'build-card');
@@ -493,7 +580,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
           managementForm(detail,'Save entry',row,kind,data[1].polls);content.append(detail);
         }
       }
-    };
+    });
   }
 
   async function route() {
@@ -502,7 +589,7 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
     if(!Object.hasOwn(headings,view)||!client())return false;
     const token=++request;
     page('hq');
-    heading.textContent=view==='hq'&&id==='gary'&&window.RatedComplete?'Founder workspace':headings[view];
+    heading.textContent=view==='hq'&&window.RatedComplete?'Rated420 Founder HQ':headings[view];
     heading.focus({preventScroll:true});
     area.textContent='Loading…';
     try {

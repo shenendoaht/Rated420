@@ -44,7 +44,7 @@
     parent.append(x);return x;
   }
 
-  function mount(host,{assertAccess,initial='dashboard',initialRecord,backToTerritory}={}) {
+  function mount(host,{assertAccess,initial='dashboard',initialRecord,backToTerritory,workspace,attention}={}) {
     const store=openStore(assertAccess??(()=>{}));
     let selected=Object.hasOwn(names,initial)?initial:'dashboard';
     let detail=initialRecord||'', filter='', query='', order='name', owner=founders[0], folder='Inbox', month=new Date().toISOString().slice(0,7), calendar=false;
@@ -62,30 +62,18 @@
     who.append(roles);
     const reset=btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));});
     reset.className='btn btn-danger';
-    const nav=el('nav',undefined,{id:'founder-navigation','aria-label':'Founder workspace',class:'gary-nav'});
-    const locationLabel=el('p',undefined,{class:'founder-location'});
+    const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
-    const toggle=btn('Founder navigation',()=>setNavigation(nav.hidden));
-    const tools=el('details',undefined,{class:'founder-demo-tools'});
-    function setNavigation(open){
-      nav.hidden=!open;
-      toggle.setAttribute('aria-expanded',String(open));
-      if(!open)tools.open=false;
+    if(workspace){
+      const tools=el('details',undefined,{class:'founder-demo-tools'});
+      tools.append(el('summary','Demo settings'),who,el('p','Demo actions are simulated.'),reset);
+      workspace.settings.append(tools);
+    }else{
+      banner.append(who,reset);
+      main.append(banner,nav);
     }
-    if(complete){
-      toggle.setAttribute('aria-controls',nav.id);
-      tools.append(el('summary','Demo settings'),who,el('p','Delivery, imports and approvals are simulated.'),reset);
-      banner.append(locationLabel,toggle);
-      setNavigation(false);
-      main.addEventListener('keydown',event=>{
-        if(event.key==='Escape'&&!nav.hidden&&!editor.open){
-          setNavigation(false);toggle.focus();
-        }
-      });
-    }else banner.append(who,reset);
-    main.append(banner,nav,notice,body,editor);
-    host.append(main);
+    main.append(notice,body,editor);host.append(main);
 
     const trail=[];
     function focusHeading(){
@@ -97,7 +85,6 @@
       if(!id){trail.length=0;query='';order='name';}
       selected=view;detail=id;filter=preset;notice.textContent='';
       if(editor.open)editor.close();
-      if(complete)setNavigation(false);
       render();focusHeading();
     }
     function back(){
@@ -503,33 +490,8 @@
     }
     function render() {
       nav.replaceChildren();
-      if(complete&&window.Rated420UX){
-        const link=(label,href)=>el('a',label,{href,class:'btn btn-tertiary'});
-        const groups=[
-          ['Today',[['dashboard',names.dashboard],['tasks',names.tasks],['threads',names.threads],['activity',names.activity]]],
-          ['Relationships',['organizations','contacts','campaigns','opportunities'].map(id=>[id,names[id]])],
-          ['Intelligence',[['products',names.products],['integrations',names.integrations],['#hq/gary/territory','Territory Explorer'],['#hq/intelligence','Data Intelligence Center']]],
-          ['Operations',[['production',names.production],['documents',names.documents],['#hq/gary/finance','Financial Command Center']]]
-        ];
-        const [area]=groups.find(([,destinations])=>destinations.some(([id])=>id===selected));
-        locationLabel.textContent=area;
-        const picker=el('form',undefined,{class:'founder-destination-picker'});
-        const chooser=el('select',undefined,{'aria-label':'Founder destination'});
-        for(const [label,destinations] of groups){
-          const group=el('optgroup',undefined,{label});
-          for(const [id,title] of destinations)group.append(el('option',title,{value:id}));
-          chooser.append(group);
-        }
-        chooser.value=selected;
-        const field=el('label','Go to',{class:'founder-area'});field.append(chooser);
-        picker.append(field,el('button','Open',{type:'submit',class:'btn btn-primary'}));
-        picker.addEventListener('submit',event=>{
-          event.preventDefault();calendar=false;
-          if(chooser.value.startsWith('#'))location.hash=chooser.value;
-          else go(chooser.value);
-        });
-        nav.append(picker,link('Back to Rated420 HQ','#hq'),tools);
-      }else{
+      if(workspace)workspace.select(selected==='dashboard'?'#hq':'#hq/gary/'+selected);
+      else{
         for(const [view,name] of Object.entries(names)){
           const control=btn(name,()=>{calendar=false;go(view);});
           control.setAttribute('aria-pressed',String(view===selected));
@@ -537,7 +499,7 @@
         }
       }
       body.replaceChildren(el('h2',names[selected]));
-      if(selected==='dashboard'){dashboard(body);return;}
+      if(selected==='dashboard'){attention?.(body);dashboard(body);return;}
       if(selected==='threads')body.append(el('p','rated420.ny@gmail.com · Local simulated mailbox'));
       const row=detail&&find(selected,detail);
       if(!row){list(body);return;}

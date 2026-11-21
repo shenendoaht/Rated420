@@ -43,7 +43,7 @@
   const explore=catalogue.querySelector('summary');
   explore.textContent='Explore';
   catalogue.querySelector('.nav-catalogue-links').append(navLink('#catalogue','Interconnected catalogue'),shortcut('#businesses'));
-  nav.replaceChildren(navLink('#home','Home'),catalogue,community,media,more,navLink('#hq','Rated420 HQ'));
+  nav.replaceChildren(navLink('#home','Home'),catalogue,community,media,more,navLink('#hq','Founder HQ'));
   shortcuts.remove();
 
   const trigger=press('Menu','btn btn-outline ref-menu-trigger');

@@ -106,7 +106,7 @@ function hostedFile(url){
    await page.locator('#accountPage').waitFor();
    if(await tools.evaluate(el=>el.open))await tools.locator('summary').click();
    for(const [name,hash,selector] of [
-    ['hq','#hq',baseline?'#hqContent h2':'.hq-desk h2'],
+    ['hq','#hq',baseline?'#hqContent h2':'.founder-unified h2'],
     ['founder','#hq/gary','.gary-body h2'],
     ['territory','#hq/gary/territory','.territory-regions']
    ]){

@@ -23,6 +23,7 @@
   document.getElementById('authPage').prepend(make('p','Offline accounts only. Use an @example.test address and password demo-only-420. No email is sent.','complete-note'));
   document.addEventListener('click',event=>{
     const anchor=event.target.closest('a[href]');
+    if(anchor?.closest('#contactPage')&&anchor.protocol==='mailto:')return;
     if(!anchor||anchor.dataset.officialOnline||!/^https?:|^mailto:/i.test(anchor.getAttribute('href')))return;
     event.preventDefault();
     const dialog=make('dialog',null,'complete-dialog');
@@ -37,29 +38,12 @@
     }
     dialog.append(close);document.body.append(dialog);dialog.showModal();
   });
-  const contact=make('form',null,'build-card build-form');
-  contact.append(make('h2','Send a demo inquiry'));
-  for(const [name,title,type] of [['sender','Name','text'],['topic','Topic','text'],['body','Message','textarea']]){
-    const label=make('label',title);
-    const field=make(type==='textarea'?'textarea':'input');
-    if(type!=='textarea')field.type=type;
-    field.name=name;field.required=true;field.maxLength=type==='textarea'?1500:100;label.append(field);contact.append(label);
-  }
-  const submit=make('button','Save demo inquiry','btn btn-primary');submit.type='submit';
-  const result=make('p');result.setAttribute('role','status');
-  contact.append(submit,result);
-  contact.addEventListener('submit',event=>{
-    event.preventDefault();
-    const fields=Object.fromEntries(new FormData(contact));
-    try{
-      const key='rated420-complete-contact-v1';
-      const saved=JSON.parse(localStorage.getItem(key)||'[]');
-      saved.unshift({...fields,id:crypto.randomUUID(),at:new Date().toISOString()});
-      localStorage.setItem(key,JSON.stringify(saved.slice(0,30)));
-      contact.reset();result.textContent='Demo inquiry saved in this browser. No email was sent.';
-    }catch{result.textContent='This browser could not save the inquiry.';}
-  });
-  document.getElementById('contactPage').append(contact);
+  const contact=document.getElementById('contactPage');
+  contact.classList.add('contact-email-page');
+  document.getElementById('contactTitle').textContent='Contact Rated420';
+  contact.querySelector('.contact-heading > p:last-child').textContent='Have a question, a correction, or a podcast invitation? Get in touch with the Rated420 team.';
+  contact.querySelector('.build-card h2').remove();
+  contact.querySelector('.build-card p').remove();
 
   demo.renderBusiness=async(host,id,{privateView=false}={})=>{
     const content=make('div');

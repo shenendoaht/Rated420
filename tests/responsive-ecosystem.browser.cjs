@@ -66,10 +66,10 @@ const widths=[320,375,390,430,768,820,1024,1366,1440,1920];
    await role('Business representative · Morgan');await go('#business-account');await heading('Field Signal').waitFor();
    await sidebar('Business');await fit('business');
    await role('Founder · Jordan');await go('#hq/gary');await heading('Overview').waitFor();
-   const toggle=await sidebar('Founder');await fit('founder expanded');await toggle.click();await fit('founder collapsed');
+   const toggle=await sidebar('Founder HQ');await fit('founder expanded');await toggle.click();await fit('founder collapsed');
    if(width>760){
     await page.reload();await heading('Overview').waitFor();
-    assert.equal(await button('Founder navigation').getAttribute('aria-expanded'),'false');
+    assert.equal(await button('Founder HQ navigation').getAttribute('aria-expanded'),String(width>=1000));
    }
    await go('#hq/gary/finance');await heading('Financial Command Center').waitFor();await fit('finance');
    await go('#hq/gary/territory');await heading('Territory Explorer').waitFor();await fit('territory');

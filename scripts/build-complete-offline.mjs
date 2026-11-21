@@ -28,5 +28,6 @@ for(const [from,to] of [
   ['docs/mobile-workspaces.md','MOBILE-WORKSPACES.md'],
   ['docs/scoring-methodology.md','SCORING-METHODOLOGY.md'],
   ['docs/founder-consolidation.md','FOUNDER-CONSOLIDATION.md'],
-  ['docs/founder-focused.md','FOUNDER-FOCUSED.md']
+  ['docs/founder-focused.md','FOUNDER-FOCUSED.md'],
+  ['docs/unified-founder-hq.md','UNIFIED-FOUNDER-HQ.md']
 ])await cp(path.join(root,from),path.join(target,to));

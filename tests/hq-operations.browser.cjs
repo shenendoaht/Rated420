@@ -69,7 +69,7 @@ const routes=[
     await go(hash);
     if(name==='navigation'&&width<=900)await button('Browse menu').press('Enter');
     await page.locator(selector).first().waitFor();
-    if(name==='hq'){await button('Administration navigation').waitFor();await sidebar('Administration');}
+    if(name==='hq')await button('Founder HQ navigation').waitFor();
     if(name==='founder')await heading('Overview').waitFor();
     if(name==='intelligence')await heading('Data Intelligence Center').waitFor();
     if(name==='home')await page.locator('#join').scrollIntoViewIfNeeded();
@@ -85,11 +85,15 @@ const routes=[
    if(!baseline){
     await go('#hq');
     await heading('Needs attention').waitFor();
-    await link(/catalogue drafts/).click();
-    await label('Search records').waitFor();
-    await link('Back to Rated420 HQ').click();await heading('Needs attention').waitFor();
-    await link(/rejected or skipped import rows/).click();
-    await page.getByText('No local imports have been applied.',{exact:true}).waitFor();
+    await sidebar('Founder HQ');
+    await page.locator('#founder-hq-navigation').getByText('Intelligence',{exact:true}).click();
+    await link('Catalogue Manager').click();
+    await button('Records').click();await label('Search records').waitFor();
+    await link('Return to Founder HQ').click();await heading('Needs attention').waitFor();
+    await sidebar('Founder HQ');
+    await page.locator('#founder-hq-navigation').getByText('Intelligence',{exact:true}).click();
+    await link('Data Intelligence Center').click();
+    await button('History').click();await page.getByText('No local imports have been applied.',{exact:true}).waitFor();
     await button('Sources').click();
     const weg=page.locator('article').filter({has:heading('Weedmaps')});
     await weg.getByText('No authorized connection',{exact:true}).waitFor();
@@ -106,7 +110,7 @@ const routes=[
     await heading('Review farm tour introduction').waitFor();
     await button('Back to Overview').click();
     await heading('Follow-ups').waitFor();
-    await sidebar('Founder');await label('Founder destination').selectOption('organizations');await page.locator('#founder-navigation').getByRole('button',{name:'Open',exact:true}).click();
+    await sidebar('Founder HQ');await page.locator('#founder-hq-navigation').getByText('Relationships',{exact:true}).click();await link('Industry directory').click();
     await label('Search industry directory').fill('Lantern');
     await button('Open Hudson Lantern Farm').click();
     await button('Back to Industry directory').click();
@@ -131,7 +135,7 @@ const routes=[
     await heading('Synthetic review desk fixture').waitFor();
     await switchTo('Moderator · Camille');await go('#hq');
     await heading('Needs attention').waitFor();
-    assert.equal(await link(/catalogue drafts/).count(),0);
+    assert.equal(await page.locator('#founder-hq-navigation a[href="#hq/gary/finance"]').count(),0);
     await page.getByText('Synthetic review desk fixture · Pending',{exact:true}).click();
     await label('Status').selectOption('Needs Revision');
     await label('Private decision note').fill('Please confirm the spelling.');

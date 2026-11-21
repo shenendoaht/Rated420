@@ -11,15 +11,22 @@
   const defaults=()=>({
     products,
     team:[
-      {id:'shen',name:'Shen',title:'',responsibilities:'',bio:'',image:'',imageApproval:''},
+      {id:'shen',name:'Shenny',title:'',responsibilities:'',bio:'',image:'',imageApproval:''},
       {id:'al',name:'Al',title:'',responsibilities:'',bio:'',image:'',imageApproval:''},
-      {id:'team-slot-three',name:'',title:'',responsibilities:'',bio:'',image:'',imageApproval:''}
+      {id:'team-slot-three',name:'Greg',title:'',responsibilities:'',bio:'',image:'',imageApproval:''}
     ],
     group:{image:'images/carousel-4.webp',imageApproval:'Existing Rated420 homepage photograph',caption:'Rated420 on location at Treehouse.'},
     story:'Rated420 is an independent New York cannabis community built around a simple idea: five categories, 84 points each, one score out of 420.'
   });
   const placements=['Independent editorial','Affiliate link','Sponsored placement','Manufacturer partnership'];
-  const read=()=>JSON.parse(localStorage.getItem(key)||JSON.stringify(defaults()));
+  const read=()=>{
+    const state=JSON.parse(localStorage.getItem(key)||JSON.stringify(defaults()));
+    for(const member of state.team){
+      if(member.id==='shen'&&member.name==='Shen')member.name='Shenny';
+      if(member.id==='team-slot-three'&&(!member.name||member.name==='Team member 3'))member.name='Greg';
+    }
+    return state;
+  };
   const clean=(value,max)=>String(value??'').trim().slice(0,max);
   function productUrl(value){
     let url;

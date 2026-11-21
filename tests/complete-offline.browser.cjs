@@ -30,7 +30,7 @@ const origin='http://127.0.0.1:8768';
       await page.locator('#ageYes').click();
       await page.locator('#homePage h1').waitFor();
       for(const [hash,title] of [['#discover','Explore the catalog'],['#episodes','The Vault episodes'],['#shop','The Shop'],
-        ['#businesses','Business directory'],['#contact','Let’s talk.'],['#profile-examples/missing','Profile examples']]){
+        ['#businesses','Business directory'],['#contact','Contact Rated420'],['#profile-examples/missing','Profile examples']]){
         await go(hash);await heading(title).waitFor();
       }
       for(const hash of ['#vault','#brands','#accessories','#strains','#dispensaries','#about']){
@@ -38,11 +38,8 @@ const origin='http://127.0.0.1:8768';
         await page.locator(hash==='#about'?'#aboutPage':hash==='#strains'?'#strainPage':hash==='#dispensaries'?'#dispensaryPage':'#buildPage').waitFor();
       }
       await go('#contact');
-      await page.getByLabel('Name',{exact:true}).fill('Taylor Example');
-      await page.getByLabel('Topic',{exact:true}).fill('Partnership');
-      await page.getByLabel('Message',{exact:true}).fill('Offline contact scenario.');
-      await button('Save demo inquiry').click();
-      await page.getByText(/No email was sent/).waitFor();
+      assert.equal(await page.locator('#contactPage form').count(),0);
+      assert.equal(await page.getByRole('link',{name:'rated420.ny@gmail.com',exact:true}).getAttribute('href'),'mailto:rated420.ny@gmail.com');
       await go('#hq/gary/finance');
       await page.getByText(/available to authorized staff/).waitFor();
 
@@ -86,8 +83,9 @@ const origin='http://127.0.0.1:8768';
       await go('#hq/gary/finance');
       await page.getByText(/available to founders and administrators/).waitFor();
       await go('#hq');
-      await openSidebar('Administration');
-      await button('Catalog').click();
+      await openSidebar('Founder HQ');
+      await page.locator('#founder-hq-navigation').getByText('Intelligence',{exact:true}).click();
+      await page.getByRole('link',{name:'Community catalogue',exact:true}).click();
       await page.getByText('Amber Trail Flower · strain · 104',{exact:true}).click();
       const detail=page.locator('details').filter({hasText:'Amber Trail Flower · strain · 104'});
       await detail.getByLabel('Visibility in discovery').selectOption('true');
@@ -101,16 +99,18 @@ const origin='http://127.0.0.1:8768';
 
       await switchTo('Administrator · Adair');
       await go('#hq');
-      await openSidebar('Administration');
-      await button('Access').waitFor();
+      await openSidebar('Founder HQ');
+      await page.locator('#founder-hq-navigation').getByText('Operations',{exact:true}).click();
+      await page.getByRole('link',{name:'Staff access',exact:true}).waitFor();
       await switchTo('Founder · Jordan');
       await go('#hq/gary');
       await heading('Overview').waitFor();
-      await openSidebar('Founder');
-      await page.getByLabel('Founder destination').selectOption('#hq/gary/finance');
-      await page.locator('#founder-navigation').getByRole('button',{name:'Open',exact:true}).click();
+      await openSidebar('Founder HQ');
+      await page.locator('#founder-hq-navigation').getByText('Operations',{exact:true}).click();
+      await page.getByRole('link',{name:'Financial Command Center',exact:true}).click();
       await heading('Posted revenue').waitFor();
-      await openSidebar('HQ workspaces');
+      await openSidebar('Founder HQ');
+      await page.locator('#founder-hq-navigation').getByText('Intelligence',{exact:true}).click();
       await page.getByRole('link',{name:'Territory Explorer'}).click();
       await heading('New York territory map').waitFor();
       await demo.selectOption({label:'Logged-out visitor'});
