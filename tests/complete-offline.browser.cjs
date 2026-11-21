@@ -35,7 +35,7 @@ const origin='http://127.0.0.1:8768';
       }
       for(const hash of ['#vault','#brands','#accessories','#strains','#dispensaries','#about']){
         await go(hash);
-        await page.locator(hash==='#about'?'#rated420-standard':hash==='#strains'?'#strainPage':hash==='#dispensaries'?'#dispensaryPage':'#buildPage').waitFor();
+        await page.locator(hash==='#about'?'#aboutPage':hash==='#strains'?'#strainPage':hash==='#dispensaries'?'#dispensaryPage':'#buildPage').waitFor();
       }
       await go('#contact');
       await page.getByLabel('Name',{exact:true}).fill('Taylor Example');
@@ -107,6 +107,7 @@ const origin='http://127.0.0.1:8768';
       await go('#hq/gary');
       await heading('Overview').waitFor();
       await openSidebar('Founder');
+      await page.getByLabel('Founder area').selectOption('Operations');
       await page.getByRole('link',{name:'Financial Command Center'}).click();
       await heading('Posted revenue').waitFor();
       await openSidebar('HQ workspaces');

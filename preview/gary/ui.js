@@ -68,9 +68,12 @@
       banner.append(tools);
     }else banner.append(reset);
     const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
+    const locationLabel=el('p',undefined,{class:'founder-location'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
-    main.append(banner,nav,notice,body,editor);
+    main.append(banner);
+    if(complete)main.append(locationLabel);
+    main.append(nav,notice,body,editor);
     host.append(main);
     window.Rated420UX?.workspace(nav,body,'Founder');
 
@@ -489,14 +492,28 @@
         link.setAttribute('aria-pressed',String(view===selected));
         return [view,link];
       }));
-      if(window.Rated420UX){
+      if(complete&&window.Rated420UX){
         const link=(label,href)=>el('a',label,{href,class:'btn btn-tertiary'});
-        window.Rated420UX.sections(nav,[
-          ['Today',[controls.dashboard,controls.tasks,controls.threads]],
-          ['Business',[controls.organizations,controls.contacts,controls.campaigns,controls.opportunities]],
-          ['Intelligence',[controls.products,controls.integrations,link('Territory Explorer','#hq/gary/territory'),link('Data Intelligence Center','#hq/intelligence')]],
-          ['Operations',[controls.production,controls.documents,controls.activity,link('Financial Command Center','#hq/gary/finance')]]
-        ]);
+        const groups=[
+          ['Today',['dashboard','tasks','threads'],[]],
+          ['Business',['organizations','contacts','campaigns','opportunities'],[]],
+          ['Intelligence',['products','integrations'],[link('Territory Explorer','#hq/gary/territory'),link('Data Intelligence Center','#hq/intelligence')]],
+          ['Operations',['production','documents','activity'],[link('Financial Command Center','#hq/gary/finance')]]
+        ];
+        const current=groups.find(([,views])=>views.includes(selected));
+        locationLabel.replaceChildren(el('span',current[0]),el('strong',names[selected]));
+        const chooser=el('select',undefined,{'aria-label':'Founder area'});
+        for(const [label] of groups)chooser.append(el('option',label,{value:label}));
+        chooser.value=current[0];
+        const field=el('label','Browse area',{class:'founder-area'});
+        field.append(chooser);
+        const destinations=el('div',undefined,{class:'founder-destinations'});
+        const draw=()=>{
+          const [,views,links]=groups.find(([name])=>name===chooser.value);
+          destinations.replaceChildren(...views.map(view=>controls[view]),...links);
+        };
+        chooser.addEventListener('change',draw);
+        nav.append(field,destinations);draw();
       }else nav.append(...Object.values(controls));
       body.replaceChildren(el('h2',names[selected]));
       if(selected==='dashboard'){dashboard(body);return;}

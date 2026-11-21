@@ -754,6 +754,7 @@ function appendCommunityScore(node, stats) {
 
   async function renderStrainSummary() {
     const card = $('rated420-strain-summary');
+    $('strainFormatFilter').hidden = !selectedStrain?.id;
     if (!selectedStrain?.id) {
       card.hidden = true;
       return;

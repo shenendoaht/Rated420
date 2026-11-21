@@ -106,7 +106,7 @@ const routes=[
     await heading('Review farm tour introduction').waitFor();
     await button('Back to Overview').click();
     await heading('Follow-ups').waitFor();
-    await sidebar('Founder');await button('Industry directory').click();
+    await sidebar('Founder');await label('Founder area').selectOption('Business');await button('Industry directory').click();
     await label('Search industry directory').fill('Lantern');
     await button('Open Hudson Lantern Farm').click();
     await button('Back to Industry directory').click();
