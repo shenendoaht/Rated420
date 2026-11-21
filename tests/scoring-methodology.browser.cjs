@@ -156,6 +156,7 @@ function hostedFile(url){
    if(!await navigation.isVisible())await toggle.click();
    assert.deepEqual(await navigation.locator(':scope > details > summary').allTextContents(),['Today','Relationships','Intelligence','Operations']);
    await capture('navigation',toggle);
+   await navigation.getByText('Today',{exact:true}).focus();
    await page.keyboard.press('Escape');
    assert(await toggle.evaluate(el=>el===document.activeElement));
    await toggle.click();
