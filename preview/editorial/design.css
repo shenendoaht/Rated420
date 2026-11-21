@@ -48,3 +48,8 @@
 @media(min-width:761px){.rated-refined .editorial-story{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}}
 .rated-refined .editorial-group-photo img{object-position:center 73%}
 .rated-refined .editorial-product h2,.rated-refined .editorial-team h2{font-size:clamp(1.35rem,2vw,1.8rem);line-height:1.18}
+
+.rated-refined .editorial-group-people{display:block;position:relative;aspect-ratio:1}
+.rated-refined .editorial-group-people img{
+ position:absolute;inset:0 auto auto 0;width:190%;max-width:none;height:auto;transform:translate(-17%,-33%);
+}

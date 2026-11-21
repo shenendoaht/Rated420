@@ -62,20 +62,30 @@
     who.append(roles);
     const reset=btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));});
     reset.className='btn btn-danger';
-    if(complete){
-      const tools=el('details',undefined,{class:'founder-demo-tools'});
-      tools.append(el('summary','Demo settings'),who,el('p','Delivery, imports and approvals are simulated.'),reset);
-      banner.append(tools);
-    }else banner.append(who,reset);
-    const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
+    const nav=el('nav',undefined,{id:'founder-navigation','aria-label':'Founder workspace',class:'gary-nav'});
     const locationLabel=el('p',undefined,{class:'founder-location'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
-    if(complete)banner.prepend(locationLabel);
-    main.append(banner);
-    main.append(nav,notice,body,editor);
+    const toggle=btn('Founder navigation',()=>setNavigation(nav.hidden));
+    const tools=el('details',undefined,{class:'founder-demo-tools'});
+    function setNavigation(open){
+      nav.hidden=!open;
+      toggle.setAttribute('aria-expanded',String(open));
+      if(!open)tools.open=false;
+    }
+    if(complete){
+      toggle.setAttribute('aria-controls',nav.id);
+      tools.append(el('summary','Demo settings'),who,el('p','Delivery, imports and approvals are simulated.'),reset);
+      banner.append(locationLabel,toggle);
+      setNavigation(false);
+      main.addEventListener('keydown',event=>{
+        if(event.key==='Escape'&&!nav.hidden&&!editor.open){
+          setNavigation(false);toggle.focus();
+        }
+      });
+    }else banner.append(who,reset);
+    main.append(banner,nav,notice,body,editor);
     host.append(main);
-    window.Rated420UX?.workspace(nav,body,'Founder');
 
     const trail=[];
     function focusHeading(){
@@ -87,6 +97,7 @@
       if(!id){trail.length=0;query='';order='name';}
       selected=view;detail=id;filter=preset;notice.textContent='';
       if(editor.open)editor.close();
+      if(complete)setNavigation(false);
       render();focusHeading();
     }
     function back(){
@@ -376,9 +387,12 @@
       const pipeline=state.opportunities.filter(row=>!['Completed','Declined','Archived'].includes(row.stage));
       const production=state.production.filter(row=>['Scheduled','In production','Ready'].includes(row.status))
         .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
-      const queue=(title,view,items,description,empty)=>{
-        const panel=card(rows,title);
-        panel.classList.add('ops-queue');
+      const attention=card(rows,'Needs attention');
+      const upcoming=el('details',undefined,{class:'build-card founder-upcoming'});
+      upcoming.append(el('summary','Pipeline and production'));
+      const queue=(parent,title,view,items,description,empty)=>{
+        const panel=el('section',undefined,{class:'founder-queue'});
+        panel.append(el('h4',title));parent.append(panel);
         const list=el('ul',undefined,{class:'ops-list'});
         for(const row of items.slice(0,4)){
           const item=el('li');
@@ -391,10 +405,10 @@
         const open=btn('Open '+names[view],()=>go(view));
         open.className='btn btn-tertiary';panel.append(open);
       };
-      queue('Follow-ups','tasks',taskQueue,row=>[row.due?(row.due<today?'Overdue · ':row.due===today?'Due today · ':'Due ')+row.due:'No due date',row.owner].join(' · '),'No open founder tasks.');
-      queue('Correspondence to review','threads',mail,row=>row.messages.some(message=>message.direction==='Drafts')?'Draft awaiting action':'Latest message received','No drafts or recent incoming threads.');
-      queue('Opportunity pipeline','opportunities',pipeline,row=>[row.stage,row.owner].filter(Boolean).join(' · '),'No open opportunities.');
-      queue('Scheduled production','production',production,row=>[row.status,row.date,row.owner].filter(Boolean).join(' · '),'No scheduled or in-progress projects.');
+      queue(attention,'Follow-ups','tasks',taskQueue,row=>[row.due?(row.due<today?'Overdue · ':row.due===today?'Due today · ':'Due ')+row.due:'No due date',row.owner].join(' · '),'No open founder tasks.');
+      queue(attention,'Correspondence to review','threads',mail,row=>row.messages.some(message=>message.direction==='Drafts')?'Draft awaiting action':'Latest message received','No drafts or recent incoming threads.');
+      queue(upcoming,'Opportunity pipeline','opportunities',pipeline,row=>[row.stage,row.owner].filter(Boolean).join(' · '),'No open opportunities.');
+      queue(upcoming,'Scheduled production','production',production,row=>[row.status,row.date,row.owner].filter(Boolean).join(' · '),'No scheduled or in-progress projects.');
       const approvals=card(rows,'Approvals and import review');
       const catalogue=window.Rated420Catalogue?.read();
       const pending=catalogue?.proposals.filter(row=>row.state==='Pending review').length||0;
@@ -402,6 +416,7 @@
       const intake=state.imports.flatMap(batch=>batch.records).filter(row=>!['Approved','Linked duplicate'].includes(row.status));
       approvals.append(btn(intake.length+' demo intake rows awaiting review',()=>go('integrations')));
       if(pending||intake.length)rows.prepend(approvals);
+      rows.append(upcoming);
       const activity=el('details',undefined,{class:'build-card founder-activity'});
       activity.append(el('summary','Recent activity'));rows.append(activity);
       for(const item of state.activity.slice(0,3))activity.append(el('p',item.text+' · '+item.owner));
@@ -488,34 +503,39 @@
     }
     function render() {
       nav.replaceChildren();
-      const controls=Object.fromEntries(Object.entries(names).map(([view,name])=>{
-        const link=btn(name,()=>{calendar=false;go(view);});
-        link.setAttribute('aria-pressed',String(view===selected));
-        return [view,link];
-      }));
       if(complete&&window.Rated420UX){
         const link=(label,href)=>el('a',label,{href,class:'btn btn-tertiary'});
         const groups=[
-          ['Today',['dashboard','tasks','threads','activity'],[]],
-          ['Relationships',['organizations','contacts','campaigns','opportunities'],[]],
-          ['Intelligence',['products','integrations'],[link('Territory Explorer','#hq/gary/territory'),link('Data Intelligence Center','#hq/intelligence')]],
-          ['Operations',['production','documents'],[link('Financial Command Center','#hq/gary/finance')]]
+          ['Today',[['dashboard',names.dashboard],['tasks',names.tasks],['threads',names.threads],['activity',names.activity]]],
+          ['Relationships',['organizations','contacts','campaigns','opportunities'].map(id=>[id,names[id]])],
+          ['Intelligence',[['products',names.products],['integrations',names.integrations],['#hq/gary/territory','Territory Explorer'],['#hq/intelligence','Data Intelligence Center']]],
+          ['Operations',[['production',names.production],['documents',names.documents],['#hq/gary/finance','Financial Command Center']]]
         ];
-        const current=groups.find(([,views])=>views.includes(selected));
-        locationLabel.textContent=current[0];
-        const chooser=el('select',undefined,{'aria-label':'Founder area'});
-        for(const [label] of groups)chooser.append(el('option',label,{value:label}));
-        chooser.value=current[0];
-        const field=el('label','Browse area',{class:'founder-area'});
-        field.append(chooser);
-        const destinations=el('div',undefined,{class:'founder-destinations'});
-        const draw=()=>{
-          const [,views,links]=groups.find(([name])=>name===chooser.value);
-          destinations.replaceChildren(...views.map(view=>controls[view]),...links);
-        };
-        chooser.addEventListener('change',draw);
-        nav.append(field,destinations,link('Back to Rated420 HQ','#hq'));draw();
-      }else nav.append(...Object.values(controls));
+        const [area]=groups.find(([,destinations])=>destinations.some(([id])=>id===selected));
+        locationLabel.textContent=area;
+        const picker=el('form',undefined,{class:'founder-destination-picker'});
+        const chooser=el('select',undefined,{'aria-label':'Founder destination'});
+        for(const [label,destinations] of groups){
+          const group=el('optgroup',undefined,{label});
+          for(const [id,title] of destinations)group.append(el('option',title,{value:id}));
+          chooser.append(group);
+        }
+        chooser.value=selected;
+        const field=el('label','Go to',{class:'founder-area'});field.append(chooser);
+        picker.append(field,el('button','Open',{type:'submit',class:'btn btn-primary'}));
+        picker.addEventListener('submit',event=>{
+          event.preventDefault();calendar=false;
+          if(chooser.value.startsWith('#'))location.hash=chooser.value;
+          else go(chooser.value);
+        });
+        nav.append(picker,link('Back to Rated420 HQ','#hq'),tools);
+      }else{
+        for(const [view,name] of Object.entries(names)){
+          const control=btn(name,()=>{calendar=false;go(view);});
+          control.setAttribute('aria-pressed',String(view===selected));
+          nav.append(control);
+        }
+      }
       body.replaceChildren(el('h2',names[selected]));
       if(selected==='dashboard'){dashboard(body);return;}
       if(selected==='threads')body.append(el('p','rated420.ny@gmail.com · Local simulated mailbox'));

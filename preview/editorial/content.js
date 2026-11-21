@@ -40,7 +40,11 @@
     const story=el('div');
     story.append(el('h2','The Rated420 story'),el('p',state.story));
     const group=el('figure',null,'editorial-group');
-    group.append(photo(state.group.image,state.group.caption||'Rated420 group photograph','editorial-group-photo','Approved group photograph pending'));
+    const isOriginal=state.group.image==='images/carousel-4.webp';
+    const frame=photo(state.group.image,isOriginal?'Three Rated420 team members being filmed outside Treehouse':state.group.caption||'Rated420 group photograph',
+      'editorial-group-photo','Approved group photograph pending');
+    if(isOriginal)frame.classList.add('editorial-group-people');
+    group.append(frame);
     if(state.group.caption)group.append(el('figcaption',state.group.caption));
     intro.append(story,group);
     const list=el('div',null,'build-grid editorial-team');

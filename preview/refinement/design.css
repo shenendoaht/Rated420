@@ -451,3 +451,21 @@ html.rated-refined {
 .rated-refined .founder-desk .gary-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.55rem;flex-wrap:wrap}
 .rated-refined .founder-location{margin:.4rem 0;color:var(--emerald-ink);font-weight:700}
 .rated-refined #siteShell[data-surface=hq]:has(.founder-desk) #hqTitle{font-size:clamp(1.65rem,5vw,2.85rem);margin-block:.25rem}
+
+.rated-refined .founder-desk .gary-nav[hidden]{display:none}
+.rated-refined .founder-desk .gary-nav{
+ display:flex;align-items:center;gap:.35rem .85rem;flex-wrap:wrap;
+ margin:.4rem 0 .7rem;padding:.6rem;background:var(--surface-deep);border:1px solid var(--edge);border-radius:var(--pill);
+}
+.rated-refined .founder-desk .gary-top{margin-block:.35rem;padding-block:.15rem;align-items:center}
+.rated-refined .founder-destination-picker{display:flex;align-items:end;gap:.45rem;max-width:100%}
+.rated-refined .founder-destination-picker .founder-area{min-width:0;padding:0}
+.rated-refined .founder-destination-picker select{min-height:var(--tap)}
+.rated-refined .founder-desk .ops-board{grid-template-columns:minmax(0,1fr)}
+.rated-refined .founder-queue{margin-top:.35rem}
+.rated-refined .founder-queue+.founder-queue{padding-top:.45rem;border-top:1px solid var(--edge)}
+.rated-refined .founder-queue h4{margin:0}
+@media(min-width:761px){
+ .rated-refined .founder-desk .ops-board{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+ .rated-refined .founder-desk .ops-board>article:first-of-type{grid-row:span 2}
+}
