@@ -31,7 +31,7 @@ const routes=[
  const screenshots=process.env.RATED_SCREENSHOTS_DIR;
  const browser=await chromium.launch({executablePath:process.env.RATED_TEST_CHROME});
  try{
-  for(const width of [320,390,820,1440]){
+  for(const width of [320,375,390,430,820,1440]){
    const context=await browser.newContext({viewport:{width,height:950},reducedMotion:'reduce'});
    const page=await context.newPage();
    page.setDefaultTimeout(8500);

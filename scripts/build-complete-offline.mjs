@@ -24,5 +24,6 @@ for(const [from,to] of [
   ['docs/brand-content.md','BRAND-CONTENT.md'],
   ['docs/catalogue-expansion.md','CATALOGUE.md'],
   ['docs/living-identity.md','VISUAL-SYSTEM.md'],
-  ['docs/hq-operations.md','HQ-OPERATIONS.md']
+  ['docs/hq-operations.md','HQ-OPERATIONS.md'],
+  ['docs/mobile-workspaces.md','MOBILE-WORKSPACES.md']
 ])await cp(path.join(root,from),path.join(target,to));

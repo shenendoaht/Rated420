@@ -54,15 +54,22 @@
   trigger.setAttribute('aria-expanded','false');
   nav.before(trigger);
   let expanded=false;
+  const categories=[...nav.querySelectorAll(':scope > details')];
+  for(const category of categories)category.querySelector('summary').addEventListener('click',()=>{
+    if(!mobile.matches||category.open)return;
+    for(const other of categories)if(other!==category)other.open=false;
+  });
 
   function updatePublic(open=expanded){
     expanded=Boolean(open)&&mobile.matches;
     trigger.hidden=!mobile.matches;
     nav.hidden=mobile.matches&&!expanded;
     trigger.setAttribute('aria-expanded',String(expanded));
+    icon.textContent=expanded?'×':'☰';
+    if(expanded)nav.scrollTop=0;
   }
-  trigger.addEventListener('click',()=>updatePublic(!expanded));
-  mobile.addEventListener('change',()=>updatePublic(false));
+  trigger.addEventListener('click',()=>{if(expanded)closePublic();else updatePublic(true);});
+  mobile.addEventListener('change',closePublic);
   updatePublic();
 
   function closePublic(){
@@ -111,6 +118,21 @@
     controls.open=false;
     preview.replaceWith(controls);body.append(preview);
     const select=document.getElementById('demoReviewer');
+    const banner=document.querySelector('.sandbox-banner');
+    const title=banner?.querySelector('strong')||node('strong','Rated420 development sandbox');
+    title.classList.add('ref-sandbox-label');
+    const text=label.firstChild;
+    const syncToolbar=()=>{
+      if(phone.matches){
+        label.prepend(title);text.textContent='Demo controls';
+        if(banner)banner.hidden=true;
+      }else{
+        if(banner){banner.prepend(title);banner.hidden=false;}
+        else title.remove();
+      }
+    };
+    phone.addEventListener('change',syncToolbar);
+    syncToolbar();
     const option=node('span',null,'ref-demo-role');
     label.append(option);
     const reflectRole=()=>{option.textContent=select.selectedOptions[0]?.textContent||'';};
@@ -125,6 +147,7 @@
   function workspace(nav,content,name){
     const frame=node('div',null,'ref-workspace');
     const pane=node('aside',null,'ref-workspace-pane');
+    nav.classList.add('ref-workspace-nav');
     const inner=node('div',null,'ref-workspace-content');
     const toggle=press(name+' navigation','btn btn-outline ref-workspace-toggle');
     toggle.setAttribute('aria-label',name+' navigation');

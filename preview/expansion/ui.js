@@ -207,7 +207,14 @@
         name.setAttribute('x',r.label[0]);name.setAttribute('y',r.label[1]);
         name.textContent=String(regions.indexOf(r)+1);svg.append(shape,name);
       }
-      const filters=el('div',undefined,'exp-controls territory-regions');
+      const filters=el('div',undefined,'territory-regions');
+      const intelligence=window.Rated420Intelligence;
+      const licensedLocations=intelligence?.official.filter(row=>row.city||row.county||row.region)||[];
+      const regionalCounts={};
+      for(const row of licensedLocations){
+        const key=intelligence.marketRegion(row.region);
+        if(key)regionalCounts[key]=(regionalCounts[key]||0)+1;
+      }
       function choose(id,restoreFocus=false){
         if(region!==id)officialView={};
         region=id;detail='';saveTerritory();report();
@@ -216,12 +223,17 @@
       for(const r of [{id:'',name:'All regions'},...regions]){
         const label=r.id?(regions.indexOf(r)+1)+' · '+r.name:r.name;
         const control=button(label,event=>choose(r.id,event.detail===0));
-        control.setAttribute('aria-pressed',String(region===r.id));filters.append(control);
+        control.setAttribute('aria-pressed',String(region===r.id));
+        if(intelligence){
+          const count=el('span',String(r.id?regionalCounts[r.id]||0:licensedLocations.length),'territory-count');
+          count.setAttribute('aria-hidden','true');
+          control.append(count);
+        }
+        filters.append(control);
       }
       const selected=regions.find(row=>row.id===region);
-      const intelligence=window.Rated420Intelligence;
-      const official=intelligence?.official.filter(row=>(row.city||row.county||row.region)&&(!region||intelligence.marketRegion(row.region)===region));
-      const snapshot=official&&intelligence.summary(official);
+      const official=licensedLocations.filter(row=>!region||intelligence.marketRegion(row.region)===region);
+      const snapshot=intelligence?.summary(official);
       const licenseIds=new Set(official?.map(row=>row.id));
       const context=el('div',undefined,'territory-context');
       context.append(el('h4',selected?.name||'All regions'));
@@ -240,7 +252,11 @@
           licenses?.focus();licenses?.scrollIntoView({block:'start'});
         }));
       }
-      map.append(svg,filters,context);
+      map.classList.add('territory-map');
+      const geography=el('div',undefined,'territory-geography');
+      geography.append(svg);
+      if(intelligence)geography.append(el('p','Region counts use the bundled official license locations. The map is schematic.','territory-legend'));
+      map.append(geography,filters,context);
     }
     content.addEventListener('rated420:prospect-created',()=>territoryProspects?.());
     function render(){

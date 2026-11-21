@@ -52,14 +52,21 @@
     const main=el('section',undefined,{class:'gary-hq'});
     const notice=el('p',undefined,{role:'status',class:'gary-status'});
     const banner=el('div',undefined,{class:'gary-top'});
-    banner.append(el('p','SYNTHETIC PREVIEW · All delivery, imports, documents, and approvals are simulated.',{class:'gary-preview'}));
+    const complete=Boolean(window.RatedComplete);
+    if(complete)main.classList.add('founder-desk');
+    banner.append(el('p',complete?'Founder workspace · synthetic preview':'SYNTHETIC PREVIEW · All delivery, imports, documents, and approvals are simulated.',{class:'gary-preview'}));
     const who=el('label','Acting founder');
     const roles=el('select',undefined,{'aria-label':'Acting founder'});
     for(const name of founders)roles.append(el('option',name,{value:name}));
     roles.addEventListener('change',()=>{owner=roles.value;});
     who.append(roles);
     const reset=btn('Reset founder demo',()=>{if(window.confirm('Reset the synthetic founder workspace?'))void mutate('reset',{},()=>go('dashboard'));});
-    reset.className='btn btn-danger';banner.append(who,reset);
+    reset.className='btn btn-danger';banner.append(who);
+    if(complete){
+      const tools=el('details',undefined,{class:'founder-demo-tools'});
+      tools.append(el('summary','Demo settings'),el('p','Delivery, imports and approvals are simulated.'),reset);
+      banner.append(tools);
+    }else banner.append(reset);
     const nav=el('nav',undefined,{'aria-label':'Founder workspace',class:'gary-nav'});
     const body=el('div',undefined,{class:'gary-body'});
     const editor=el('dialog',undefined,{class:'gary-dialog'});
@@ -366,7 +373,7 @@
       const production=state.production.filter(row=>['Scheduled','In production','Ready'].includes(row.status))
         .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
       const queue=(title,view,items,description,empty)=>{
-        const panel=card(rows,title,items.length+' '+(items.length===1?'record':'records'));
+        const panel=card(rows,title);
         panel.classList.add('ops-queue');
         const list=el('ul',undefined,{class:'ops-list'});
         for(const row of items.slice(0,4)){
@@ -377,7 +384,8 @@
         }
         if(items.length)panel.append(list);
         else panel.append(el('p',empty));
-        panel.append(btn('Open '+names[view],()=>go(view)));
+        const open=btn('Open '+names[view],()=>go(view));
+        open.className='btn btn-tertiary';panel.append(open);
       };
       queue('Follow-ups','tasks',taskQueue,row=>[row.due?(row.due<today?'Overdue · ':row.due===today?'Due today · ':'Due ')+row.due:'No due date',row.owner].join(' · '),'No open founder tasks.');
       queue('Correspondence to review','threads',mail,row=>row.messages.some(message=>message.direction==='Drafts')?'Draft awaiting action':'Latest message received','No drafts or recent incoming threads.');
@@ -389,7 +397,9 @@
       approvals.append(el('a',pending+' catalogue proposals to review',{href:'#hq/catalogue/proposals',class:'btn btn-tertiary'}));
       const intake=state.imports.flatMap(batch=>batch.records).filter(row=>!['Approved','Linked duplicate'].includes(row.status));
       approvals.append(btn(intake.length+' demo intake rows awaiting review',()=>go('integrations')));
-      const activity=card(rows,'Recent activity');
+      if(pending||intake.length)rows.prepend(approvals);
+      const activity=el('details',undefined,{class:'build-card founder-activity'});
+      activity.append(el('summary','Recent activity'));rows.append(activity);
       for(const item of state.activity.slice(0,3))activity.append(el('p',item.text+' · '+item.owner));
       if(!state.activity.length)activity.append(el('p','No workspace changes recorded.'));
       activity.append(btn('Open activity log',()=>go('activity')));

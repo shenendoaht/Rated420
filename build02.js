@@ -442,13 +442,13 @@ window.createBuild02 = function createBuild02({ client, member, page, login, ava
           const exceptions=batches.reduce((count,batch)=>count+batch.skipped,0);
           work.append(link(exceptions+' rejected or skipped import rows','#hq/intelligence/history','btn btn-tertiary'),
             link('OCM snapshot · retrieved '+intelligence.snapshot.retrievedOn,'#hq/intelligence/sources','btn btn-tertiary'));
-          const changes=el('section',undefined,'build-card ops-queue');changes.append(el('h2','Recent changes'),
+          const changes=el('details',undefined,'build-card ops-queue');changes.append(el('summary','Recent changes'),
             el('p',recent?'Last applied import · '+recent.label:'No local imports applied.'));
           for(const item of (catalogue?.history||[]).slice(0,3)){
             const record=catalogue.records.find(row=>row.id===item.target);
             changes.append(el('p',item.action+' · '+(record?.name||item.at.slice(0,10))));
           }
-          content.append(primary,work,changes);
+          content.classList.add('hq-desk');content.append(primary,work,changes);
         }else content.append(primary,work);
         return;
       }
